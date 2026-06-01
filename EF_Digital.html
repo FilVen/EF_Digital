@@ -1,12 +1,3102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EF Digital App</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EF Digital — Educação Física</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --green: #2D6A4F; --green-light: #B7E4C7; --green-mid: #52B788;
+  --blue: #1B4F72; --blue-light: #D6EAF8;
+  --amber: #B7791F; --amber-light: #FDEBD0;
+  --red: #922B21; --red-light: #FADBD8;
+  --bg: #F4F6F4; --surface: #FFFFFF; --surface2: #EEF1EE;
+  --border: #D8DDD8; --border2: #C5CCC5;
+  --text: #1A1F1A; --text2: #4A544A; --text3: #8A968A;
+  --radius: 10px; --radius-sm: 6px; --radius-lg: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+  --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
+  --sidebar-w: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ═══ LAYOUT ═══ */
+.layout { display: flex; min-height: 100vh; }
+
+/* ═══ SIDEBAR ═══ */
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; height: 100vh; z-index: 40;
+  transition: transform .25s ease;
+}
+.sidebar-brand {
+  padding: 20px 18px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-icon {
+  width: 36px; height: 36px; background: var(--green); border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px;
+}
+.brand-name { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.brand-sub { font-size: 11px; color: var(--text3); }
+
+.sidebar-section { padding: 14px 12px 4px; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 8px 12px;
+  margin: 1px 8px; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 13.5px; color: var(--text2); border: none; background: none; width: calc(100% - 16px); text-align: left;
+  transition: background .12s, color .12s;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: #E8F5EE; color: var(--green); font-weight: 500; }
+.nav-item i { font-size: 17px; }
+
+.sidebar-turmas { padding: 10px 12px; border-top: 1px solid var(--border); }
+.sidebar-turmas-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+.turma-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.turma-pill {
+  font-size: 12px; padding: 3px 10px; border-radius: 20px;
+  border: 1px solid var(--border2); cursor: pointer; color: var(--text2); background: none;
+  transition: all .12s; font-family: var(--font);
+}
+.turma-pill:hover { background: var(--surface2); }
+.turma-pill.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+.periodo-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+
+/* ═══ MAIN ═══ */
+.main { flex: 1; margin-left: var(--sidebar-w); display: flex; flex-direction: column; min-height: 100vh; }
+
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 30;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.menu-btn { display: none; background: none; border: none; cursor: pointer; font-size: 22px; color: var(--text2); }
+.topbar-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.topbar-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); font-weight: 500; cursor: pointer; border: none; transition: all .12s; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-primary:hover { background: #245940; }
+.btn-secondary { background: var(--surface); color: var(--text2); border: 1px solid var(--border2); }
+.btn-secondary:hover { background: var(--surface2); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 7px; border-radius: var(--radius-sm); }
+
+.content { padding: 24px; flex: 1; }
+
+/* ═══ PAGES ═══ */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ═══ STATS ═══ */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 500; }
+.stat-value { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ═══ CARDS / TABLE ═══ */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow); }
+.card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--surface2); color: var(--text3); font-weight: 600; font-size: 11px; padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; letter-spacing: .04em; text-transform: uppercase; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #FAFBFA; }
+
+/* ═══ BADGE ═══ */
+.badge { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge-green { background: var(--green-light); color: #1B5E3C; }
+.badge-blue { background: var(--blue-light); color: var(--blue); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+.badge-red { background: var(--red-light); color: var(--red); }
+.badge-gray { background: var(--surface2); color: var(--text3); }
+
+/* ═══ NOTA BADGES ═══ */
+.nota { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 600; }
+.nota-5 { background: var(--green-light); color: #1B5E3C; }
+.nota-4 { background: var(--blue-light); color: var(--blue); }
+.nota-3 { background: var(--amber-light); color: var(--amber); }
+.nota-2, .nota-1 { background: var(--red-light); color: var(--red); }
+
+/* ═══ ALUNOS GRID ═══ */
+.students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.student-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 14px; text-align: center; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s; position: relative;
+}
+.student-card:hover { border-color: var(--green-mid); box-shadow: var(--shadow-md); }
+.student-card.inativo { opacity:.55; border-style:dashed; }
+.status-ribbon { font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-sm); letter-spacing:.04em; text-transform:uppercase; display:inline-block; margin-bottom:4px; }
+.student-avatar {
+  width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;
+  overflow: hidden; background: var(--surface2);
+}
+.student-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.student-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.student-meta { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.student-obs { font-size: 10px; color: var(--amber); margin-bottom: 4px; }
+.student-badge { margin-top: 4px; }
+.risk-dot { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
+/* ═══ SEARCH ═══ */
+.search-bar {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.search-input {
+  flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font);
+  background: var(--surface); color: var(--text); outline: none;
+}
+.search-input:focus { border-color: var(--green-mid); }
+.filter-select { padding: 8px 10px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font); background: var(--surface); color: var(--text); cursor: pointer; }
+
+/* ═══ AULAS ═══ */
+.aulas-list { display: flex; flex-direction: column; gap: 10px; }
+.aula-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start;
+}
+.aula-date { text-align: center; min-width: 48px; }
+.aula-day { font-size: 22px; font-weight: 700; color: var(--green); line-height: 1; font-family: var(--mono); }
+.aula-mon { font-size: 11px; color: var(--text3); text-transform: uppercase; }
+.aula-body { }
+.aula-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.aula-detail { font-size: 12px; color: var(--text3); }
+.aula-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.aula-meta { text-align: right; font-size: 12px; color: var(--text3); white-space: nowrap; }
+
+/* ═══ FITESCOLA ═══ */
+.fit-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.fit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.fit-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.fit-card-icon { font-size: 20px; color: var(--green); }
+.fit-card-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.fit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 12px; }
+.fit-name { color: var(--text2); }
+.fit-val { font-weight: 600; color: var(--text); font-family: var(--mono); }
+.fit-bar-bg { height: 5px; background: var(--surface2); border-radius: 3px; margin-bottom: 8px; }
+.fit-bar { height: 5px; border-radius: 3px; transition: width .4s; }
+
+/* ═══ EXPORTAR ═══ */
+.export-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.export-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 16px; cursor: pointer; transition: border-color .12s, box-shadow .12s;
+}
+.export-card:hover { border-color: var(--green-mid); box-shadow: var(--shadow-md); }
+.export-icon { font-size: 28px; color: var(--green); margin-bottom: 10px; }
+.export-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.export-desc { font-size: 12px; color: var(--text3); line-height: 1.5; }
+.export-fmts { display: flex; gap: 5px; margin-top: 10px; }
+.export-fmt { font-size: 10px; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border2); color: var(--text3); font-weight: 600; letter-spacing: .04em; }
+
+/* ═══ MODAL ═══ */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+.overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: var(--radius-lg); padding: 24px;
+  width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,.18);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text3); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.form-input, .form-select, .form-textarea {
+  padding: 8px 11px; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: var(--font); background: var(--surface); color: var(--text);
+  outline: none; transition: border-color .12s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--green-mid); }
+.form-textarea { resize: vertical; min-height: 70px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* ═══ PRESENÇA ═══ */
+.presenca-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
+.presenca-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; max-height:320px; overflow-y:auto; padding:2px; }
+.presenca-item { display:flex; flex-direction:column; padding:9px 11px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface2); transition:border-color .12s,background .12s; user-select:none; }
+.presenca-item.presente { background:#EDFAF3; border-color:#52B788; }
+.presenca-item.fp  { background:#FDEDEC; border-color:#E74C3C; }
+.presenca-item.fm  { background:#FEF3E7; border-color:#F0A500; }
+.presenca-item.fj  { background:#EBF3FB; border-color:#5DADE2; }
+.presenca-item-top { display:flex; align-items:center; gap:7px; width:100%; margin-bottom:7px; }
+.presenca-name { font-size:13px; color:var(--text); font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.presenca-btns { display:flex; gap:4px; flex-wrap:wrap; }
+.pbtn { border:1.5px solid var(--border2); border-radius:6px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font); transition:all .12s; background:var(--surface); white-space:nowrap; }
+.pbtn:hover { opacity:.85; }
+.pbtn.active-P  { background:#52B788; color:#fff; border-color:#52B788; }
+.pbtn.active-FP { background:#E74C3C; color:#fff; border-color:#E74C3C; }
+.pbtn.active-FM { background:#F0A500; color:#fff; border-color:#F0A500; }
+.pbtn.active-FJ { background:#5DADE2; color:#fff; border-color:#5DADE2; }
+.presenca-obs-wrap { display:none; margin-top:4px; }
+.presenca-item.fj .presenca-obs-wrap { display:block; }
+.presenca-obs-input { font-size:11px; padding:4px 8px; border:1px solid var(--border2); border-radius:5px; width:100%; font-family:var(--font); background:var(--surface); color:var(--text); outline:none; }
+.presenca-obs-input:focus { border-color:#5DADE2; }
+.presenca-status-tag { font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; margin-left:auto; }
+
+/* ═══ TABS ═══ */
+.tabs { display: flex; gap: 3px; background: var(--surface2); padding: 3px; border-radius: var(--radius-sm); width: fit-content; margin-bottom: 16px; }
+.tab-btn { padding: 5px 16px; border-radius: 5px; font-size: 13px; cursor: pointer; color: var(--text2); border: none; background: none; font-family: var(--font); font-weight: 500; }
+.tab-btn.active { background: var(--surface); color: var(--green); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ═══ TOAST ═══ */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff;
+  padding: 11px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+  display: none; z-index: 200; box-shadow: var(--shadow-md);
+  animation: slideUp .2s ease;
+}
+.toast.show { display: flex; align-items: center; gap: 8px; }
+@keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+/* ═══ DRAWER MOBILE ═══ */
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 50; }
+.drawer-overlay.open { display: block; }
+
+/* ═══ INLINE EDIT (presença aula) ═══ */
+.aula-row-presenca { display: none; background: var(--surface2); border-top: 1px solid var(--border); }
+.presenca-inline { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px; }
+.p-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); cursor: pointer; font-family: var(--font); background: #EDFAF3; color: #1B5E3C; transition: all .1s; }
+.p-chip.falta { background: var(--red-light); color: var(--red); border-color: #E8A09B; }
+
+/* ═══ PERIODO AVALIAÇÃO ═══ */
+.periodo-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.periodo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.periodo-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.periodo-avg { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--green); }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-btn { display: block; }
+  .content { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.full { grid-column: 1; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .presenca-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .students-grid { grid-template-columns: repeat(2, 1fr); }
+  .export-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
+.empty-state i { font-size: 40px; margin-bottom: 12px; display: block; }
+.empty-state p { font-size: 14px; }
+
+/* ═══ HORÁRIO ═══ */
+.hor-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.hor-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.hor-leg-dot{width:12px;height:12px;border-radius:3px;}
+.cal-feriado{background:#FADBD8;color:#7B241C;font-size:10px;padding:1px 4px;border-radius:3px;font-weight:600;}
+.feriado-block{position:absolute;top:0;left:0;right:0;bottom:0;background:#FEF5F5;display:flex;align-items:center;justify-content:center;font-size:9px;color:#7B241C;font-weight:600;z-index:1;}
+/* ═══ CALENDÁRIO ═══ */
+.horario-grid{display:grid;grid-template-columns:auto repeat(6,1fr);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);margin-bottom:16px;font-size:12px;}
+.hor-corner{background:var(--surface2);padding:10px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.hor-day{background:var(--surface2);padding:10px 6px;text-align:center;font-weight:700;font-size:11px;color:var(--text2);border-right:1px solid var(--border);border-bottom:1px solid var(--border);letter-spacing:.04em;}
+.hor-time{padding:8px 10px;font-size:11px;color:var(--text3);border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2);font-family:var(--mono);}
+.hor-cell{padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:40px;cursor:pointer;transition:background .1s;position:relative;}
+.hor-cell:hover{background:var(--surface2);}
+.hor-cell:last-child{border-right:none;}
+.hor-block{border-radius:5px;padding:5px 7px;font-size:11px;font-weight:600;line-height:1.3;cursor:pointer;}
+.hor-block:hover{opacity:.85;}
+.hor-empty{color:var(--text3);font-size:10px;text-align:center;padding-top:8px;}
+
+/* ═══ CALENDÁRIO ═══ */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.cal-nav{display:flex;align-items:center;gap:8px;}
+.cal-nav-btn{background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:16px;color:var(--text2);}
+.cal-nav-btn:hover{background:var(--surface2);}
+.cal-month-label{font-size:17px;font-weight:700;color:var(--text);min-width:160px;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:6px 0;text-transform:uppercase;letter-spacing:.06em;}
+.cal-day{min-height:72px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 5px;cursor:pointer;transition:border-color .12s;background:var(--surface);}
+.cal-day:hover{border-color:var(--green-mid);}
+.cal-day.today{border-color:var(--green);background:#F0FAF5;}
+.cal-day.other-month{background:var(--surface2);opacity:.5;}
+.cal-day.selected{border-color:var(--green);border-width:2px;}
+.cal-day-num{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px;}
+.cal-day.today .cal-day-num{color:var(--green);}
+.cal-event{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;cursor:pointer;}
+.cal-event:hover{opacity:.8;}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.cal-leg-dot{width:10px;height:10px;border-radius:3px;}
+.cal-detail{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.cal-detail-title{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text);}
+.cal-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+/* ═══ VISIBILIDADE getTURMAS() ═══ */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:20px;}
+.turma-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;}
+.turma-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.10);border-color:var(--green-mid);}
+.turma-card-header{padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between;}
+.turma-card-name{font-size:22px;font-weight:700;color:#fff;}
+.turma-card-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px;}
+.turma-card-badge{background:rgba(255,255,255,.2);color:#fff;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;}
+.turma-card-body{padding:14px 18px;}
+.turma-mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.turma-mini-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;}
+.turma-mini-label{font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500;}
+.turma-mini-value{font-size:18px;font-weight:700;color:var(--text);}
+.turma-mini-sub{font-size:10px;color:var(--text3);}
+.turma-bar-wrap{margin-top:4px;}
+.turma-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:3px;}
+.turma-bar-bg{height:6px;background:var(--surface2);border-radius:3px;}
+.turma-bar-fill{height:6px;border-radius:3px;transition:width .4s;}
+.turma-risk-list{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.turma-risk-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.risk-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--red-light);color:var(--red);margin:2px;}
+
+/* Comparar */
+.compare-table-wrap{overflow-x:auto;}
+.compare-table{width:100%;border-collapse:collapse;font-size:13px;}
+.compare-table th{padding:10px 14px;text-align:left;border-bottom:2px solid var(--border);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.compare-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.compare-table tr:last-child td{border-bottom:none;}
+.compare-table tr:hover td{background:var(--surface2);}
+.compare-turma-name{font-size:16px;font-weight:700;}
+.rank-1{color:var(--green);} .rank-2{color:var(--blue);} .rank-3{color:var(--amber);}
+.mini-bar{display:inline-block;height:8px;border-radius:4px;vertical-align:middle;margin-left:6px;}
+
+/* Ficha */
+.ficha-select-row{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+.ficha-turma-sel{font-size:14px;font-weight:600;padding:7px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:var(--font);cursor:pointer;}
+.ficha-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.ficha-section-hdr{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.ficha-section-icon{width:30px;height:30px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.ficha-section-title{font-size:13px;font-weight:700;color:var(--text);}
+.ficha-section-body{padding:14px 16px;}
+.aluno-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+.aluno-row:last-child{border-bottom:none;}
+.aluno-row-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.aluno-row-name{flex:1;font-size:13px;font-weight:500;color:var(--text);}
+.aluno-row-meta{font-size:11px;color:var(--text3);}
+.aluno-row-right{text-align:right;}
+.gauge-wrap{display:flex;flex-direction:column;gap:8px;}
+.gauge-item{display:flex;align-items:center;gap:10px;}
+.gauge-label{font-size:12px;color:var(--text2);width:120px;flex-shrink:0;}
+.gauge-bar-bg{flex:1;height:8px;background:var(--surface2);border-radius:4px;}
+.gauge-bar-fill{height:8px;border-radius:4px;}
+.gauge-val{font-size:12px;font-weight:600;color:var(--text);width:36px;text-align:right;font-family:var(--mono);}
+.modal-dist{display:flex;flex-wrap:wrap;gap:8px;}
+.modal-dist-item{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;text-align:center;}
+.modal-dist-name{font-size:11px;color:var(--text3);margin-bottom:3px;}
+.modal-dist-nota{font-size:20px;font-weight:700;color:var(--text);}
+/* ═══ IMPORTAR EXCEL ═══ */
+.imp-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:32px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);margin-bottom:16px;}
+.imp-zone:hover,.imp-zone.drag{border-color:var(--green-mid);background:var(--green-light);}
+.imp-zone i{font-size:40px;color:var(--green-mid);display:block;margin-bottom:10px;}
+.imp-zone-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.imp-zone-sub{font-size:12px;color:var(--text3);}
+.imp-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.imp-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:flex-start;gap:10px;}
+.imp-step-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.imp-step-text{font-size:12px;color:var(--text2);line-height:1.5;}
+.imp-step-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.val-result{border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+.val-header{padding:12px 16px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;}
+.val-body{padding:14px 16px;background:var(--surface);}
+.val-ok{background:#EBF7F1;color:#1A5C3A;}
+.val-err{background:#FDEDEC;color:#7B241C;}
+.val-warn{background:#FEF6EE;color:#7D4E00;}
+.val-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);}
+.val-row:last-child{border-bottom:none;}
+.val-tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.val-tag-err{background:#FADBD8;color:#7B241C;}
+.val-tag-warn{background:#FDEBD0;color:#7D4E00;}
+.val-tag-ok{background:#D5F5E3;color:#1E8449;}
+.imp-preview{font-size:12px;}
+.imp-preview table{width:100%;border-collapse:collapse;font-size:11px;}
+.imp-preview th{background:var(--surface2);padding:6px 10px;text-align:left;border:1px solid var(--border);font-weight:600;color:var(--text3);}
+.imp-preview td{padding:6px 10px;border:1px solid var(--border);color:var(--text);}
+.imp-preview tr:hover td{background:var(--surface2);}
+.imp-sheet-tabs{display:flex;gap:3px;margin-bottom:12px;flex-wrap:wrap;}
+.imp-sheet-tab{padding:5px 14px;border-radius:5px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:var(--font);}
+.imp-sheet-tab.active{background:var(--green);color:#fff;border-color:var(--green);}
+.imp-counter{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--green);}
+.imp-progress{height:6px;background:var(--surface2);border-radius:3px;margin:8px 0;}
+.imp-progress-bar{height:6px;border-radius:3px;background:var(--green-mid);transition:width .4s;}
+/* ═══ PLANIFICAÇÃO ═══ */
+.plan-tabs{display:flex;gap:3px;background:var(--surface2);padding:3px;border-radius:var(--radius-sm);width:fit-content;margin-bottom:16px;}
+.plan-tab{padding:5px 18px;border-radius:5px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-family:var(--font);font-weight:500;transition:all .12s;}
+.plan-tab.active{background:var(--surface);color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.sport-nav-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.sport-nav-pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text2);font-family:var(--font);transition:all .12s;}
+.sport-nav-pill:hover{background:var(--surface2);}
+.sport-nav-pill.active{background:var(--green);color:#fff;border-color:var(--green);}
+.plan-sport{display:none;}
+.plan-sport.active{display:block;}
+.plan-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.plan-block-hdr{padding:11px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);}
+.plan-block-icon{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.plan-block-title{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.plan-block-body{padding:13px 16px;}
+.plan-pills{display:flex;flex-wrap:wrap;gap:7px;}
+.plan-pill{padding:4px 11px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:500;}
+.plan-pill-blue{background:#EBF3FB;color:#1B4F72;}
+.plan-pill-amber{background:#FEF6EE;color:#A0522D;}
+.plan-prova{background:#EBF7F1;border:1px solid #B7E4C7;border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:#2D6A4F;font-weight:500;line-height:1.6;margin-bottom:8px;}
+.plan-indicadores{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.plan-indicadores li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);}
+.plan-indicadores li::before{content:"→";color:var(--green);font-weight:700;flex-shrink:0;}
+.plan-multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;}
+.plan-mini{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;}
+.plan-mini-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:5px;}
+.plan-mini-item{font-size:12px;color:var(--text2);padding:2px 0;}
+.plan-cycle-section{display:none;}
+.plan-cycle-section.active{display:block;}
+/* ═══ IMPORT/EXPORT DATA ═══ */
+.data-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ═══ LOGIN ═══ */
+#loginScreen{position:fixed;inset:0;z-index:1000;background:#152515;display:flex;align-items:center;justify-content:center;}
+.login-card{background:#fff;border-radius:16px;padding:36px 40px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.4);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo-icon{width:56px;height:56px;background:var(--green);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin-bottom:10px;}
+.login-title{font-size:22px;font-weight:700;color:#152515;margin-bottom:3px;}
+.login-sub{font-size:13px;color:#6B8A6B;}
+.login-field{margin-bottom:14px;}
+.login-label{font-size:12px;font-weight:600;color:#3A5A3A;margin-bottom:5px;display:block;}
+.login-input{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font);outline:none;box-sizing:border-box;transition:border-color .15s;}
+.login-input:focus{border-color:var(--green);}
+.login-btn{width:100%;padding:11px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-top:6px;transition:background .15s;}
+.login-btn:hover{background:#1A5C3A;}
+.login-btn:disabled{background:#8AA68A;cursor:not-allowed;}
+.login-err{color:#B71C1C;font-size:12px;margin-top:8px;text-align:center;min-height:18px;}
+.login-toggle{text-align:center;margin-top:16px;font-size:13px;color:#6B8A6B;}
+.login-toggle a{color:var(--green);cursor:pointer;font-weight:600;}
+#savingIndicator{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;align-items:center;gap:6px;z-index:500;}
+</style>
 </head>
 <body>
-    <h1>EF Digital App</h1>
-    <p>Welcome to the EF Digital application.</p>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="loginScreen" style="position:fixed;inset:0;z-index:1000;background:#152515;display:flex;align-items:center;justify-content:center;">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon"><i class="ti ti-run"></i></div>
+      <div class="login-title">EF Digital</div>
+      <div class="login-sub">Educação Física · 2024/25</div>
+    </div>
+    <div id="loginFormDiv">
+      <div class="login-field"><label class="login-label">Email</label>
+        <input class="login-input" type="email" id="loginEmail" placeholder="professor@escola.pt" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="login-field"><label class="login-label">Password</label>
+        <input class="login-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+      <div class="login-err" id="loginErr"></div>
+      <div class="login-toggle">Sem conta? <a onclick="showRegister()">Registar</a></div>
+      <div style="margin-top:12px;text-align:center;border-top:1px solid #e0e0e0;padding-top:12px">
+        <a onclick="useOfflineMode()" style="color:#8A968A;font-size:12px;cursor:pointer">Continuar sem conta (modo offline)</a>
+      </div>
+    </div>
+    <div id="registerFormDiv" style="display:none">
+      <div class="login-field"><label class="login-label">Nome</label>
+        <input class="login-input" type="text" id="regNome" placeholder="Nome do professor(a)"></div>
+      <div class="login-field"><label class="login-label">Email</label>
+        <input class="login-input" type="email" id="regEmail" placeholder="professor@escola.pt"></div>
+      <div class="login-field"><label class="login-label">Password (mín. 6 car.)</label>
+        <input class="login-input" type="password" id="regPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doRegister()"></div>
+      <button class="login-btn" id="regBtn" onclick="doRegister()">Criar conta</button>
+      <div class="login-err" id="regErr"></div>
+      <div class="login-toggle">Já tens conta? <a onclick="showLogin()">Entrar</a></div>
+    </div>
+  </div>
+</div>
+<div id="savingIndicator" style="position:fixed;bottom:20px;right:20px;background:#2D6A4F;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;display:none;align-items:center;gap:6px;z-index:500;"><i class="ti ti-cloud-upload"></i> A guardar...</div>
+
+
+<!-- SIDEBAR -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="ti ti-run"></i></div>
+    <div style="flex:1">
+      <div class="brand-name">EF Digital</div>
+      <div class="brand-sub" id="sidebarUserEmail">2º Ciclo</div>
+    </div>
+    <button onclick="doLogout()" title="Sair" style="background:none;border:none;cursor:pointer;color:#8AA68A;font-size:16px;padding:2px"><i class="ti ti-logout"></i></button>
+  </div>
+
+  <div style="padding:8px 0;flex:1;overflow-y:auto;">
+    <div class="sidebar-section">Turma</div>
+    <button class="nav-item active" onclick="showPage('alunos',this)"><i class="ti ti-users"></i>Alunos</button>
+    <button class="nav-item" onclick="showPage('aulas',this)"><i class="ti ti-clipboard-list"></i>Aulas</button>
+    <button class="nav-item" onclick="showPage('faltas',this)"><i class="ti ti-calendar-x"></i>Faltas</button>
+
+    <div class="sidebar-section">Avaliação</div>
+    <button class="nav-item" onclick="showPage('fitescola',this)"><i class="ti ti-heart-rate-monitor"></i>FITescola</button>
+    <button class="nav-item" onclick="showPage('modalidades',this)"><i class="ti ti-ball-football"></i>Modalidades</button>
+    <button class="nav-item" onclick="showPage('periodos',this)"><i class="ti ti-chart-bar"></i>Períodos</button>
+
+    <div class="sidebar-section">Planeamento</div>
+    <button class="nav-item" onclick="showPage('horario',this)"><i class="ti ti-clock"></i>Horário</button>
+    <button class="nav-item" onclick="showPage('calendario',this)"><i class="ti ti-calendar"></i>Calendário</button>
+    <div class="sidebar-section">Visibilidade</div>
+    <button class="nav-item" onclick="showPage('turmas-dashboard',this)"><i class="ti ti-layout-dashboard"></i>Dashboard turmas</button>
+    <button class="nav-item" onclick="showPage('turmas-comparar',this)"><i class="ti ti-columns"></i>Comparar turmas</button>
+    <button class="nav-item" onclick="showPage('turmas-ficha',this)"><i class="ti ti-report"></i>Ficha de turma</button>
+    <div class="sidebar-section">Dados</div>
+    <button class="nav-item" onclick="showPage('planificacao',this)"><i class="ti ti-book-2"></i>Planificação</button>
+    <button class="nav-item" onclick="showPage('importar-excel',this)"><i class="ti ti-table-import"></i>Importar Excel</button>
+    <button class="nav-item" onclick="showPage('exportar',this)"><i class="ti ti-download"></i>Exportar</button>
+  </div>
+
+  <div class="sidebar-turmas">
+    <div class="sidebar-turmas-label" style="display:flex;align-items:center;justify-content:space-between">Turma activa
+      <button onclick="openModal('mgturmas')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0" title="Gerir turmas"><i class="ti ti-settings"></i></button>
+    </div>
+    <div class="turma-pills" id="turmaPills"></div>
+    <div class="sidebar-turmas-label" style="margin-top:10px">Período</div>
+    <div class="periodo-pills" id="periodoPills"></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="layout">
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+      <div>
+        <div class="topbar-title" id="topbarTitle">Alunos</div>
+        <div class="topbar-sub" id="topbarSub">5ºA · 1º Período</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')" title="Importar dados"><i class="ti ti-upload"></i><span class="hide-sm">Importar</span></button>
+      <button class="btn btn-primary btn-sm" id="topbarAddBtn" onclick="openModal('modalAluno', true)"><i class="ti ti-plus"></i><span class="hide-sm">Novo aluno</span></button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══ ALUNOS ═══ -->
+    <div class="page active" id="page-alunos">
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="🔍  Pesquisar aluno..." id="searchInput" oninput="filterAlunos()">
+        <select class="filter-select" id="filterGenre" onchange="filterAlunos()">
+          <option value="">Todos</option><option value="M">Masculino</option><option value="F">Feminino</option>
+        </select>
+        <select class="filter-select" id="filterStatus" onchange="filterAlunos()">
+          <option value="ativo">Activos</option><option value="todos">Todos</option>
+          <option value="transferido">Transferidos</option><option value="anulado">Anulados</option>
+        </select>
+      </div>
+      <div class="students-grid" id="studentsGrid"></div>
+    </div>
+
+    <!-- ═══ AULAS ═══ -->
+    <div class="page" id="page-aulas">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalAula')"><i class="ti ti-plus"></i>Registar aula</button>
+      </div>
+      <div class="aulas-list" id="aulasList"></div>
+    </div>
+
+    <!-- ═══ FALTAS ═══ -->
+    <div class="page" id="page-faltas">
+      <div class="stats-grid" id="faltasStats"></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Registo de presenças</span>
+          <span class="badge badge-gray" id="faltasPeriodoBadge"></span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aluno</th><th>Nº</th><th>FP</th><th>FM</th><th>FJ</th><th>Presenças</th><th>%</th><th>Estado</th></tr></thead>
+          <tbody id="faltasBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ FITESCOLA ═══ -->
+    <div class="page" id="page-fitescola">
+      <div class="stats-grid" id="fitStats"></div>
+      <div class="fit-cards" id="fitCards"></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Resultados por aluno</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="openModal('modalFit')"><i class="ti ti-plus"></i>Registar</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportFit()"><i class="ti ti-download"></i>Exportar</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aluno</th><th>Género</th><th>Idade</th><th>Vaivém<br><span style="font-weight:400;color:var(--text3)">perc.</span></th><th>Abdominais<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Flex. Braços<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Imp. Horizontal<br><span style="font-weight:400;color:var(--text3)">cm (melhor)</span></th><th>Zona</th><th>Data</th></tr></thead>
+          <tbody id="fitBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ MODALIDADES ═══ -->
+    <div class="page" id="page-modalidades">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalNota')"><i class="ti ti-plus"></i>Registar nota</button>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;" id="sportFilter"></div>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aluno</th><th>Modalidade</th><th>Nota</th><th>Habilidades</th><th>Regras/Cultura</th><th>Atitudes</th><th>Obs.</th></tr></thead>
+          <tbody id="modalidadesBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ PERÍODOS ═══ -->
+    <div class="page" id="page-periodos">
+      <div class="tabs" id="periodoTabs"></div>
+      <div class="stats-grid" id="periodosStats"></div>
+      <div class="periodo-compare" id="periodoCompare"></div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="periodoTableTitle">Pauta — 1º Período</span>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modalAvaliacao')"><i class="ti ti-pencil"></i>Lançar nota</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aluno</th><th>FITescola</th><th>Modalidades</th><th>Atitudes</th><th>Nota Final</th><th>Menção</th><th>Evolução</th></tr></thead>
+          <tbody id="periodosBody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+
+    <!-- ═══ HORÁRIO ═══ -->
+    <div class="page" id="page-horario">
+      <div class="page-header">
+        <div class="page-title-text" id="title-horario">Horário semanal</div>
+        <div class="hdr-actions">
+          <button class="btn btn-primary btn-sm" onclick="openModal('modalHorario')"><i class="ti ti-plus"></i>Adicionar aula</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:12px;color:var(--text3);margin-right:4px">Ver:</span>
+        <button class="btn btn-primary btn-sm active" id="horViewAll" onclick="setHorView('all',this)"><i class="ti ti-layout-grid"></i>Todas as turmas</button>
+        <button class="btn btn-secondary btn-sm" id="horViewSingle" onclick="setHorView('single',this)"><i class="ti ti-user"></i>Turma activa</button>
+      </div>
+      <div class="horario-grid" id="horarioGrid"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title" id="horListTitle">Todas as aulas</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Turma</th><th>Dia</th><th>Hora início</th><th>Hora fim</th><th>Duração</th><th>Modalidade</th><th>Local</th><th></th></tr></thead>
+          <tbody id="horarioList"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ CALENDÁRIO ═══ -->
+    <div class="page" id="page-calendario">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calNav(-1)">&#8249;</button>
+          <div class="cal-month-label" id="calMonthLabel"></div>
+          <button class="cal-nav-btn" onclick="calNav(1)">&#8250;</button>
+        </div>
+        <div class="cal-filter-row">
+          <select class="filter-select" id="calTurmaFilter" onchange="renderCalendario()">
+            <option value="">Todas as turmas</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="calGoToday()"><i class="ti ti-calendar"></i>Hoje</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modalAulaPlaneada')"><i class="ti ti-plus"></i>Planear aula</button>
+        </div>
+      </div>
+      <div class="cal-legend">
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#2D7A52"></div>Aula registada</div>
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1B4F72"></div>Aula planeada</div>
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#B7770D"></div>Aula c/ faltas</div>
+        <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#7B241C"></div>Horário semanal</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div id="calDayDetail" style="display:none"></div>
+    </div>
+
+
+    <!-- ═══ DASHBOARD getTURMAS() ═══ -->
+    <div class="page" id="page-turmas-dashboard">
+      <div class="stats-grid" id="dash-global-stats"></div>
+      <div class="dash-grid" id="dash-turmas-grid"></div>
+    </div>
+
+    <!-- ═══ COMPARAR getTURMAS() ═══ -->
+    <div class="page" id="page-turmas-comparar">
+      <div class="compare-table-wrap">
+        <table class="compare-table" id="compare-table">
+          <thead id="compare-thead"></thead>
+          <tbody id="compare-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ FICHA DE TURMA ═══ -->
+    <div class="page" id="page-turmas-ficha">
+      <div class="ficha-select-row">
+        <select class="ficha-turma-sel" id="fichaTurmaSelect" onchange="renderTurmasFicha()">
+        </select>
+        <select class="ficha-turma-sel" id="fichaPeriodoSelect" onchange="renderTurmasFicha()">
+          <option value="1">1º Período</option><option value="2">2º Período</option><option value="3">3º Período</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="exportFichaTurma()"><i class="ti ti-download"></i>Exportar ficha</button>
+      </div>
+      <div id="fichaContent"></div>
+    </div>
+
+
+    <!-- ═══ IMPORTAR EXCEL ═══ -->
+    <div class="page" id="page-importar-excel">
+      <div class="imp-steps">
+        <div class="imp-step">
+          <div class="imp-step-num">1</div>
+          <div><div class="imp-step-title">Descarrega o modelo</div><div class="imp-step-text">Usa o ficheiro Excel fornecido com as folhas: ALUNOS, FALTAS, FITESCOLA e MODALIDADES.</div></div>
+        </div>
+        <div class="imp-step">
+          <div class="imp-step-num">2</div>
+          <div><div class="imp-step-title">Preenche os dados</div><div class="imp-step-text">Segue os cabeçalhos e as validações do Excel. Campos a 🔴 são obrigatórios.</div></div>
+        </div>
+        <div class="imp-step">
+          <div class="imp-step-num">3</div>
+          <div><div class="imp-step-title">Importa aqui</div><div class="imp-step-text">Arrasta o ficheiro ou clica para selecionar. A app valida e mostra erros antes de importar.</div></div>
+        </div>
+        <div class="imp-step">
+          <div class="imp-step-num">4</div>
+          <div><div class="imp-step-title">Confirma</div><div class="imp-step-text">Revê o resumo de dados encontrados e clica "Importar" para guardar.</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="downloadModeloExcel()"><i class="ti ti-download"></i>Descarregar modelo Excel</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadModeloCSV()"><i class="ti ti-file-text"></i>Descarregar modelo CSV</button>
+      </div>
+
+      <div class="imp-zone" id="impZone"
+           onclick="document.getElementById('impFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <i class="ti ti-table-import"></i>
+        <div class="imp-zone-title">Arrasta o ficheiro Excel aqui</div>
+        <div class="imp-zone-sub">ou clica para selecionar · .xlsx</div>
+        <input type="file" id="impFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+
+      <div id="impValidationArea" style="display:none">
+        <div id="impSheetTabs" class="imp-sheet-tabs"></div>
+        <div id="impValidationResults"></div>
+        <div id="impPreview" class="imp-preview"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;" id="impActions">
+          <button class="btn btn-primary" id="btnImportar" onclick="confirmarImportacao()"><i class="ti ti-database-import"></i>Importar dados validados</button>
+          <button class="btn btn-secondary" onclick="resetImport()"><i class="ti ti-x"></i>Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══ PLANIFICAÇÃO ═══ -->
+    <div class="page" id="page-planificacao">
+      <div class="plan-tabs">
+        <button class="plan-tab active" onclick="switchPlanCycle('c2',this)">2º Ciclo</button>
+        <button class="plan-tab" onclick="switchPlanCycle('c3',this)">3º Ciclo</button>
+      </div>
+      <div class="plan-cycle-section active" id="plan-c2">
+        <div class="sport-nav-pills" id="plan-pills-c2"></div>
+        <div id="plan-sports-c2"></div>
+      </div>
+      <div class="plan-cycle-section" id="plan-c3">
+        <div class="sport-nav-pills" id="plan-pills-c3"></div>
+        <div id="plan-sports-c3"></div>
+      </div>
+    </div>
+
+    <!-- ═══ EXPORTAR ═══ -->
+    <div class="page" id="page-exportar">
+      <div class="data-actions">
+        <button class="btn btn-secondary btn-sm" onclick="exportarBackup()"><i class="ti ti-database-export"></i>Backup completo (JSON)</button>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')"><i class="ti ti-database-import"></i>Restaurar backup</button>
+      </div>
+      <div class="export-grid">
+        <div class="export-card" onclick="exportAlunos()">
+          <div class="export-icon"><i class="ti ti-users"></i></div>
+          <div class="export-title">Lista de alunos</div>
+          <div class="export-desc">Nome, número, turma, género e observações de saúde de todos os alunos</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span><span class="export-fmt">CSV</span></div>
+        </div>
+        <div class="export-card" onclick="exportFaltas()">
+          <div class="export-icon"><i class="ti ti-calendar-x"></i></div>
+          <div class="export-title">Registo de faltas</div>
+          <div class="export-desc">Faltas por aluno e por período letivo com percentagem de presença</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+        <div class="export-card" onclick="exportAulas()">
+          <div class="export-icon"><i class="ti ti-clipboard-list"></i></div>
+          <div class="export-title">Registo de aulas</div>
+          <div class="export-desc">Data, modalidade, objetivos, presenças e observações de cada aula</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+        <div class="export-card" onclick="exportFit()">
+          <div class="export-icon"><i class="ti ti-heart-rate-monitor"></i></div>
+          <div class="export-title">FITescola</div>
+          <div class="export-desc">Resultados de cada prova por aluno e indicação da zona saudável</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+        <div class="export-card" onclick="exportModalidades()">
+          <div class="export-icon"><i class="ti ti-ball-football"></i></div>
+          <div class="export-title">Notas de modalidades</div>
+          <div class="export-desc">Notas de habilidades, regras/cultura e atitudes por modalidade</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+        <div class="export-card" onclick="exportPauta()">
+          <div class="export-icon"><i class="ti ti-file-spreadsheet"></i></div>
+          <div class="export-title">Pauta de avaliação</div>
+          <div class="export-desc">Notas finais dos 3 períodos, menções e evolução de cada aluno</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+        <div class="export-card" onclick="exportTudoXlsx()">
+          <div class="export-icon"><i class="ti ti-table-export"></i></div>
+          <div class="export-title">Relatório completo</div>
+          <div class="export-desc">Todos os dados da turma num único ficheiro Excel com múltiplas folhas</div>
+          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ═══ MODAL NOVO ALUNO ═══ -->
+<div class="overlay" id="modalAluno" onclick="if(event.target===this)closeModal('modalAluno')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalAlunoTitle">Novo aluno</span>
+      <button class="modal-close" onclick="closeModal('modalAluno')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nome completo *</label><input class="form-input" id="aNome" placeholder="Nome completo do aluno"></div>
+      <div class="form-group"><label class="form-label">Nº de aluno *</label><input class="form-input" id="aNum" placeholder="Ex: 2301"></div>
+      <div class="form-group"><label class="form-label">Data de nascimento</label><input class="form-input" type="date" id="aNasc"></div>
+      <div class="form-group"><label class="form-label">Género</label>
+        <select class="form-select" id="aGenre"><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Turma</label>
+        <select class="form-select" id="aTurma"></select>
+      </div>
+      <div class="form-group full"><label class="form-label">Foto (URL ou deixar vazio)</label><input class="form-input" id="aFoto" placeholder="https://..."></div>
+      <div class="form-group full"><label class="form-label">Observações de saúde / dispensa</label><textarea class="form-textarea" id="aObs" placeholder="Ex: asma leve, dispensa de natação..."></textarea></div>
+      <div class="form-group"><label class="form-label">Estado do aluno</label>
+        <select class="form-select" id="aStatus" onchange="document.getElementById('aStatusObsGroup').style.display=this.value==='ativo'?'none':'flex'">
+          <option value="ativo">Activo</option><option value="transferido">Transferido</option><option value="anulado">Anulou matrícula</option>
+        </select>
+      </div>
+      <div class="form-group" id="aStatusObsGroup" style="display:none"><label class="form-label">Motivo / Data</label>
+        <input class="form-input" id="aStatusObs" placeholder="Ex: Transferido para Escola X em Out 2025">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAluno')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAluno()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL REGISTAR AULA ═══ -->
+<div class="overlay" id="modalAula" onclick="if(event.target===this)closeModal('modalAula')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Registar aula</span>
+      <button class="modal-close" onclick="closeModal('modalAula')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Data *</label><input class="form-input" type="date" id="auData"></div>
+      <div class="form-group"><label class="form-label">Duração (min)</label><input class="form-input" type="number" id="auDur" value="50" min="30" max="120"></div>
+      <div class="form-group"><label class="form-label">Unidade / Modalidade *</label>
+        <select class="form-select" id="auModal">
+          <option>Futebol</option><option>Basquetebol</option><option>Voleibol</option><option>Atletismo</option>
+          <option>Ginástica Acrobática</option><option>Ginástica de Solo</option><option>Tag Rugby</option>
+          <option>Dança</option><option>FITescola</option><option>Natação</option><option>Outra</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de aula</label>
+        <select class="form-select" id="auTipo">
+          <option value="intro">Introdução</option><option value="exerc">Exercitação</option>
+          <option value="consol">Consolidação</option><option value="aval">Avaliação</option><option value="fit">FITescola</option>
+        </select>
+      </div>
+      <div class="form-group full"><label class="form-label">Objetivos da aula</label><input class="form-input" id="auObj" placeholder="Ex: passe e receção, drible, lançamento..."></div>
+      <div class="form-group full"><label class="form-label">Observações</label><input class="form-input" id="auObs" placeholder="Notas gerais..."></div>
+    </div>
+    <div style="margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--text2);">Presenças — seleciona o estado de cada aluno</div>
+    <div class="presenca-grid" id="presencaGrid"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAula')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAula()"><i class="ti ti-check"></i>Guardar aula</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL FITESCOLA ═══ -->
+<div class="overlay" id="modalFit" onclick="if(event.target===this)closeModal('modalFit')">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <span class="modal-title">Registar FITescola</span>
+      <button class="modal-close" onclick="closeModal('modalFit')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Aluno *</label>
+        <select class="form-select" id="fitAluno" onchange="updateFitRef()"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Data da avaliação</label>
+        <input class="form-input" type="date" id="fitData"></div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <div id="fitRefBox" style="font-size:11px;color:var(--text3);padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);width:100%;line-height:1.6"></div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:12px 0 10px;padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">APTIDÃO AERÓBIA</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">🏃 Vaivém — percursos <span id="fitVaivemRef" style="color:var(--green);font-size:10px"></span></label>
+          <input class="form-input" type="number" id="fitVaivem" placeholder="Nº de percursos" min="0" max="120" oninput="updateFitZona()">
+        </div>
+        <div class="form-group"></div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin:4px 0 10px;padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">APTIDÃO NEUROMUSCULAR</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">🤸 Abdominais — reps <span id="fitAbdRef" style="color:var(--green);font-size:10px"></span></label>
+          <input class="form-input" type="number" id="fitAbd" placeholder="Nº repetições" min="0" max="75" oninput="updateFitZona()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">💪 Flexões de Braços — reps <span id="fitBracosRef" style="color:var(--green);font-size:10px"></span></label>
+          <input class="form-input" type="number" id="fitBracos" placeholder="Nº repetições" min="0" oninput="updateFitZona()">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">⬆️ Impulsão Horizontal — 3 tentativas (cm) <span id="fitImpRef" style="color:var(--green);font-size:10px"></span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center">
+            <input class="form-input" type="number" id="fitImp1" placeholder="1ª tentativa" min="0" max="400" oninput="updateBestImp()">
+            <input class="form-input" type="number" id="fitImp2" placeholder="2ª tentativa" min="0" max="400" oninput="updateBestImp()">
+            <input class="form-input" type="number" id="fitImp3" placeholder="3ª tentativa" min="0" max="400" oninput="updateBestImp()">
+            <div id="fitImpBest" style="text-align:center;min-width:56px">
+              <div style="font-size:10px;color:var(--text3)">Melhor</div>
+              <div style="font-size:18px;font-weight:700;color:var(--green)" id="fitImpBestVal">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <div id="fitZonaBox" style="width:100%;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-align:center;background:var(--surface2);color:var(--text3)">
+            Preenche os campos para ver a zona
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalFit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFit()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL NOTA MODALIDADE ═══ -->
+<div class="overlay" id="modalNota" onclick="if(event.target===this)closeModal('modalNota')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Registar nota — Modalidade</span>
+      <button class="modal-close" onclick="closeModal('modalNota')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Aluno *</label>
+        <select class="form-select" id="notaAluno"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Modalidade *</label>
+        <select class="form-select" id="notaModal">
+          <option>Futebol</option><option>Basquetebol</option><option>Voleibol</option><option>Atletismo</option>
+          <option>Ginástica Acrobática</option><option>Ginástica de Solo</option><option>Tag Rugby</option><option>Dança</option><option>Natação</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Habilidades (1–5)</label>
+        <select class="form-select" id="notaHab"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Regras/Cultura (1–5)</label>
+        <select class="form-select" id="notaReg"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Atitudes (1–5)</label>
+        <select class="form-select" id="notaAtit"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Nota final (1–5)</label>
+        <select class="form-select" id="notaFinal"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group full"><label class="form-label">Observações</label><input class="form-input" id="notaObs" placeholder="Notas sobre o desempenho..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNota')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNota()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL AVALIAÇÃO PERÍODO ═══ -->
+<div class="overlay" id="modalAvaliacao" onclick="if(event.target===this)closeModal('modalAvaliacao')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Lançar nota de período</span>
+      <button class="modal-close" onclick="closeModal('modalAvaliacao')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Aluno *</label>
+        <select class="form-select" id="avalAluno"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Período</label>
+        <select class="form-select" id="avalPeriodo"><option value="1">1º Período</option><option value="2">2º Período</option><option value="3">3º Período</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">FITescola (1–5)</label>
+        <select class="form-select" id="avalFit"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Modalidades (1–5)</label>
+        <select class="form-select" id="avalMod"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Atitudes (1–5)</label>
+        <select class="form-select" id="avalAtit"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Nota final (1–5)</label>
+        <select class="form-select" id="avalFinal"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAvaliacao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAvaliacao()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL HORÁRIO ═══ -->
+<div class="overlay" id="modalHorario" onclick="if(event.target===this)closeModal('modalHorario')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalHorarioTitle">Adicionar aula ao horário</span>
+      <button class="modal-close" onclick="closeModal('modalHorario')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Turma *</label>
+        <select class="form-select" id="horTurma"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Dia da semana *</label>
+        <select class="form-select" id="horDia">
+          <option value="1">Segunda-feira</option><option value="2">Terça-feira</option>
+          <option value="3">Quarta-feira</option><option value="4">Quinta-feira</option>
+          <option value="5">Sexta-feira</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Hora de início *</label>
+        <input class="form-input" type="time" id="horInicio" value="10:00">
+      </div>
+      <div class="form-group"><label class="form-label">Hora de fim *</label>
+        <input class="form-input" type="time" id="horFim" value="11:00">
+      </div>
+      <div class="form-group"><label class="form-label">Local / Espaço</label>
+        <input class="form-input" id="horLocal" placeholder="Ex: Ginásio, Campo exterior">
+      </div>
+      <div class="form-group"><label class="form-label">Modalidade habitual</label>
+        <input class="form-input" id="horModalidade" placeholder="Ex: Futebol, Ginástica">
+      </div>
+      <div class="form-group full"><label class="form-label">Observações</label>
+        <input class="form-input" id="horObs" placeholder="Notas sobre esta aula...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalHorario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveHorario()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL AULA PLANEADA ═══ -->
+<div class="overlay" id="modalAulaPlaneada" onclick="if(event.target===this)closeModal('modalAulaPlaneada')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalAulaPlaneadaTitle">Planear aula</span>
+      <button class="modal-close" onclick="closeModal('modalAulaPlaneada')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Turma *</label>
+        <select class="form-select" id="planTurma"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Data *</label>
+        <input class="form-input" type="date" id="planData">
+      </div>
+      <div class="form-group"><label class="form-label">Hora início</label>
+        <input class="form-input" type="time" id="planInicio" value="10:00">
+      </div>
+      <div class="form-group"><label class="form-label">Hora fim</label>
+        <input class="form-input" type="time" id="planFim" value="11:00">
+      </div>
+      <div class="form-group"><label class="form-label">Modalidade / Unidade</label>
+        <select class="form-select" id="planModal">
+          <option>Futebol</option><option>Basquetebol</option><option>Voleibol</option><option>Andebol</option>
+          <option>Atletismo</option><option>Ginástica Acrobática</option><option>Ginástica de Solo</option>
+          <option>Tag Rugby</option><option>Danças</option><option>Orientação</option>
+          <option>Corfebol</option><option>Floorbol</option><option>Softbol</option><option>FITescola</option><option>Outra</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Local</label>
+        <input class="form-input" id="planLocal" placeholder="Ex: Ginásio">
+      </div>
+      <div class="form-group full"><label class="form-label">Objetivos / Observações</label>
+        <input class="form-input" id="planObs" placeholder="Objetivos da aula...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAulaPlaneada')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAulaPlaneada()"><i class="ti ti-check"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL IMPORTAR ═══ -->
+<div class="overlay" id="modalImport" onclick="if(event.target===this)closeModal('modalImport')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Importar / Restaurar dados</span>
+      <button class="modal-close" onclick="closeModal('modalImport')"><i class="ti ti-x"></i></button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Seleciona um ficheiro de backup JSON exportado anteriormente. Os dados atuais serão substituídos.</p>
+    <input type="file" accept=".json" id="importFile" style="font-size:13px;width:100%;padding:8px;border:1px dashed var(--border2);border-radius:var(--radius-sm);">
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalImport')">Cancelar</button>
+      <button class="btn btn-primary" onclick="importarBackup()"><i class="ti ti-database-import"></i>Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════
+// getTURMAS() is now dynamic
+function getTURMAS() { return state.turmasList || ['5ºA','5ºB','6ºA','6ºB']; }
+const PERIODOS = ['1º P', '2º P', '3º P'];
+const MENC = {5:'Muito Bom', 4:'Bom', 3:'Satisfaz', 2:'Não Satisfaz', 1:'Não Satisfaz'};
+const TIPO_LABEL = {intro:'Introdução', exerc:'Exercitação', consol:'Consolidação', aval:'Avaliação', fit:'FITescola'};
+const TIPO_COLOR = {intro:'badge-blue', exerc:'badge-green', consol:'badge-gray', aval:'badge-amber', fit:'badge-gray'};
+const COLORS = [{bg:'#DBEAFE',fg:'#1E40AF'},{bg:'#D1FAE5',fg:'#065F46'},{bg:'#FEF3C7',fg:'#92400E'},{bg:'#FCE7F3',fg:'#9D174D'},{bg:'#EDE9FE',fg:'#4C1D95'},{bg:'#CFFAFE',fg:'#164E63'}];
+
+let state = {
+  turma: '5ºA',
+  periodo: '1',
+  currentPage: 'alunos',
+  currentDesempPeriodo: '1',
+  selSport: null,
+  presencaState: {},
+  turmasList: ['5ºA','5ºB','6ºA','6ºB'],
+  alunos: {},
+  aulas: {},
+  fit: {},
+  modalidades: {},
+  avaliacoes: {},
+  horario: {},
+  planeadas: [],
+  feriados: [],
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+};
+
+function initApp() {
+  loadState();
+  buildPills();
+  updateTopbarSub();
+  filterAlunos();
+  updateTurmaSels();
+  const today = new Date().toISOString().split('T')[0];
+  ['auData','fitData','planData'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = today;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// FIREBASE CONFIG + AUTH
+// ═══════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCPJYnjpbdPiPQUYXgn0VmnWsKsW-drswo",
+  authDomain:        "ef-digital-37114.firebaseapp.com",
+  projectId:         "ef-digital-37114",
+  storageBucket:     "ef-digital-37114.firebasestorage.app",
+  messagingSenderId: "316517039947",
+  appId:             "1:316517039947:web:785430a88d317c4ecb72ce"
+};
+let fbDb=null, fbAuth=null, fbUser=null, fbSaveTimer=null;
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb   = firebase.firestore();
+    fbAuth.onAuthStateChanged(user => {
+      if(user) {
+        fbUser = user;
+        document.getElementById('sidebarUserEmail').textContent = user.email || '2º Ciclo';
+        loadFromFirestore(user.uid);
+      } else {
+        fbUser = null;
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
+    });
+  } catch(e) {
+    console.error('Firebase init:', e);
+    document.getElementById('loginScreen').style.display = 'none';
+    initApp();
+  }
+}
+
+function showLogin()    { document.getElementById('loginFormDiv').style.display=''; document.getElementById('registerFormDiv').style.display='none'; }
+function showRegister() { document.getElementById('registerFormDiv').style.display=''; document.getElementById('loginFormDiv').style.display='none'; }
+
+function doLogin() {
+  const email=document.getElementById('loginEmail').value.trim(), pass=document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginErr'), btn=document.getElementById('loginBtn');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Preenche email e password.';return;}
+  btn.disabled=true; btn.textContent='A entrar...';
+  fbAuth.signInWithEmailAndPassword(email,pass).catch(ex=>{
+    btn.disabled=false; btn.textContent='Entrar';
+    const msgs={'auth/user-not-found':'Email não encontrado.','auth/wrong-password':'Password incorreta.','auth/invalid-email':'Email inválido.','auth/invalid-credential':'Email ou password incorretos.','auth/too-many-requests':'Demasiadas tentativas.','auth/configuration-not-found':'Authentication não ativado no Firebase. Vai à consola → Authentication → Ativar Email/password.','auth/network-request-failed':'Sem ligação à internet.'};
+    errEl.textContent=msgs[ex.code]||'Erro: '+ex.message;
+  });
+}
+
+function doRegister() {
+  const nome=document.getElementById('regNome').value.trim(), email=document.getElementById('regEmail').value.trim(), pass=document.getElementById('regPass').value;
+  const errEl=document.getElementById('regErr'), btn=document.getElementById('regBtn');
+  errEl.textContent='';
+  if(!nome||!email||!pass){errEl.textContent='Preenche todos os campos.';return;}
+  if(pass.length<6){errEl.textContent='Password deve ter mín. 6 caracteres.';return;}
+  btn.disabled=true; btn.textContent='A criar conta...';
+  fbAuth.createUserWithEmailAndPassword(email,pass)
+    .then(uc=>uc.user.updateProfile({displayName:nome}))
+    .catch(ex=>{btn.disabled=false; btn.textContent='Criar conta';
+      const msgs={'auth/email-already-in-use':'Email já registado.','auth/invalid-email':'Email inválido.'};
+      errEl.textContent=msgs[ex.code]||'Erro: '+ex.message;
+    });
+}
+
+function doLogout() {
+  if(!confirm('Tens a certeza que queres sair?'))return;
+  if(fbAuth) fbAuth.signOut();
+}
+
+function useOfflineMode() {
+  // Work locally without Firebase account
+  fbUser = null;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('sidebarUserEmail').textContent = 'Modo offline';
+  // Load from localStorage if exists
+  try {
+    const ls = localStorage.getItem('efdigital_v2') || localStorage.getItem('efd3');
+    if(ls) Object.assign(state, JSON.parse(ls));
+  } catch(e) {}
+  if(!state.turmasList) state.turmasList = ['5ºA','5ºB','6ºA','6ºB'];
+  getTURMAS().forEach(t => {
+    ['alunos','aulas','fit','modalidades','horario'].forEach(k => {
+      if(!state[k]) state[k] = {};
+      if(!state[k][t]) state[k][t] = [];
+    });
+  });
+  if(typeof initApp==='function') initApp();
+  toast('A trabalhar em modo offline — dados guardados localmente', 'ti-wifi-off');
+}
+
+async function loadFromFirestore(uid) {
+  try {
+    const doc = await fbDb.collection('users').doc(uid).get();
+    if(doc.exists && doc.data().state) Object.assign(state, doc.data().state);
+  } catch(e) { console.error('Firestore load:', e); }
+  // Ensure all turma arrays exist
+  if(!state.turmasList) state.turmasList=['5ºA','5ºB','6ºA','6ºB'];
+  getTURMAS().forEach(t=>{
+    ['alunos','aulas','fit','modalidades','horario'].forEach(k=>{
+      if(!state[k])state[k]={};
+      if(!state[k][t])state[k][t]=[];
+    });
+  });
+  document.getElementById('loginScreen').style.display='none';
+  if(typeof initApp==='function') initApp(); else console.error('initApp not found');
+}
+
+// Override saveState to also save to Firestore
+const _origSaveState = typeof saveState === 'function' ? saveState : null;
+function saveStateWithFirebase() {
+  // Original localStorage save (will be called by initFirebase override)
+  try { localStorage.setItem('efdigital_v2', JSON.stringify(state)); } catch(e) {}
+  if(!fbDb || !fbUser) return;
+  const sv=document.getElementById('savingIndicator'); if(sv)sv.style.display='flex';
+  clearTimeout(fbSaveTimer);
+  fbSaveTimer = setTimeout(async ()=>{
+    try { await fbDb.collection('users').doc(fbUser.uid).set({state},{merge:true}); }
+    catch(e){ console.error('Firestore save:',e); toast('Erro ao guardar na nuvem','ti-alert-circle'); }
+    finally{ if(sv)sv.style.display='none'; }
+  }, 1500);
+}
+
+// ═══════════════════════════════════════════════
+// PRESENÇA FP/FM/FJ
+// ═══════════════════════════════════════════════
+const PRESENCA_TIPOS = {
+  P:  {lbl:'P',  title:'Presente',         icon:'ti-check',      color:'var(--green)', cls:'presente'},
+  FP: {lbl:'FP', title:'Falta Presença',    icon:'ti-x',          color:'var(--red)',   cls:'fp'},
+  FM: {lbl:'FM', title:'Falta Material',    icon:'ti-school-off', color:'#B7770D',     cls:'fm'},
+  FJ: {lbl:'FJ', title:'Falta Justificada', icon:'ti-file-check', color:'#1B4F72',     cls:'fj'},
+};
+
+function renderPresencaGrid() {
+  const alunos = state.alunos[state.turma] || [];
+  presencaState = {};
+  alunos.forEach(a => { presencaState[a.id] = {tipo:'P', obs:''}; });
+
+  const tipos = [
+    {k:'P',  lbl:'✓ Presente',    cls:'active-P',  cor:'#52B788'},
+    {k:'FP', lbl:'✗ Falta',       cls:'active-FP', cor:'#E74C3C'},
+    {k:'FM', lbl:'📦 Material',   cls:'active-FM', cor:'#F0A500'},
+    {k:'FJ', lbl:'📄 Justificada',cls:'active-FJ', cor:'#5DADE2'},
+  ];
+
+  document.getElementById('presencaGrid').innerHTML = alunos.map(a => {
+    const fn = a.name.split(' ')[0];
+    const ln = a.name.split(' ').slice(-1)[0];
+    const displayName = fn === ln ? fn : fn + ' ' + ln;
+
+    const btns = tipos.map(t =>
+      `<button class="pbtn active-P${t.k === 'P' ? ' active-P' : ''}"
+        id="pb-${a.id}-${t.k}"
+        onclick="setPresenca('${a.id}','${t.k}')"
+        title="${{P:'Presente',FP:'Falta de Presença',FM:'Falta de Material',FJ:'Falta Justificada'}[t.k]}"
+        style="${t.k === 'P' ? 'background:#52B788;color:#fff;border-color:#52B788' : ''}"
+      >${t.lbl}</button>`
+    ).join('');
+
+    return `<div class="presenca-item presente" id="pi-${a.id}">
+      <div class="presenca-item-top">
+        <span class="presenca-name" title="${a.name}">${displayName}</span>
+        <span class="presenca-status-tag active-P" id="ptag-${a.id}" style="background:#D5F5E3;color:#1A5C3A">P</span>
+      </div>
+      <div class="presenca-btns">${btns}</div>
+      <div class="presenca-obs-wrap">
+        <input class="presenca-obs-input" id="pobs-${a.id}"
+          placeholder="Justificação (ex: atestado médico)…"
+          oninput="presencaState['${a.id}'].obs=this.value">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function setPresenca(id, tipo) {
+  presencaState[id] = {tipo, obs: presencaState[id]?.obs || ''};
+
+  const clsMap = {P:'presente', FP:'fp', FM:'fm', FJ:'fj'};
+  const bgMap  = {P:'#EDFAF3', FP:'#FDEDEC', FM:'#FEF3E7', FJ:'#EBF3FB'};
+  const bdMap  = {P:'#52B788', FP:'#E74C3C', FM:'#F0A500', FJ:'#5DADE2'};
+  const tagBg  = {P:'#D5F5E3', FP:'#FADBD8', FM:'#FEF3E7', FJ:'#D6EAF8'};
+  const tagFg  = {P:'#1A5C3A', FP:'#922B21', FM:'#7D4E00', FJ:'#1B4F72'};
+  const tagLbl = {P:'P', FP:'FP', FM:'FM', FJ:'FJ'};
+
+  // Update card appearance
+  const el = document.getElementById('pi-'+id);
+  if (el) {
+    el.className = 'presenca-item ' + (clsMap[tipo]||'presente');
+    el.style.borderColor = bdMap[tipo]||'';
+    el.style.background  = bgMap[tipo]||'';
+  }
+
+  // Update status tag
+  const tag = document.getElementById('ptag-'+id);
+  if (tag) {
+    tag.textContent = tagLbl[tipo];
+    tag.style.background = tagBg[tipo];
+    tag.style.color = tagFg[tipo];
+  }
+
+  // Update buttons — highlight active
+  ['P','FP','FM','FJ'].forEach(t => {
+    const btn = document.getElementById('pb-'+id+'-'+t);
+    if (!btn) return;
+    btn.className = 'pbtn' + (t===tipo ? ' active-'+t : '');
+    if (t === tipo) {
+      btn.style.background = bdMap[t];
+      btn.style.color = '#fff';
+      btn.style.borderColor = bdMap[t];
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }
+  });
+
+  // Show/hide obs field for FJ
+  const obsWrap = el?.querySelector('.presenca-obs-wrap');
+  if (obsWrap) obsWrap.style.display = tipo === 'FJ' ? 'block' : 'none';
+  if (tipo !== 'FJ') presencaState[id].obs = '';
+}
+
+// ═══════════════════════════════════════════════
+// ESTADO DO ALUNO
+// ═══════════════════════════════════════════════
+function filterAlunos() {
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  const g=document.getElementById('filterGenre')?.value||'';
+  const st=document.getElementById('filterStatus')?.value||'ativo';
+  let list=(state.alunos[state.turma]||[]).filter(a=>{
+    if(!a.name.toLowerCase().includes(q)) return false;
+    if(g && a.genre!==g) return false;
+    const as=a.status||'ativo';
+    if(st==='ativo' && as!=='ativo') return false;
+    if(st==='transferido' && as!=='transferido') return false;
+    if(st==='anulado' && as!=='anulado') return false;
+    return true;
+  });
+  renderStudents(list);
+}
+
+// ═══════════════════════════════════════════════
+// TURMAS DINÂMICAS
+// ═══════════════════════════════════════════════
+function renderTurmasListEdit() {
+  const list = getTURMAS();
+  const COLS = ['#1B4F72','#1A5C3A','#6C3483','#B7770D','#B03A2E','#117A65'];
+  const el = document.getElementById('turmasListEdit');
+  if (!el) return;
+  el.innerHTML = list.map((t, i) => {
+    const col = COLS[i % COLS.length];
+    const n   = (state.alunos[t] || []).length;
+    // Use data-index attribute to avoid special chars in onclick
+    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:5px;background:var(--surface)">
+      <div style="width:11px;height:11px;border-radius:3px;background:${col};flex-shrink:0"></div>
+      <span style="flex:1;font-weight:600;font-size:14px">${t}</span>
+      <span style="font-size:11px;color:var(--text3)">${n} aluno${n!==1?'s':''}</span>
+      <button class="btn btn-secondary btn-sm" style="padding:3px 7px" onclick="renameTurma(${i})"><i class="ti ti-pencil"></i></button>
+      <button class="btn btn-secondary btn-sm" style="padding:3px 7px;color:var(--red)" data-idx="${i}" onclick="deleteTurmaByIndex(${i})"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('') || '<div style="color:var(--text3);font-size:13px">Sem turmas.</div>';
+}
+
+function deleteTurmaByIndex(i) {
+  const nome = getTURMAS()[i];
+  if (!nome) return;
+  deleteTurma(nome);
+}
+
+function renameTurma(i) {
+  if(!state.turmasList) state.turmasList=['5ºA','5ºB','6ºA','6ºB'];
+  const list=getTURMAS(), old=list[i];
+  const nv=prompt('Novo nome para '+old+':', old);
+  if(!nv||nv.trim()===''||nv===old) return;
+  const nv2=nv.trim();
+  if(getTURMAS().includes(nv2)){toast('Já existe uma turma com esse nome','ti-alert-circle');return;}
+  state.turmasList[i]=nv2;
+  ['alunos','aulas','fit','modalidades','horario'].forEach(k=>{if(state[k]&&state[k][old]!==undefined){state[k][nv2]=state[k][old];delete state[k][old];}});
+  if(state.planeadas) state.planeadas.forEach(p=>{if(p.turma===old)p.turma=nv2;});
+  if(state.turma===old) state.turma=nv2;
+  saveState(); buildPills(); updateTurmaSels(); renderTurmasListEdit();
+  toast(old+' → '+nv2);
+}
+
+function addTurma() {
+  const input = document.getElementById('novaTurmaInput');
+  if (!input) { toast('Erro: campo não encontrado', 'ti-alert-circle'); return; }
+  const nome = input.value.trim();
+  if (!nome) { toast('Escreve o nome da turma', 'ti-alert-circle'); return; }
+  if (!state.turmasList) state.turmasList = ['5ºA','5ºB','6ºA','6ºB'];
+  if (state.turmasList.includes(nome)) { toast('Já existe uma turma com esse nome', 'ti-alert-circle'); return; }
+  state.turmasList.push(nome);
+  ['alunos','aulas','fit','modalidades','horario'].forEach(k => {
+    if (!state[k]) state[k] = {};
+    if (!state[k][nome]) state[k][nome] = [];
+  });
+  input.value = '';
+  saveState();
+  buildPills();
+  updateTurmaSels();
+  renderTurmasListEdit();
+  toast('Turma adicionada: ' + nome);
+}
+
+function deleteTurma(nome) {
+  if (!nome) { toast('Erro: turma não encontrada', 'ti-alert-circle'); return; }
+  const n = (state.alunos[nome] || []).length;
+  const msg = 'Apagar a turma "' + nome + '"?' + (n > 0 ? ' (' + n + ' alunos serão removidos)' : '');
+  if (!window.confirm(msg)) return;
+  if (!state.turmasList) state.turmasList = ['5ºA','5ºB','6ºA','6ºB'];
+  state.turmasList = state.turmasList.filter(t => t !== nome);
+  ['alunos','aulas','fit','modalidades','horario'].forEach(k => {
+    if (state[k]) delete state[k][nome];
+  });
+  if (state.planeadas) state.planeadas = state.planeadas.filter(p => p.turma !== nome);
+  if (state.turma === nome) state.turma = getTURMAS()[0] || '';
+  saveState();
+  buildPills();
+  updateTurmaSels();
+  renderTurmasListEdit();
+  toast('Turma apagada: ' + nome);
+}
+
+function updateTurmaSels() {
+  const t=getTURMAS();
+  ['aTurma','horTurma','planTurma'].forEach(id=>{const s=document.getElementById(id);if(!s)return;const cv=s.value;s.innerHTML=t.map(x=>`<option${x===cv?' selected':''}>${x}</option>`).join('');});
+  const cf=document.getElementById('calTurmaFilter');
+  if(cf){const cv=cf.value;cf.innerHTML='<option value="">Todas as turmas</option>'+t.map(x=>`<option${x===cv?' selected':''}>${x}</option>`).join('');}
+  const ft=document.getElementById('fichaTurmaSelect');
+  if(ft){const cv=ft.value;ft.innerHTML=t.map(x=>`<option${x===cv?' selected':''}>${x}</option>`).join('');if(!ft.value&&t.length)ft.value=t[0];}
+}
+
+
+// ═══════════════════════════════════════════════
+// PERSIST
+// ═══════════════════════════════════════════════
+function saveState() {
+  try { localStorage.setItem('efdigital_v2', JSON.stringify(state)); } catch(e) {}
+  // Firestore cloud save
+  if(!fbDb || !fbUser) return;
+  const sv=document.getElementById('savingIndicator'); if(sv)sv.style.display='flex';
+  clearTimeout(fbSaveTimer);
+  fbSaveTimer = setTimeout(async ()=>{
+    try { await fbDb.collection('users').doc(fbUser.uid).set({state},{merge:true}); }
+    catch(e){ console.error('Firestore save:',e); toast('Erro ao guardar na nuvem','ti-alert-circle'); }
+    finally{ if(sv)sv.style.display='none'; }
+  }, 1500);
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem('efdigital_v2');
+    if (s) { const p = JSON.parse(s); Object.assign(state, p); }
+  } catch(e) {}
+  if (!state.horario)   state.horario   = {};
+  if (!state.feriados)  state.feriados  = JSON.parse(JSON.stringify(FERIADOS_DEFAULT));
+  if (!state.planeadas) state.planeadas = [];
+  if (!state.calYear)   state.calYear   = new Date().getFullYear();
+  if (!state.calMonth)  state.calMonth  = new Date().getMonth();
+  getTURMAS().forEach(t => {
+    if (!state.alunos[t]) state.alunos[t] = [];
+    if (!state.aulas[t]) state.aulas[t] = [];
+    if (!state.horario[t]) state.horario[t] = [];
+    if (!state.fit[t]) state.fit[t] = [];
+    if (!state.modalidades[t]) state.modalidades[t] = [];
+    if (!state.avaliacoes[t]) state.avaliacoes[t] = [];
+  });
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function initials(n) { return n.trim().split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
+function colorFor(i) { return COLORS[i % COLORS.length]; }
+function periodoKey(p) { return p.replace('º P',''); }
+function faltasByPeriodo(aluno, periodo, tipo) {
+  const f=aluno.faltas&&aluno.faltas[periodo];
+  if(!f) return 0;
+  if(typeof f==='number') return tipo?(tipo==='fp'?f:0):f;
+  if(tipo) return f[tipo]||0;
+  return (f.fp||0)+(f.fm||0)+(f.fj||0);
+}
+function aulasByPeriodo(turma, periodo) {
+  return (state.aulas[turma] || []).filter(a => a.periodo === periodo);
+}
+function getAluno(turma, id) { return (state.alunos[turma]||[]).find(a=>a.id===id); }
+
+function toast(msg, icon='ti-check') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<i class="ti ${icon}"></i> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════
+function showPage(id, btn) {
+  state.currentPage = id;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+
+  const titles = { alunos:'Alunos', aulas:'Aulas', faltas:'Faltas', fitescola:'FITescola', modalidades:'Modalidades', periodos:'Avaliação por Período', planificacao:'Planificação 2025/26', 'importar-excel':'Importar Excel', horario:'Horário', calendario:'Calendário', 'turmas-dashboard':'Dashboard de Turmas', 'turmas-comparar':'Comparar Turmas', 'turmas-ficha':'Ficha de Turma', exportar:'Exportar dados' };
+  document.getElementById('topbarTitle').textContent = titles[id] || id;
+
+  const addBtns = { alunos: {label:'Novo aluno', fn:"openModal('modalAluno', true)"}, aulas: {label:'Registar aula', fn:"openModal('modalAula')"}, fitescola:{label:'Registar', fn:"openModal('modalFit')"}, modalidades:{label:'Registar nota', fn:"openModal('modalNota')"}, periodos:{label:'Lançar nota', fn:"openModal('modalAvaliacao')"} };
+  const topBtn = document.getElementById('topbarAddBtn');
+  if (addBtns[id]) { topBtn.innerHTML = `<i class="ti ti-plus"></i><span class="hide-sm">${addBtns[id].label}</span>`; topBtn.setAttribute('onclick', addBtns[id].fn); topBtn.style.display=''; }
+  else { topBtn.style.display='none'; }
+
+  refreshPage(id);
+  if (window.innerWidth < 768) closeSidebar();
+}
+
+function refreshPage(id) {
+  const t = state.turma;
+  updateTopbarSub();
+  if (id === 'alunos') renderAlunos();
+  else if (id === 'aulas') renderAulas();
+  else if (id === 'faltas') renderFaltas();
+  else if (id === 'fitescola') renderFit();
+  else if (id === 'modalidades') renderModalidades();
+  else if (id === 'periodos') renderPeriodos();
+  else if (id === 'planificacao') renderPlanificacao();
+  else if (id === 'importar-excel') renderImportarExcel();
+  else if (id === 'horario') renderHorario();
+  else if (id === 'calendario') renderCalendario();
+  else if (id === 'turmas-dashboard') renderTurmasDashboard();
+  else if (id === 'turmas-comparar') renderTurmasComparar();
+  else if (id === 'turmas-ficha') renderTurmasFicha();
+}
+
+function updateTopbarSub() {
+  document.getElementById('topbarSub').textContent = `${state.turma} · ${PERIODOS[parseInt(state.periodo)-1]}`;
+}
+
+function setTurma(t) {
+  state.turma = t;
+  document.querySelectorAll('.turma-pill').forEach(p => p.classList.toggle('active', p.dataset.t === t));
+  refreshPage(state.currentPage);
+}
+function setPeriodo(p) {
+  state.periodo = p;
+  document.querySelectorAll('.periodo-pill').forEach(pp => pp.classList.toggle('active', pp.dataset.p === p));
+  refreshPage(state.currentPage);
+}
+
+function buildPills() {
+  const tp = document.getElementById('turmaPills');
+  tp.innerHTML = getTURMAS().map(t => `<button class="turma-pill${t===state.turma?' active':''}" data-t="${t}" onclick="setTurma('${t}')">${t}</button>`).join('');
+
+  const pp1 = document.getElementById('periodoPills');
+  pp1.innerHTML = ['1','2','3'].map(p => `<button class="turma-pill periodo-pill${p===state.periodo?' active':''}" data-p="${p}" onclick="setPeriodo('${p}')">${p}º P</button>`).join('');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('drawerOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER ALUNOS
+// ═══════════════════════════════════════════════
+function renderAlunos() {
+  if(document.getElementById('filterStatus')) { filterAlunos(); return; }
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const g = document.getElementById('filterGenre')?.value || '';
+  let list = (state.alunos[state.turma] || []).filter(a =>
+    a.name.toLowerCase().includes(q) && (!g || a.genre === g)
+  );
+  const grid = document.getElementById('studentsGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="ti ti-users-group"></i><p>Sem alunos${state.alunos[state.turma]?.length ? ' com esse filtro' : ' nesta turma'}<br><button class="btn btn-primary" style="margin-top:12px" onclick="openModal('modalAluno', true)"><i class="ti ti-plus"></i>Adicionar primeiro aluno</button></p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map((a, i) => {
+    const c = colorFor(i);
+    const fp=faltasByPeriodo(a,state.periodo,'fp'),fm=faltasByPeriodo(a,state.periodo,'fm'),fj=faltasByPeriodo(a,state.periodo,'fj');
+    const fTotal=fp+fm+fj,f=fp;
+    const risk=fp>=4;
+    const avatarContent = a.foto
+      ? `<img src="${a.foto}" alt="${a.name}" onerror="this.parentNode.innerHTML='${initials(a.name)}'">`
+      : initials(a.name);
+    const aStatus=a.status||'ativo';
+    const sCfg={transferido:{bg:'#FEF3E7',fg:'#B7770D',lbl:'Transferido'},anulado:{bg:'var(--red-light)',fg:'var(--red)',lbl:'Anulou matrícula'}}[aStatus];
+    return `<div class="student-card${aStatus!=='ativo'?' inativo':''}" onclick="editAluno('${a.id}')">
+      ${risk&&aStatus==='ativo'?'<div class="risk-dot" title="Em risco de faltas"></div>':''}
+      <div class="student-avatar" style="${!a.foto?'background:'+c.bg+';color:'+c.fg:''}">${avatarContent}</div>
+      ${sCfg?`<div class="status-ribbon" style="background:${sCfg.bg};color:${sCfg.fg}">${sCfg.lbl}</div>`:''}
+      <div class="student-name">${a.name}</div>
+      <div class="student-meta">Nº ${a.num} · ${a.genre === 'M' ? 'Masc.' : a.genre === 'F' ? 'Fem.' : 'Outro'}</div>
+      ${a.obs ? `<div class="student-obs"><i class="ti ti-alert-circle" style="font-size:11px"></i> ${a.obs}</div>` : ''}
+      <div class="student-badge">
+        ${fp>0?`<span class="badge badge-red" style="font-size:10px">${fp}FP</span> `:''}
+        ${fm>0?`<span class="badge" style="background:#FEF3E7;color:#B7770D;font-size:10px">${fm}FM</span> `:''}
+        ${fj>0?`<span class="badge badge-blue" style="font-size:10px">${fj}FJ</span>`:''}
+        ${fTotal===0?`<span class="badge badge-green" style="font-size:10px">✓</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER AULAS
+// ═══════════════════════════════════════════════
+function renderAulas() {
+  const list = aulasByPeriodo(state.turma, state.periodo).slice().reverse();
+  const container = document.getElementById('aulasList');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard"></i><p>Sem aulas registadas neste período<br><button class="btn btn-primary" style="margin-top:12px" onclick="openModal('modalAula')"><i class="ti ti-plus"></i>Registar primeira aula</button></p></div>`;
+    return;
+  }
+  container.innerHTML = list.map(a => {
+    const d = new Date(a.data + 'T12:00:00');
+    const day = d.getDate().toString().padStart(2,'0');
+    const mon = d.toLocaleDateString('pt-PT', {month:'short'}).toUpperCase();
+    const alunos = state.alunos[state.turma] || [];
+    const presentes = alunos.length - (a.faltas?.length || 0);
+    return `<div class="aula-card">
+      <div class="aula-date"><div class="aula-day">${day}</div><div class="aula-mon">${mon}</div></div>
+      <div class="aula-body">
+        <div class="aula-title">${a.modal} <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo}</span></div>
+        ${a.obj ? `<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>` : ''}
+        ${a.obs ? `<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>` : ''}
+        ${a.faltas?.length ? `<div class="aula-chips">${a.faltas.map(n=>`<span class="badge badge-red" style="font-size:10px">${n.split(' ')[0]}</span>`).join('')}</div>` : ''}
+      </div>
+      <div class="aula-meta"><div>${a.dur}min</div><div style="margin-top:4px">${presentes}✓ ${a.faltas?.length||0}✗</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER FALTAS
+// ═══════════════════════════════════════════════
+function renderFaltas() {
+  const alunos = state.alunos[state.turma] || [];
+  const aulasP = aulasByPeriodo(state.turma, state.periodo);
+  const totalAulas = aulasP.length;
+  let totalFaltas = 0, emRisco = 0;
+
+  document.getElementById('faltasPeriodoBadge').textContent = PERIODOS[parseInt(state.periodo)-1];
+
+  const rows = alunos.map(a => {
+    const fp=faltasByPeriodo(a,state.periodo,'fp'),fm=faltasByPeriodo(a,state.periodo,'fm'),fj=faltasByPeriodo(a,state.periodo,'fj');
+    totalFaltas+=fp;
+    const pres=Math.max(0,totalAulas-fp);
+    const pct=totalAulas>0?Math.round((pres/totalAulas)*100):100;
+    const risk=pct<70; if(risk)emRisco++;
+    return `<tr>
+      <td><strong>${a.name}</strong></td>
+      <td style="font-family:var(--mono);color:var(--text3)">${a.num}</td>
+      <td>${fp>0?`<span class="badge badge-red" style="font-size:10px">${fp}</span>`:''}</td>
+      <td>${fm>0?`<span class="badge" style="background:#FEF3E7;color:#B7770D;font-size:10px">${fm}</span>`:''}</td>
+      <td>${fj>0?`<span class="badge badge-blue" style="font-size:10px">${fj}</span>`:''}</td>
+      <td style="font-family:var(--mono)">${pres}</td>
+      <td><span class="badge ${pct>=90?'badge-green':risk?'badge-red':'badge-amber'}">${pct}%</span></td>
+      <td><span class="badge ${risk?'badge-red':pct>=90?'badge-green':'badge-amber'}">${risk?'Em risco':pct>=90?'Excelente':'Regular'}</span></td>
+    </tr>`;
+  });
+  document.getElementById('faltasBody').innerHTML = rows.join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Sem alunos nesta turma</td></tr>`;
+
+  const presMedia = alunos.length && totalAulas > 0 ? Math.round(((totalAulas*alunos.length - totalFaltas)/(totalAulas*alunos.length))*100) : 100;
+  document.getElementById('faltasStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Aulas dadas</div><div class="stat-value">${totalAulas}</div><div class="stat-sub">${PERIODOS[parseInt(state.periodo)-1]}</div></div>
+    <div class="stat-card"><div class="stat-label">Total de faltas</div><div class="stat-value">${totalFaltas}</div></div>
+    <div class="stat-card"><div class="stat-label">Em risco</div><div class="stat-value" style="color:var(--red)">${emRisco}</div><div class="stat-sub">>30% faltas</div></div>
+    <div class="stat-card"><div class="stat-label">Presença média</div><div class="stat-value">${presMedia}%</div></div>`;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER FITESCOLA
+// ═══════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
+// RENDER MODALIDADES
+// ═══════════════════════════════════════════════
+const ALL_SPORTS = ['Futebol','Basquetebol','Voleibol','Atletismo','Ginástica Acrobática','Ginástica de Solo','Tag Rugby','Dança','Natação'];
+function renderModalidades() {
+  const mods = state.modalidades[state.turma] || [];
+  const alunos = state.alunos[state.turma] || [];
+  populateSelect('notaAluno', alunos);
+
+  const usedSports = [...new Set(mods.map(m=>m.modal))];
+  document.getElementById('sportFilter').innerHTML = ['Todos',...usedSports].map(s =>
+    `<button class="btn btn-sm ${state.selSport===s||(!state.selSport&&s==='Todos')?'btn-primary':'btn-secondary'}" onclick="setSport('${s}')">${s}</button>`
+  ).join('');
+
+  const filtered = state.selSport ? mods.filter(m=>m.modal===state.selSport) : mods;
+  document.getElementById('modalidadesBody').innerHTML = filtered.map(m => {
+    const a = getAluno(state.turma, m.alunoId) || {name:'?'};
+    return `<tr>
+      <td><strong>${a.name}</strong></td>
+      <td>${m.modal}</td>
+      <td><span class="nota nota-${m.final}">${m.final}</span></td>
+      <td><span class="nota nota-${m.hab}">${m.hab}</span></td>
+      <td><span class="nota nota-${m.reg}">${m.reg}</span></td>
+      <td><span class="nota nota-${m.atit}">${m.atit}</span></td>
+      <td style="color:var(--text3)">${m.obs||''}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Sem notas registadas${state.selSport?' para '+state.selSport:''}</td></tr>`;
+}
+function setSport(s) { state.selSport = (s==='Todos' ? null : s); renderModalidades(); }
+
+// ═══════════════════════════════════════════════
+// RENDER PERÍODOS
+// ═══════════════════════════════════════════════
+function renderPeriodos() {
+  const alunos = state.alunos[state.turma] || [];
+  const dp = state.currentDesempPeriodo || '1';
+  populateSelect('avalAluno', alunos);
+  document.getElementById('avalPeriodo').value = dp;
+
+  document.getElementById('periodoTabs').innerHTML = ['1','2','3'].map(p =>
+    `<button class="tab-btn${dp===p?' active':''}" onclick="switchDP('${p}')">${p}º Período</button>`
+  ).join('');
+  document.getElementById('periodoTableTitle').textContent = `Pauta — ${dp}º Período`;
+
+  const avals = (state.avaliacoes[state.turma]||[]).filter(a=>a.periodo===dp);
+  const avg = arr => arr.length ? (arr.reduce((s,x)=>s+x,0)/arr.length).toFixed(1) : '—';
+  const finals = avals.map(a=>a.final);
+  const bom = finals.filter(f=>f>=4).length;
+  const ns = finals.filter(f=>f<=2).length;
+
+  document.getElementById('periodosStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Média do período</div><div class="stat-value">${avg(finals).toString().replace('.',',')}</div></div>
+    <div class="stat-card"><div class="stat-label">Bom / Muito Bom</div><div class="stat-value" style="color:var(--green)">${finals.length?Math.round(bom/finals.length*100):0}%</div></div>
+    <div class="stat-card"><div class="stat-label">Não Satisfaz</div><div class="stat-value" style="color:var(--red)">${finals.length?Math.round(ns/finals.length*100):0}%</div></div>
+    <div class="stat-card"><div class="stat-label">Com nota lançada</div><div class="stat-value">${avals.length}<span style="font-size:14px;font-weight:400;color:var(--text3)">/${alunos.length}</span></div></div>`;
+
+  // Compare cards
+  document.getElementById('periodoCompare').innerHTML = ['1','2','3'].map(p => {
+    const pAvals = (state.avaliacoes[state.turma]||[]).filter(a=>a.periodo===p);
+    const pAvg = avg(pAvals.map(a=>a.final));
+    return `<div class="periodo-card">
+      <div class="periodo-card-title"><span>${p}º Período</span><span class="periodo-avg">${pAvg.toString().replace('.',',')} </span></div>
+      ${pAvals.map(a=>{const al=getAluno(state.turma,a.alunoId)||{name:'?'};return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text2)">${al.name}</span><span class="nota nota-${a.final}">${a.final}</span></div>`;}).join('')}
+      ${!pAvals.length ? '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sem notas lançadas</div>' : ''}
+    </div>`;
+  }).join('');
+
+  const prevAvals = dp==='1' ? [] : (state.avaliacoes[state.turma]||[]).filter(a=>a.periodo===(parseInt(dp)-1).toString());
+  document.getElementById('periodosBody').innerHTML = alunos.map(al => {
+    const av = avals.find(a=>a.alunoId===al.id);
+    const prevAv = prevAvals.find(a=>a.alunoId===al.id);
+    if (!av) return `<tr><td><strong>${al.name}</strong></td><td colspan="6" style="color:var(--text3)">Sem nota lançada</td></tr>`;
+    let evol = '—';
+    if (prevAv) { const d = av.final - prevAv.final; evol = (d>=0?'+':'')+d; }
+    const evolColor = evol.startsWith('+')?'var(--green)':evol.startsWith('-')?'var(--red)':'var(--text3)';
+    return `<tr>
+      <td><strong>${al.name}</strong></td>
+      <td><span class="nota nota-${av.fit}">${av.fit}</span></td>
+      <td><span class="nota nota-${av.mod}">${av.mod}</span></td>
+      <td><span class="nota nota-${av.atit}">${av.atit}</span></td>
+      <td><span class="nota nota-${av.final}">${av.final}</span></td>
+      <td style="font-size:11px;color:var(--text3)">${MENC[av.final]}</td>
+      <td style="font-family:var(--mono);color:${evolColor};font-weight:600">${evol}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Sem alunos nesta turma</td></tr>`;
+}
+function switchDP(p) { state.currentDesempPeriodo = p; renderPeriodos(); }
+
+// ═══════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════
+function openModal(id, isNew=false) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modalAluno' && isNew) {
+    // Reset to "new aluno" mode — only when explicitly adding new
+    editingAlunoId = null;
+    document.getElementById('modalAlunoTitle').textContent = 'Novo aluno';
+    ['aNome','aNum','aNasc','aFoto','aStatusObs'].forEach(f => { const el=document.getElementById(f); if(el) el.value=''; });
+    const ss=document.getElementById('aStatus');if(ss)ss.value='ativo';
+    const sg=document.getElementById('aStatusObsGroup');if(sg)sg.style.display='none';
+    const obs = document.getElementById('aObs'); if(obs) obs.value='';
+    const genre = document.getElementById('aGenre'); if(genre) genre.value='M';
+    const turma = document.getElementById('aTurma'); if(turma) turma.value = state.turma;
+  }
+  if (id === 'modalAula') {
+    document.getElementById('auData').value = new Date().toISOString().split('T')[0];
+    renderPresencaGrid();
+  }
+  if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
+  if (id === 'mgturmas') { renderTurmasListEdit(); setTimeout(()=>document.getElementById('novaTurmaInput')?.focus(),100); }
+  if (id === 'modalNota') populateSelect('notaAluno', state.alunos[state.turma]||[]);
+  if (id === 'modalAvaliacao') populateSelect('avalAluno', state.alunos[state.turma]||[]);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function populateSelect(selId, alunos) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = alunos.map(a => `<option value="${a.id}">${a.name} (Nº${a.num})</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SAVE HANDLERS
+// ═══════════════════════════════════════════════
+let editingAlunoId = null;
+function saveAluno() {
+  const nome = document.getElementById('aNome').value.trim();
+  const num = document.getElementById('aNum').value.trim();
+  if (!nome || !num) { toast('Preenche o nome e o número', 'ti-alert-circle'); return; }
+  const turma = document.getElementById('aTurma').value;
+  if (!state.alunos[turma]) state.alunos[turma] = [];
+
+  const genre = document.getElementById('aGenre').value;
+  const nasc  = document.getElementById('aNasc').value;
+  const foto  = document.getElementById('aFoto').value.trim();
+  const obs   = document.getElementById('aObs').value.trim();
+  const status = document.getElementById('aStatus')?.value||'ativo';
+  const statusObs = document.getElementById('aStatusObs')?.value.trim()||'';
+
+  if (editingAlunoId) {
+    let found = false;
+    getTURMAS().forEach(t => {
+      const a = (state.alunos[t]||[]).find(x=>x.id===editingAlunoId);
+      if (a) {
+        if (t !== turma) {
+          state.alunos[t] = state.alunos[t].filter(x=>x.id!==editingAlunoId);
+          if (!state.alunos[turma]) state.alunos[turma]=[];
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs;
+          state.alunos[turma].push(a);
+        } else {
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs;
+        }
+        found = true;
+      }
+    });
+    editingAlunoId = null;
+    if (found) { toast('Aluno atualizado'); }
+    else {
+      state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, status, statusObs, faltas:{1:0,2:0,3:0} });
+      toast('Aluno adicionado');
+    }
+  } else {
+    state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, status, statusObs, faltas:{1:0,2:0,3:0} });
+    toast('Aluno adicionado');
+  }
+  saveState(); closeModal('modalAluno');
+  if (turma !== state.turma) setTurma(turma);
+  else renderAlunos();
+}
+
+function editAluno(id) {
+  const a = (state.alunos[state.turma]||[]).find(x=>x.id===id);
+  if (!a) return;
+  editingAlunoId = id;
+  // Open modal first (without reset), then populate fields
+  document.getElementById('modalAluno').classList.add('open');
+  document.getElementById('modalAlunoTitle').textContent = 'Editar aluno';
+  document.getElementById('aNome').value = a.name;
+  document.getElementById('aNum').value = a.num;
+  document.getElementById('aGenre').value = a.genre;
+  document.getElementById('aNasc').value = a.nasc || '';
+  document.getElementById('aFoto').value = a.foto || '';
+  document.getElementById('aObs').value = a.obs || '';
+  document.getElementById('aTurma').value = state.turma;
+  const st=document.getElementById('aStatus'); if(st){st.value=a.status||'ativo';st.dispatchEvent(new Event('change'));}
+  const sob=document.getElementById('aStatusObs'); if(sob)sob.value=a.statusObs||'';
+}
+
+let presencaState = {};
+
+let editHorarioId = null;
+function quickAddHorario(dia, hora) {
+  editHorarioId = null;
+  document.getElementById('modalHorarioTitle').textContent = 'Adicionar aula ao horário';
+  document.getElementById('horTurma').value = state.turma;
+  document.getElementById('horDia').value = dia;
+  document.getElementById('horInicio').value = hora;
+  // Auto set fim +50min
+  const endMin = timeToMin(hora) + 50;
+  document.getElementById('horFim').value = minToTime(Math.min(endMin, 18*60));
+  document.getElementById('horLocal').value = '';
+  document.getElementById('horModalidade').value = '';
+  document.getElementById('horObs').value = '';
+  document.getElementById('modalHorario').classList.add('open');
+}
+function editHorarioItem(id) {
+  const t = state.turma;
+  const a = (state.horario[t]||[]).find(x=>x.id===id);
+  if (!a) return;
+  editHorarioId = id;
+  document.getElementById('modalHorarioTitle').textContent = 'Editar aula do horário';
+  document.getElementById('horTurma').value = t;
+  document.getElementById('horDia').value = a.dia;
+  document.getElementById('horInicio').value = a.inicio;
+  document.getElementById('horFim').value = a.fim;
+  document.getElementById('horLocal').value = a.local||'';
+  document.getElementById('horModalidade').value = a.modalidade||'';
+  document.getElementById('horObs').value = a.obs||'';
+  document.getElementById('modalHorario').classList.add('open');
+}
+function saveHorario() {
+  const turma = document.getElementById('horTurma').value;
+  const dia   = parseInt(document.getElementById('horDia').value);
+  const ini   = document.getElementById('horInicio').value;
+  const fim   = document.getElementById('horFim').value;
+  if (!ini || !fim) { toast('Preenche hora de início e fim','ti-alert-circle'); return; }
+  if (timeToMin(fim) <= timeToMin(ini)) { toast('Hora de fim tem de ser posterior ao início','ti-alert-circle'); return; }
+  if (!state.horario[turma]) state.horario[turma] = [];
+  const entry = { id: editHorarioId||uid(), dia, inicio:ini, fim, local:document.getElementById('horLocal').value.trim(), modalidade:document.getElementById('horModalidade').value.trim(), obs:document.getElementById('horObs').value.trim() };
+  if (editHorarioId) {
+    const idx = state.horario[turma].findIndex(x=>x.id===editHorarioId);
+    if (idx>=0) state.horario[turma][idx] = entry; else state.horario[turma].push(entry);
+  } else {
+    state.horario[turma].push(entry);
+  }
+  editHorarioId = null;
+  saveState(); closeModal('modalHorario'); renderHorario();
+  toast('Horário guardado');
+}
+function deleteHorario(id) {
+  if (!confirm('Remover esta aula do horário?')) return;
+  const t = state.turma;
+  state.horario[t] = (state.horario[t]||[]).filter(x=>x.id!==id);
+  saveState(); renderHorario(); toast('Aula removida do horário');
+}
+
+// ── CALENDÁRIO ────────────────────────────────────────────────────────────
+let calSelectedDay = null;
+
+function calNav(dir) {
+  state.calMonth += dir;
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  if (state.calMonth < 0)  { state.calMonth = 11; state.calYear--; }
+  saveState(); renderCalendario();
+}
+function calGoToday() {
+  state.calYear  = new Date().getFullYear();
+  state.calMonth = new Date().getMonth();
+  calSelectedDay = null;
+  saveState(); renderCalendario();
+}
+
+function getCalEvents(dateStr) {
+  const filterTurma = document.getElementById('calTurmaFilter')?.value || '';
+  const events = [];
+  const date = new Date(dateStr + 'T12:00:00');
+  const dow   = date.getDay(); // 0=Sun,1=Mon...
+
+  // 1. Aulas registadas
+  getTURMAS().forEach(t => {
+    if (filterTurma && t !== filterTurma) return;
+    (state.aulas[t]||[]).forEach(a => {
+      if (a.data === dateStr) {
+        const hasFaltas = a.faltas && a.faltas.length > 0;
+        events.push({ type:'registada', turma:t, label:`${t} — ${a.modal}`, modal:a.modal, faltas:a.faltas||[], obs:a.obs, hasFaltas });
+      }
+    });
+  });
+
+  // 2. Aulas planeadas
+  (state.planeadas||[]).forEach(p => {
+    if (filterTurma && p.turma !== filterTurma) return;
+    if (p.data === dateStr) {
+      events.push({ type:'planeada', turma:p.turma, label:`${p.turma} — ${p.modal}`, inicio:p.inicio, fim:p.fim, modal:p.modal, local:p.local, obs:p.obs, id:p.id });
+    }
+  });
+
+  // 3. Horário semanal (only weekdays 1-5)
+  if (dow >= 1 && dow <= 5) {
+    getTURMAS().forEach(t => {
+      if (filterTurma && t !== filterTurma) return;
+      // Check if not already a registered or planned aula
+      const hasRegistada = events.some(e => e.type==='registada' && e.turma===t);
+      const hasPlaneada  = events.some(e => e.type==='planeada'  && e.turma===t);
+      (state.horario[t]||[]).forEach(h => {
+        if (h.dia == dow && !hasRegistada && !hasPlaneada) {
+          events.push({ type:'horario', turma:t, label:`${t} ${h.inicio}–${h.fim}`, inicio:h.inicio, fim:h.fim, local:h.local, modalidade:h.modalidade });
+        }
+      });
+    });
+  }
+
+  return events;
+}
+
+
+function calSelectDay(dateStr) {
+  calSelectedDay = dateStr;
+  renderCalendario();
+  renderCalDayDetail(dateStr);
+}
+
+
+function quickPlanAula(dateStr) {
+  document.getElementById('planTurma').value = state.turma;
+  document.getElementById('planData').value  = dateStr;
+  document.getElementById('planInicio').value = '10:00';
+  document.getElementById('planFim').value    = '10:50';
+  document.getElementById('planObs').value    = '';
+  document.getElementById('planLocal').value  = '';
+  document.getElementById('modalAulaPlaneada').classList.add('open');
+}
+
+function saveAulaPlaneada() {
+  const data = document.getElementById('planData').value;
+  if (!data) { toast('Seleciona uma data','ti-alert-circle'); return; }
+  if (!state.planeadas) state.planeadas = [];
+  state.planeadas.push({
+    id: uid(),
+    turma:  document.getElementById('planTurma').value,
+    data,
+    inicio: document.getElementById('planInicio').value,
+    fim:    document.getElementById('planFim').value,
+    modal:  document.getElementById('planModal').value,
+    local:  document.getElementById('planLocal').value.trim(),
+    obs:    document.getElementById('planObs').value.trim(),
+  });
+  saveState(); closeModal('modalAulaPlaneada'); renderCalendario();
+  toast('Aula planeada');
+}
+
+function deletePlaneada(id) {
+  state.planeadas = (state.planeadas||[]).filter(p=>p.id!==id);
+  saveState(); renderCalendario(); renderCalDayDetail(calSelectedDay);
+  toast('Aula planeada removida');
+}
+
+function convertToAula(id, dateStr) {
+  const p = (state.planeadas||[]).find(x=>x.id===id);
+  if (!p) return;
+  // Open aula modal pre-filled
+  if (!state.aulas[p.turma]) state.aulas[p.turma] = [];
+  state.aulas[p.turma].push({
+    id: uid(), data: p.data, periodo: state.periodo,
+    dur: p.inicio && p.fim ? timeToMin(p.fim)-timeToMin(p.inicio) : 50,
+    modal: p.modal, tipo:'exerc', obj:p.obs||'', obs:'', faltas:[],
+  });
+  // Remove planeada
+  state.planeadas = state.planeadas.filter(x=>x.id!==id);
+  saveState(); renderCalendario(); renderCalDayDetail(dateStr);
+  toast('Aula convertida e registada');
+}
+
+
+
+// ═══════════════════════════════════════════════
+// HORÁRIO — MULTI-TURMA & FERIADOS
+// ═══════════════════════════════════════════════
+
+let horView = 'all'; // 'all' | 'single'
+
+function setHorView(view, btn) {
+  horView = view;
+  document.querySelectorAll('#horViewAll,#horViewSingle').forEach(b => {
+    b.className = 'btn btn-secondary btn-sm';
+  });
+  btn.className = 'btn btn-primary btn-sm';
+  renderHorario();
+}
+
+// ── FERIADOS E INTERRUPÇÕES LETIVAS 2025/26 ──────────────────────────────
+// Pré-carregados com o calendário escolar português 2025/26
+const FERIADOS_DEFAULT = [
+  // Feriados nacionais
+  {data:'2025-10-05', nome:'República Portuguesa', tipo:'feriado'},
+  {data:'2025-11-01', nome:'Todos os Santos', tipo:'feriado'},
+  {data:'2025-12-01', nome:'Restauração da Independência', tipo:'feriado'},
+  {data:'2025-12-08', nome:'Imaculada Conceição', tipo:'feriado'},
+  {data:'2025-12-25', nome:'Natal', tipo:'feriado'},
+  {data:'2026-01-01', nome:'Ano Novo', tipo:'feriado'},
+  {data:'2026-02-17', nome:'Carnaval', tipo:'feriado'},
+  {data:'2026-04-02', nome:'Quinta-feira Santa', tipo:'feriado'},
+  {data:'2026-04-03', nome:'Sexta-feira Santa', tipo:'feriado'},
+  {data:'2026-04-05', nome:'Páscoa', tipo:'feriado'},
+  {data:'2026-04-25', nome:'Dia da Liberdade', tipo:'feriado'},
+  {data:'2026-05-01', nome:'Dia do Trabalhador', tipo:'feriado'},
+  {data:'2026-06-10', nome:'Dia de Portugal', tipo:'feriado'},
+  // Interrupções letivas 2025/26
+  {data:'2025-10-31', nome:'Interrupção — Outono', tipo:'interrupcao'},
+  {data:'2025-12-22', nome:'Início Natal', tipo:'interrupcao'},
+  {data:'2025-12-23', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2025-12-24', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2025-12-26', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2025-12-29', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2025-12-30', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2025-12-31', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2026-01-02', nome:'Férias Natal', tipo:'interrupcao'},
+  {data:'2026-02-16', nome:'Interrupção — Carnaval', tipo:'interrupcao'},
+  {data:'2026-02-18', nome:'Interrupção — Carnaval', tipo:'interrupcao'},
+  {data:'2026-03-30', nome:'Início Páscoa', tipo:'interrupcao'},
+  {data:'2026-03-31', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-01', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-06', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-07', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-08', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-09', nome:'Férias Páscoa', tipo:'interrupcao'},
+  {data:'2026-04-10', nome:'Férias Páscoa', tipo:'interrupcao'},
+];
+
+// Init feriados in state if not present
+if (!state.feriados) state.feriados = JSON.parse(JSON.stringify(FERIADOS_DEFAULT));
+
+function getFeriado(dateStr) {
+  return (state.feriados || []).find(f => f.data === dateStr) || null;
+}
+function isFeriado(dateStr) { return !!getFeriado(dateStr); }
+
+// ── RENDER HORÁRIO MULTI-TURMA ────────────────────────────────────────────
+function renderHorario() {
+  const isSingle = horView === 'single';
+  const turmas   = isSingle ? [state.turma] : getTURMAS();
+
+  // Title and list title
+  const titleEl = document.getElementById('title-horario');
+  const listEl  = document.getElementById('horListTitle');
+  if (titleEl) titleEl.textContent = isSingle ? 'Horário — ' + state.turma : 'Horário — Todas as turmas';
+  if (listEl)  listEl.textContent  = isSingle ? 'Aulas de ' + state.turma : 'Todas as aulas';
+
+  // Legend
+  const legendHtml = turmas.map(t => {
+    const c = TURMA_COLORS_HOR[t] || {bg:'#555', light:'#eee'};
+    return `<div class="hor-leg"><div class="hor-leg-dot" style="background:${c.bg}"></div><strong>${t}</strong></div>`;
+  }).join('');
+
+  // Build grid — show only slots that have any aula OR span 8-18
+  const allAulas = turmas.flatMap(t => (state.horario[t]||[]).map(a => ({...a, turma:t})));
+  if (!allAulas.length && isSingle) {
+    document.getElementById('horarioGrid').innerHTML = '';
+    // Show empty state
+    document.getElementById('horarioGrid').outerHTML = '<div id="horarioGrid"></div>';
+  }
+
+  // Compute visible time range
+  let minSlot = 8*60, maxSlot = 18*60;
+  if (allAulas.length) {
+    const mins = allAulas.map(a => timeToMin(a.inicio));
+    const maxs = allAulas.map(a => timeToMin(a.fim));
+    minSlot = Math.max(8*60, Math.floor(Math.min(...mins)/30)*30 - 30);
+    maxSlot = Math.min(18*60, Math.ceil(Math.max(...maxs)/30)*30 + 30);
+  }
+
+  const slots = [];
+  for (let m = minSlot; m < maxSlot; m += 30) slots.push(m);
+
+  // Build grid HTML — one column per turma (multi) or just the grid
+  const numCols = isSingle ? 5 : turmas.length * 5; // 5 days each turma or 5 days single
+  let gridHtml = '';
+
+  if (isSingle) {
+    // Simple 5-day grid
+    gridHtml += `<div style="display:grid;grid-template-columns:56px repeat(5,1fr);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);margin-bottom:16px;font-size:12px">`;
+    // Header
+    gridHtml += '<div style="background:var(--surface2);padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)"></div>';
+    for (let d=1;d<=5;d++) gridHtml += `<div style="background:var(--surface2);padding:8px 4px;text-align:center;font-weight:700;font-size:11px;color:var(--text2);border-right:1px solid var(--border);border-bottom:1px solid var(--border);letter-spacing:.04em">${DIAS_SEMANA[d].toUpperCase()}</div>`;
+    // Rows
+    slots.forEach(slotMin => {
+      gridHtml += `<div style="padding:6px 8px;font-size:10px;color:var(--text3);border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);white-space:nowrap">${minToTime(slotMin)}</div>`;
+      for (let d=1;d<=5;d++) {
+        const t = state.turma;
+        const c = TURMA_COLORS_HOR[t] || {bg:'#2D7A52', light:'#D5F5E3', text:'#fff'};
+        const matching = (state.horario[t]||[]).filter(a => a.dia==d && timeToMin(a.inicio)<=slotMin && slotMin<timeToMin(a.fim));
+        const isStart  = matching.length && timeToMin(matching[0].inicio)===slotMin;
+        if (matching.length) {
+          const a = matching[0];
+          if (isStart) {
+            gridHtml += `<div style="padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer" onclick="editHorarioItem('${a.id}')">
+              <div style="border-radius:5px;padding:4px 6px;background:${c.bg};color:${c.text};font-size:11px;font-weight:600;line-height:1.3">
+                <div>${a.inicio}–${a.fim}</div>
+                ${a.modalidade?`<div style="font-weight:400;opacity:.85;font-size:10px">${a.modalidade}</div>`:''}
+                ${a.local?`<div style="font-weight:400;opacity:.7;font-size:9px">${a.local}</div>`:''}
+              </div></div>`;
+          } else {
+            gridHtml += `<div style="background:${c.light};border-right:1px solid var(--border);border-bottom:1px solid var(--border)"></div>`;
+          }
+        } else {
+          gridHtml += `<div style="padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;min-height:36px" onclick="quickAddHorario(${d},'${minToTime(slotMin)}')"><div style="color:var(--text3);font-size:10px;text-align:center;padding-top:6px;opacity:0">+</div></div>`;
+        }
+      }
+    });
+    gridHtml += '</div>';
+
+  } else {
+    // Multi-turma: one group of 5 days per turma, side by side per day
+    gridHtml += `<div style="overflow-x:auto;margin-bottom:16px"><table style="border-collapse:collapse;font-size:11px;min-width:600px;width:100%">`;
+    // Header row 1 — turma names spanning 5 cols each
+    gridHtml += '<thead><tr><th style="width:56px;background:var(--surface2);border:1px solid var(--border);padding:6px"></th>';
+    for (let d=1;d<=5;d++) {
+      gridHtml += `<th colspan="${turmas.length}" style="background:var(--surface2);border:1px solid var(--border);padding:6px 4px;text-align:center;font-size:11px;color:var(--text2);letter-spacing:.04em">${DIAS_SEMANA[d].toUpperCase()}</th>`;
+    }
+    gridHtml += '</tr>';
+    // Header row 2 — turma labels under each day
+    gridHtml += '<tr><th style="background:var(--surface2);border:1px solid var(--border);padding:4px 6px;font-size:10px;color:var(--text3)">Hora</th>';
+    for (let d=1;d<=5;d++) {
+      turmas.forEach(t => {
+        const c = TURMA_COLORS_HOR[t]||{bg:'#555',text:'#fff'};
+        gridHtml += `<th style="background:${c.bg};color:${c.text};border:1px solid var(--border);padding:4px 6px;font-size:10px;text-align:center;white-space:nowrap">${t}</th>`;
+      });
+    }
+    gridHtml += '</tr></thead><tbody>';
+    // Time rows
+    slots.forEach(slotMin => {
+      gridHtml += `<tr><td style="background:var(--surface2);border:1px solid var(--border);padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap">${minToTime(slotMin)}</td>`;
+      for (let d=1;d<=5;d++) {
+        turmas.forEach(t => {
+          const c = TURMA_COLORS_HOR[t]||{bg:'#2D7A52',light:'#D5F5E3',text:'#fff'};
+          const matching = (state.horario[t]||[]).filter(a => a.dia==d && timeToMin(a.inicio)<=slotMin && slotMin<timeToMin(a.fim));
+          if (matching.length) {
+            const a = matching[0];
+            const isStart = timeToMin(a.inicio)===slotMin;
+            if (isStart) {
+              const rows = Math.max(1, (timeToMin(a.fim)-timeToMin(a.inicio))/30);
+              gridHtml += `<td rowspan="${rows}" style="background:${c.bg};color:${c.text};border:1px solid var(--border);padding:4px 5px;vertical-align:top;cursor:pointer;min-width:72px" onclick="editHorarioItem('${a.id}')">
+                <div style="font-weight:700;font-size:10px">${a.inicio}–${a.fim}</div>
+                ${a.modalidade?`<div style="font-size:9px;opacity:.85">${a.modalidade}</div>`:''}
+                ${a.local?`<div style="font-size:9px;opacity:.7">${a.local}</div>`:''}
+              </td>`;
+            }
+            // else skip — covered by rowspan
+          } else {
+            gridHtml += `<td style="border:1px solid var(--border);padding:2px;min-height:32px;cursor:pointer;min-width:72px" onclick="quickAddHorarioTurma(${d},'${minToTime(slotMin)}','${t}')"></td>`;
+          }
+        });
+      }
+      gridHtml += '</tr>';
+    });
+    gridHtml += '</tbody></table></div>';
+  }
+
+  document.getElementById('horarioGrid').outerHTML = `<div id="horarioGrid">${legendHtml ? `<div class="hor-legend">${legendHtml}</div>` : ''}${gridHtml}</div>`;
+
+  // List
+  const listData = turmas.flatMap(t => (state.horario[t]||[]).map(a=>({...a,turma:t})))
+    .sort((a,b) => a.dia-b.dia || timeToMin(a.inicio)-timeToMin(b.inicio));
+  const listEl2 = document.getElementById('horarioList');
+  if (listEl2) listEl2.innerHTML = listData.length
+    ? listData.map(a => {
+        const c = TURMA_COLORS_HOR[a.turma]||{bg:'#555',light:'#eee',text:'#fff'};
+        return `<tr>
+          <td><span class="badge" style="background:${c.light};color:${c.bg}">${a.turma}</span></td>
+          <td><strong>${DIAS_SEMANA[a.dia]}</strong></td>
+          <td style="font-family:var(--mono)">${a.inicio}</td>
+          <td style="font-family:var(--mono)">${a.fim}</td>
+          <td>${timeToMin(a.fim)-timeToMin(a.inicio)} min</td>
+          <td>${a.modalidade||'—'}</td>
+          <td>${a.local||'—'}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="deleteHorario('${a.id}','${a.turma}')"><i class="ti ti-trash"></i></button></td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Sem aulas no horário. Clica numa célula ou em "Adicionar aula".</td></tr>`;
+}
+
+function quickAddHorarioTurma(dia, hora, turma) {
+  editHorarioId = null;
+  document.getElementById('modalHorarioTitle').textContent = 'Adicionar aula ao horário';
+  document.getElementById('horTurma').value = turma;
+  document.getElementById('horDia').value = dia;
+  document.getElementById('horInicio').value = hora;
+  const endMin = timeToMin(hora) + 50;
+  document.getElementById('horFim').value = minToTime(Math.min(endMin, 18*60));
+  document.getElementById('horLocal').value = '';
+  document.getElementById('horModalidade').value = '';
+  document.getElementById('horObs').value = '';
+  document.getElementById('modalHorario').classList.add('open');
+}
+
+// Override deleteHorario to accept turma param
+function deleteHorario(id, turma) {
+  const t = turma || state.turma;
+  if (!confirm('Remover esta aula do horário?')) return;
+  state.horario[t] = (state.horario[t]||[]).filter(x=>x.id!==id);
+  saveState(); renderHorario(); toast('Aula removida do horário');
+}
+
+// ── FERIADOS NO CALENDÁRIO ────────────────────────────────────────────────
+function renderCalendario() {
+  const year  = state.calYear;
+  const month = state.calMonth;
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  document.getElementById('calMonthLabel').textContent = MESES[month] + ' ' + year;
+
+  const firstDay   = new Date(year, month, 1).getDay();
+  const daysInMonth= new Date(year, month+1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+  const startDow   = (firstDay + 6) % 7;
+
+  let html = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d =>
+    `<div class="cal-dow">${d}</div>`).join('');
+
+  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    let day, m, y, isOther = false;
+    if (i < startDow) {
+      day = daysInPrev - startDow + 1 + i; m = month-1; y = year; isOther = true;
+      if (m < 0) { m = 11; y--; }
+    } else if (i >= startDow + daysInMonth) {
+      day = i - startDow - daysInMonth + 1; m = month+1; y = year; isOther = true;
+      if (m > 11) { m = 0; y++; }
+    } else {
+      day = i - startDow + 1; m = month; y = year;
+    }
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const isSel   = dateStr === calSelectedDay;
+    const feriado = getFeriado(dateStr);
+    const events  = getCalEvents(dateStr);
+    const dow     = new Date(dateStr+'T12:00:00').getDay();
+    const isWeekend = dow===0||dow===6;
+
+    const eventDots = events.slice(0,2).map(e => {
+      const bg = e.type==='registada'?(e.hasFaltas?'#B7770D':'#2D7A52'):e.type==='planeada'?'#1B4F72':'#7B241C';
+      return `<div class="cal-event" style="background:${bg}20;color:${bg};border-left:3px solid ${bg}" onclick="event.stopPropagation();calSelectDay('${dateStr}')">${e.label}</div>`;
+    }).join('');
+    const extraCount = events.length > 2 ? `<div style="font-size:9px;color:var(--text3)">+${events.length-2}</div>` : '';
+
+    const feriadoBadge = feriado
+      ? `<div class="cal-feriado" style="background:${feriado.tipo==='feriado'?'#FADBD8':'#FEF3E7'};color:${feriado.tipo==='feriado'?'#7B241C':'#7D4E00'}">${feriado.tipo==='feriado'?'🔴':'⏸'} ${feriado.nome}</div>`
+      : '';
+    const weekendBg = isWeekend ? 'background:var(--surface2);' : '';
+    const feriadoBg = feriado && feriado.tipo==='feriado' ? 'background:#FFF5F5;' : feriado ? 'background:#FFFDF5;' : '';
+
+    html += `<div class="cal-day${isOther?' other-month':''}${isToday?' today':''}${isSel?' selected':''}" style="${weekendBg}${feriadoBg}" onclick="calSelectDay('${dateStr}')">
+      <div class="cal-day-num" style="${isWeekend?'color:var(--text3)':''}">${day}</div>
+      ${feriadoBadge}
+      ${eventDots}${extraCount}
+    </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  if (calSelectedDay) renderCalDayDetail(calSelectedDay);
+}
+
+// Override renderCalDayDetail to include feriado info
+const _origCalDayDetail = window.renderCalDayDetail;
+function renderCalDayDetail(dateStr) {
+  const detail   = document.getElementById('calDayDetail');
+  const feriado  = getFeriado(dateStr);
+  const events   = getCalEvents(dateStr);
+  const d        = new Date(dateStr+'T12:00:00');
+  const label    = `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()} (${DIAS_SHORT[d.getDay()]})`;
+
+  const feriadoBlock = feriado ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);background:${feriado.tipo==='feriado'?'#FADBD8':'#FEF3E7'};color:${feriado.tipo==='feriado'?'#7B241C':'#7D4E00'};margin-bottom:12px;font-size:13px;font-weight:500">
+    ${feriado.tipo==='feriado'?'🔴':'⏸'} ${feriado.nome}
+    <span style="font-size:11px;opacity:.7">(${feriado.tipo==='feriado'?'Feriado nacional':'Interrupção letiva'})</span>
+    <button class="btn btn-secondary btn-sm" style="margin-left:auto;font-size:10px" onclick="removeFeriado('${dateStr}')"><i class="ti ti-trash"></i></button>
+  </div>` : '';
+
+  const addFeriadoBtn = !feriado ? `
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary btn-sm" onclick="addFeriado('${dateStr}','feriado')"><i class="ti ti-flag"></i>Marcar feriado</button>
+      <button class="btn btn-secondary btn-sm" onclick="addFeriado('${dateStr}','interrupcao')"><i class="ti ti-player-pause"></i>Interrupção letiva</button>
+    </div>` : '';
+
+  if (!events.length && !feriado) {
+    detail.style.display = 'block';
+    detail.innerHTML = `<div class="cal-detail">
+      <div class="cal-detail-title">${label}</div>
+      ${addFeriadoBtn}
+      <div style="color:var(--text3);font-size:13px">Sem aulas neste dia.
+        <button class="btn btn-primary btn-sm" style="margin-left:10px" onclick="quickPlanAula('${dateStr}')"><i class="ti ti-plus"></i>Planear aula</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const rows = events.map(e => {
+    const bg = e.type==='registada'?(e.hasFaltas?'#B7770D':'#2D7A52'):e.type==='planeada'?'#1B4F72':'#7B241C';
+    const typeLabel = e.type==='registada'?'Registada':e.type==='planeada'?'Planeada':'Horário';
+    const col = TURMA_COLORS_HOR[e.turma]||{light:'#F0F0F0',bg:'#555',text:'#fff'};
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="width:3px;min-height:40px;background:${bg};border-radius:2px;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${e.turma}</span>
+          <span class="badge badge-gray" style="font-size:10px">${typeLabel}</span>
+          ${e.modal||e.modalidade?`<span class="badge badge-blue" style="font-size:10px">${e.modal||e.modalidade}</span>`:''}
+        </div>
+        ${e.inicio?`<div style="font-size:12px;color:var(--text3)">${e.inicio}–${e.fim||'?'} ${e.local?'· '+e.local:''}</div>`:''}
+        ${e.obs?`<div style="font-size:12px;color:var(--text2);margin-top:3px">${e.obs}</div>`:''}
+        ${e.type==='registada'&&e.faltas&&e.faltas.length?`<div style="margin-top:5px">${e.faltas.map(f=>`<span class="badge badge-red" style="font-size:10px;margin:2px">${f.split(' ')[0]}</span>`).join('')}</div>`:''}
+      </div>
+      ${e.type==='planeada'?`<div style="display:flex;gap:4px">
+        <button class="btn btn-secondary btn-sm" onclick="convertToAula('${e.id}','${dateStr}')" title="Converter em aula registada"><i class="ti ti-clipboard-check"></i></button>
+        <button class="btn btn-secondary btn-sm" onclick="deletePlaneada('${e.id}')" title="Remover"><i class="ti ti-trash"></i></button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  detail.style.display = 'block';
+  detail.innerHTML = `<div class="cal-detail">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="cal-detail-title">${label}</div>
+      <button class="btn btn-primary btn-sm" onclick="quickPlanAula('${dateStr}')"><i class="ti ti-plus"></i>Planear aula</button>
+    </div>
+    ${feriadoBlock}
+    ${addFeriadoBtn}
+    ${rows}
+  </div>`;
+}
+
+function addFeriado(dateStr, tipo) {
+  const nome = prompt(tipo==='feriado' ? 'Nome do feriado:' : 'Nome da interrupção:', tipo==='feriado' ? 'Feriado' : 'Interrupção letiva');
+  if (!nome) return;
+  if (!state.feriados) state.feriados = [];
+  state.feriados = state.feriados.filter(f => f.data !== dateStr);
+  state.feriados.push({data:dateStr, nome:nome.trim(), tipo});
+  saveState(); renderCalendario(); renderCalDayDetail(dateStr);
+  toast('Marcado: ' + nome);
+}
+function removeFeriado(dateStr) {
+  state.feriados = (state.feriados||[]).filter(f => f.data !== dateStr);
+  saveState(); renderCalendario(); renderCalDayDetail(dateStr);
+  toast('Removido');
+}
+
+// Modal feriados list page button in calendario
+function openFeriadosManager() {
+  const list = (state.feriados||[]).slice().sort((a,b)=>a.data.localeCompare(b.data));
+  const html = list.map(f => {
+    const d = new Date(f.data+'T12:00:00');
+    const ds = `${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;font-family:var(--mono);color:var(--text3);min-width:90px">${ds}</span>
+      <span class="badge" style="background:${f.tipo==='feriado'?'#FADBD8':'#FEF3E7'};color:${f.tipo==='feriado'?'#7B241C':'#7D4E00'};font-size:10px">${f.tipo==='feriado'?'Feriado':'Interrupção'}</span>
+      <span style="flex:1;font-size:13px">${f.nome}</span>
+      <button class="btn btn-secondary btn-sm" onclick="removeFeriado('${f.data}');openFeriadosManager()"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+  document.getElementById('feriadosListBody').innerHTML = html || '<div style="color:var(--text3);font-size:13px;padding:10px 0">Sem feriados registados.</div>';
+  document.getElementById('modalFeriados').classList.add('open');
+}
+
+
+// ═══════════════════════════════════════════════
+// IMPORTAR EXCEL — VALIDAÇÃO E CONFIRMAÇÃO
+// ═══════════════════════════════════════════════
+
+const COL_ALIAS = {
+  NOME:  ['Nome Completo','Nome','Aluno','Designação','name','NomeAluno','designacao'],
+  NUM:   ['Nº Aluno','Numero Aluno','Nº','Numero','NºAluno','num_aluno','Número','ID','N Aluno'],
+  TURMA: ['Turma','Ano/Turma','AnoTurma','Ano Turma','turma','Classe'],
+  GENRE: ['Género','Genero','Sexo','M/F','genero','gender','Género'],
+  NASC:  ['Data Nasc.','Data Nasc','Data Nascimento','nascimento','data_nasc'],
+  OBS:   ['Obs. Saúde / Dispensa','Observações','Obs','obs_saude'],
+  FOTO:  ['URL Foto','Foto','foto_url'],
+  DATA_AULA:  ['Data Aula','Data','data_aula','Data Aula (AAAA-MM-DD)'],
+  PRESENCA:   ['Presença','Presenca','P/F','Estado','Presença (P/F)'],
+  MODALIDADE: ['Modalidade','Unidade'],
+  VAIVEM:  ['Vaivém','Vaivem','vaivem','Vaivém (percursos)'],
+  ABD:     ['Abdominais','abd','Abdominais (reps)'],
+  BRACOS:  ['Ext. Braços','Flex. Braços (reps)','Flexoes','bracos'],
+  IMP1:    ['Imp. Horizontal T1 (cm)','T1','tentativa1','Imp1'],
+  IMP2:    ['Imp. Horizontal T2 (cm)','T2','tentativa2','Imp2'],
+  IMP3:    ['Imp. Horizontal T3 (cm)','T3','tentativa3','Imp3'],
+  DATA_FIT:['Data (AAAA-MM-DD)','Data Avaliação','data_fit'],
+  MODAL_NM:['Modalidade'],
+  HAB:     ['Habilidades','Habilidades (1-5)'],
+  REG:     ['Regras/Cultura','Regras/Cultura (1-5)'],
+  ATIT:    ['Atitudes','Atitudes (1-5)'],
+  FINAL:   ['Nota Final','Nota Final (1-5)'],
+  OBS_M:   ['Observações','Obs'],
+};
+
+function findCol(row, aliases) {
+  const keys = Object.keys(row);
+  for (const alias of aliases) {
+    const found = keys.find(k => k.trim().toLowerCase() === alias.toLowerCase());
+    if (found !== undefined) {
+      const val = row[found];
+      return (val === null || val === undefined) ? '' : val;
+    }
+  }
+  return '';
+}
+
+function normTurma(v) {
+  if (!v && v !== 0) return null;
+  const s = String(v).trim().replace(/[ºª°]/g,'').replace(/\s+/g,'').toUpperCase();
+  const map = {'5A':'5ºA','5B':'5ºB','6A':'6ºA','6B':'6ºB','7A':'7ºA','7B':'7ºB','8A':'8ºA','8B':'8ºB','9A':'9ºA','9B':'9ºB'};
+  if (map[s]) return map[s];
+  const orig = String(v).trim().replace(/\s+/g,'');
+  if (getTURMAS().includes(orig)) return orig;
+  return null;
+}
+
+function normGenre(v) {
+  if (!v && v !== 0) return null;
+  const s = String(v).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if (['m','masculino','masc','male'].includes(s)) return 'M';
+  if (['f','feminino','fem','female','rapariga'].includes(s)) return 'F';
+  if (['o','outro','other','x'].includes(s)) return 'O';
+  return null;
+}
+
+function normPresenca(v) {
+  const s = String(v).trim().toLowerCase();
+  if (['p','presente','1','sim'].includes(s)) return 'P';
+  if (['f','falta','0','nao','não'].includes(s)) return 'F';
+  return null;
+}
+
+function normNota(v) { const n=parseInt(v); return (n>=1&&n<=5)?n:null; }
+
+function normDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) return v.toISOString().split('T')[0];
+  return String(v).trim();
+}
+
+function validateSheet(sheet, rows) {
+  const errors = [], warnings = [], parsed = [];
+
+  if (sheet === 'ALUNOS') {
+    rows.forEach((r, i) => {
+      const all = Object.values(r).map(v=>v!=null?String(v).trim():'').filter(Boolean);
+      if (!all.length) return;
+      const nome  = String(findCol(r, COL_ALIAS.NOME) || '').trim();
+      const num   = String(findCol(r, COL_ALIAS.NUM)  || '').trim();
+      const turmaRaw = findCol(r, COL_ALIAS.TURMA);
+      const turma = normTurma(turmaRaw);
+      const genre = normGenre(findCol(r, COL_ALIAS.GENRE));
+      if (!nome) { errors.push({row:i+1, msg:`Linha ${i+1}: Nome em falta`}); return; }
+      if (!genre) warnings.push({row:i+1, msg:`Linha ${i+1}: Género não reconhecido — será "O"`});
+      if (!turma) warnings.push({row:i+1, msg:`Linha ${i+1}: Turma "${turmaRaw||''}" não reconhecida — usará turma activa`});
+      if (!num)   warnings.push({row:i+1, msg:`Linha ${i+1}: Nº em falta — gerado automaticamente`});
+      parsed.push({
+        nome, num: num||('IMP-'+(i+1)),
+        turma: turma||state.turma,
+        genre: genre||'O',
+        nasc: normDate(findCol(r, COL_ALIAS.NASC)),
+        obs:  String(findCol(r, COL_ALIAS.OBS)||'').trim(),
+        foto: String(findCol(r, COL_ALIAS.FOTO)||'').trim(),
+      });
+    });
+  }
+  else if (sheet === 'FALTAS') {
+    rows.forEach((r, i) => {
+      const nome  = String(findCol(r, COL_ALIAS.NOME)||'').trim();
+      const data  = normDate(findCol(r, COL_ALIAS.DATA_AULA));
+      const pres  = normPresenca(findCol(r, COL_ALIAS.PRESENCA));
+      const turma = normTurma(findCol(r, COL_ALIAS.TURMA));
+      if (!nome) errors.push({row:i+1, msg:`Linha ${i+1}: Nome em falta`});
+      if (!data) errors.push({row:i+1, msg:`Linha ${i+1}: Data em falta`});
+      if (pres===null) errors.push({row:i+1, msg:`Linha ${i+1}: Presença inválida (usa P ou F)`});
+      if (nome&&data&&pres!==null) parsed.push({nome, num:String(findCol(r,COL_ALIAS.NUM)||'').trim(), turma:turma||state.turma, data, presenca:pres, modalidade:String(findCol(r,COL_ALIAS.MODALIDADE)||'').trim()});
+    });
+  }
+  else if (sheet === 'FITESCOLA') {
+    rows.forEach((r, i) => {
+      const nome  = String(findCol(r, COL_ALIAS.NOME)||'').trim();
+      const turma = normTurma(findCol(r, COL_ALIAS.TURMA)) || state.turma;
+      if (!nome) { errors.push({row:i+1, msg:`Linha ${i+1}: Nome em falta`}); return; }
+      const v1=parseFloat(findCol(r,COL_ALIAS.IMP1))||0, v2=parseFloat(findCol(r,COL_ALIAS.IMP2))||0, v3=parseFloat(findCol(r,COL_ALIAS.IMP3))||0;
+      parsed.push({nome, num:String(findCol(r,COL_ALIAS.NUM)||'').trim(), turma,
+        vaivem:parseInt(findCol(r,COL_ALIAS.VAIVEM))||null,
+        abd:parseInt(findCol(r,COL_ALIAS.ABD))||null,
+        bracos:parseInt(findCol(r,COL_ALIAS.BRACOS))||null,
+        imp:Math.max(v1,v2,v3)||null, imp1:v1||null, imp2:v2||null, imp3:v3||null,
+        data:normDate(findCol(r,COL_ALIAS.DATA_FIT))});
+    });
+  }
+  else if (sheet === 'MODALIDADES') {
+    rows.forEach((r, i) => {
+      const nome  = String(findCol(r, COL_ALIAS.NOME)||'').trim();
+      const turma = normTurma(findCol(r, COL_ALIAS.TURMA)) || state.turma;
+      const modal = String(findCol(r, COL_ALIAS.MODAL_NM)||'').trim();
+      if (!nome)  { errors.push({row:i+1, msg:`Linha ${i+1}: Nome em falta`}); return; }
+      if (!modal) { errors.push({row:i+1, msg:`Linha ${i+1}: Modalidade em falta`}); return; }
+      parsed.push({nome, num:String(findCol(r,COL_ALIAS.NUM)||'').trim(), turma, modal,
+        hab:normNota(findCol(r,COL_ALIAS.HAB))||3,
+        reg:normNota(findCol(r,COL_ALIAS.REG))||3,
+        atit:normNota(findCol(r,COL_ALIAS.ATIT))||3,
+        final:normNota(findCol(r,COL_ALIAS.FINAL))||3,
+        obs:String(findCol(r,COL_ALIAS.OBS_M)||'').trim()});
+    });
+  }
+  return {errors, warnings, parsed};
+}
+
+function validateAndShow() {
+  const area   = document.getElementById('impValidationArea');
+  const tabsEl = document.getElementById('impSheetTabs');
+  const resEl  = document.getElementById('impValidationResults');
+  if (!area || !tabsEl || !resEl) { toast('Erro: elementos de validação não encontrados', 'ti-alert-circle'); return; }
+  area.style.display = 'block';
+
+  const knownSheets = ['ALUNOS','FALTAS','FITESCOLA','MODALIDADES'];
+  const sheetKeys   = Object.keys(importedData || {});
+  const found = knownSheets.filter(s => sheetKeys.includes(s));
+
+  if (!found.length) {
+    resEl.innerHTML = `<div style="padding:12px;background:var(--red-light);border-radius:var(--radius-sm);color:var(--red)">
+      <strong>Nenhuma folha reconhecida.</strong><br>
+      Folhas encontradas: <em>${sheetKeys.join(', ') || 'nenhuma'}</em><br>
+      Certifica-te que o ficheiro tem folhas chamadas: ALUNOS, FALTAS, FITESCOLA ou MODALIDADES.
+    </div>`;
+    tabsEl.innerHTML = '';
+    document.getElementById('btnImportar').disabled = true;
+    return;
+  }
+
+  activeImpSheet = found[0];
+  tabsEl.innerHTML = found.map(s =>
+    `<button class="stab${s===activeImpSheet?' active':''}" onclick="switchImpSheet('${s}',this)">
+      ${{ALUNOS:'👥',FALTAS:'📋',FITESCOLA:'❤️',MODALIDADES:'⚽'}[s]||'📄'} ${s}
+    </button>`
+  ).join('');
+
+  showSheetValidation(activeImpSheet);
+}
+
+function switchImpSheet(sheet, btn) {
+  activeImpSheet = sheet;
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showSheetValidation(sheet);
+}
+
+function showSheetValidation(sheet) {
+  const rows  = importedData[sheet] || [];
+  const resEl = document.getElementById('impValidationResults');
+  const prevEl = document.getElementById('impPreview');
+  if (!resEl) return;
+
+  if (!rows.length) {
+    resEl.innerHTML = `<div style="padding:10px;background:var(--amber-light);border-radius:var(--radius-sm);color:var(--amber)">Folha ${sheet} está vazia.</div>`;
+    if(prevEl) prevEl.innerHTML = ''; return;
+  }
+
+  const {errors, warnings, parsed} = validateSheet(sheet, rows);
+  const hasErrors = errors.length > 0;
+
+  let html = '';
+  if (!hasErrors && !warnings.length)
+    html += `<div style="padding:10px;background:var(--green-bg);border-radius:var(--radius-sm);color:var(--green);margin-bottom:8px"><strong>✅ ${sheet}: ${parsed.length} registos prontos a importar</strong></div>`;
+  if (errors.length)
+    html += `<div style="padding:10px;background:var(--red-light);border-radius:var(--radius-sm);color:var(--red);margin-bottom:8px"><strong>❌ ${errors.length} erro(s):</strong><ul style="margin:6px 0 0 16px">${errors.slice(0,8).map(e=>`<li style="font-size:12px">${e.msg}</li>`).join('')}${errors.length>8?`<li>...+${errors.length-8} erros</li>`:''}</ul></div>`;
+  if (warnings.length)
+    html += `<div style="padding:10px;background:var(--amber-light);border-radius:var(--radius-sm);color:var(--amber);margin-bottom:8px"><strong>⚠ ${warnings.length} aviso(s):</strong><ul style="margin:6px 0 0 16px">${warnings.slice(0,5).map(w=>`<li style="font-size:12px">${w.msg}</li>`).join('')}${warnings.length>5?`<li>...+${warnings.length-5} avisos</li>`:''}</ul></div>`;
+
+  resEl.innerHTML = html;
+
+  // Preview table
+  if (prevEl) {
+    const cols = rows.length ? Object.keys(rows[0]) : [];
+    prevEl.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">Pré-visualização — ${Math.min(rows.length,6)} de ${rows.length} linha(s)</div>
+      <div style="overflow-x:auto"><table style="font-size:11px;border-collapse:collapse;width:100%">
+        <thead><tr>${cols.map(c=>`<th style="padding:5px 8px;background:var(--surface2);border:1px solid var(--border);white-space:nowrap">${c}</th>`).join('')}</tr></thead>
+        <tbody>${rows.slice(0,6).map((r,ri)=>`<tr style="${errors.some(e=>e.row===ri+1)?'background:#FFF5F5':''}">${cols.map(c=>`<td style="padding:5px 8px;border:1px solid var(--border)">${r[c]!=null?r[c]:''}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>`;
+  }
+
+  document.getElementById('btnImportar').disabled = hasErrors;
+}
+
+function confirmarImportacao() {
+  if (!importedData || !activeImpSheet) return;
+  const sheet = activeImpSheet;
+  const rows  = importedData[sheet] || [];
+  const {parsed} = validateSheet(sheet, rows);
+  let imported = 0;
+
+  if (sheet === 'ALUNOS') {
+    parsed.forEach(p => {
+      const turma = p.turma;
+      if (!state.alunos[turma]) state.alunos[turma] = [];
+      const existing = state.alunos[turma].find(a =>
+        (!p.num.startsWith('IMP-') && a.num === p.num) ||
+        a.name.toLowerCase() === p.nome.toLowerCase()
+      );
+      if (existing) {
+        existing.name = p.nome;
+        if (p.genre && p.genre !== 'O') existing.genre = p.genre;
+        if (p.nasc)  existing.nasc = p.nasc;
+        if (p.obs)   existing.obs  = p.obs;
+        if (p.foto)  existing.foto = p.foto;
+      } else {
+        state.alunos[turma].push({id:uid(), name:p.nome, num:p.num, genre:p.genre||'O',
+          nasc:p.nasc||'', foto:p.foto||'', obs:p.obs||'', status:'ativo', statusObs:'', faltas:{1:0,2:0,3:0}});
+      }
+      imported++;
+    });
+  }
+  else if (sheet === 'FALTAS') {
+    const aulaMap = {};
+    parsed.forEach(p => {
+      const key = `${p.turma}|${p.data}|${p.modalidade}`;
+      if (!aulaMap[key]) aulaMap[key] = {turma:p.turma, data:p.data, modal:p.modalidade||'Outra', faltas:[]};
+      if (p.presenca === 'F') aulaMap[key].faltas.push(p.nome);
+    });
+    Object.values(aulaMap).forEach(aula => {
+      const t = aula.turma;
+      if (!state.aulas[t]) state.aulas[t] = [];
+      if (!state.aulas[t].find(a=>a.data===aula.data&&a.modal===aula.modal))
+        state.aulas[t].push({id:uid(), data:aula.data, periodo:state.periodo, dur:50, modal:aula.modal, tipo:'exerc', obj:'', obs:'', faltas:aula.faltas, faltasDetail:aula.faltas.map(n=>({name:n,tipo:'FP',obs:''}))});
+      aula.faltas.forEach(nome => {
+        const aluno = (state.alunos[t]||[]).find(a=>a.name.toLowerCase()===nome.toLowerCase());
+        if (aluno) {
+          if (!aluno.faltas) aluno.faltas = {};
+          if (typeof aluno.faltas[state.periodo]==='number') aluno.faltas[state.periodo]={fp:aluno.faltas[state.periodo],fm:0,fj:0};
+          if (!aluno.faltas[state.periodo]||typeof aluno.faltas[state.periodo]!=='object') aluno.faltas[state.periodo]={fp:0,fm:0,fj:0};
+          aluno.faltas[state.periodo].fp++;
+        }
+      });
+      imported++;
+    });
+  }
+  else if (sheet === 'FITESCOLA') {
+    parsed.forEach(p => {
+      const t = p.turma;
+      if (!state.fit[t]) state.fit[t] = [];
+      const aluno = (state.alunos[t]||[]).find(a=>a.name.toLowerCase()===p.nome.toLowerCase()||(p.num&&a.num===p.num));
+      if (!aluno) { toast('Aluno não encontrado: '+p.nome+' — importa os alunos primeiro.', 'ti-alert-circle'); return; }
+      const entry = {alunoId:aluno.id, vaivem:p.vaivem, abd:p.abd, bracos:p.bracos, imp:p.imp, imp1:p.imp1, imp2:p.imp2, imp3:p.imp3, data:p.data};
+      const ei = state.fit[t].findIndex(f=>f.alunoId===aluno.id);
+      if (ei>=0) state.fit[t][ei]=entry; else state.fit[t].push(entry);
+      imported++;
+    });
+  }
+  else if (sheet === 'MODALIDADES') {
+    parsed.forEach(p => {
+      const t = p.turma;
+      if (!state.modalidades[t]) state.modalidades[t] = [];
+      const aluno = (state.alunos[t]||[]).find(a=>a.name.toLowerCase()===p.nome.toLowerCase()||(p.num&&a.num===p.num));
+      if (!aluno) { toast('Aluno não encontrado: '+p.nome+' — importa os alunos primeiro.', 'ti-alert-circle'); return; }
+      const entry = {alunoId:aluno.id, modal:p.modal, hab:p.hab, reg:p.reg, atit:p.atit, final:p.final, obs:p.obs};
+      const ei = state.modalidades[t].findIndex(m=>m.alunoId===aluno.id&&m.modal===p.modal);
+      if (ei>=0) state.modalidades[t][ei]=entry; else state.modalidades[t].push(entry);
+      imported++;
+    });
+  }
+
+  saveState();
+  toast('✅ ' + imported + ' registo(s) importado(s) com sucesso!');
+  resetImport();
+  const pageMap = {ALUNOS:'alunos', FALTAS:'faltas', FITESCOLA:'fitescola', MODALIDADES:'modalidades'};
+  const targetPage = pageMap[sheet];
+  if (targetPage) {
+    const btn = document.querySelector('.nav-item[onclick*="\''+targetPage+'\'"]');
+    showPage(targetPage, btn);
+  }
+}
+
+
+// ═══════════════════════════════════════════════
+// IMPORTAR EXCEL
+// ═══════════════════════════════════════════════
+let importedData = null;   // parsed sheets
+let activeImpSheet = null;
+
+function renderImportarExcel() { /* page is static */ }
+
+function handleDrop(e) {
+  e.preventDefault();
+  const zone = document.getElementById('impZone');
+  zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  zone.querySelector('.imp-zone-sub').textContent = '📄 ' + file.name;
+  processExcelFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const zone = document.getElementById('impZone');
+  if (zone) zone.querySelector('.imp-zone-sub').textContent = '📄 ' + file.name;
+  processExcelFile(file);
+}
+
+function resetImport() {
+  importedData = null; activeImpSheet = null;
+  document.getElementById('impValidationArea').style.display = 'none';
+  document.getElementById('impFileInput').value = '';
+}
+
+// ── PARSE & VALIDATE ─────────────────────────────────────────────────────
+function processExcelFile(file) {
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => toast('Biblioteca carregada. Seleciona o ficheiro novamente.');
+    s.onerror = () => toast('Sem ligação para carregar leitor Excel.', 'ti-alert-circle');
+    document.head.appendChild(s);
+    toast('A carregar... tenta novamente em 3 segundos.', 'ti-alert-circle');
+    return;
+  }
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    const r = new FileReader();
+    r.onerror = () => toast('Erro ao ler CSV.', 'ti-alert-circle');
+    r.onload = e => {
+      try { importedData = sheetsFromWb(XLSX.read(e.target.result, {type:'string'})); validateAndShow(); }
+      catch(err) { toast('Erro CSV: ' + err.message, 'ti-alert-circle'); }
+    };
+    r.readAsText(file, 'UTF-8');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => toast('Erro ao ler o ficheiro.', 'ti-alert-circle');
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, raw:false});
+      if (!wb || !wb.SheetNames || !wb.SheetNames.length) { toast('Ficheiro vazio ou corrompido.', 'ti-alert-circle'); return; }
+      importedData = sheetsFromWb(wb);
+      validateAndShow();
+    } catch(err) {
+      console.error(err);
+      toast('Erro ao ler o ficheiro. Confirma que está guardado como .xlsx', 'ti-alert-circle');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function sheetsFromWb(wb) {
+  const sheets = {};
+  wb.SheetNames.forEach(name => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {defval:'', raw:false});
+    const key = name.trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]/g,'_');
+    sheets[key] = rows;
+    sheets[name.trim().toUpperCase()] = rows;
+  });
+  if (wb.SheetNames.length === 1) {
+    const rows = Object.values(sheets)[0] || [];
+    if (rows.length) {
+      const keys = Object.keys(rows[0]).map(k=>k.toLowerCase());
+      if (keys.some(k=>k.includes('nome')||k.includes('aluno')||k.includes('name')||k.includes('designa'))) {
+        sheets['ALUNOS'] = rows;
+      }
+    }
+  }
+  return sheets;
+}
+
+
+
+// ═══════════════════════════════════════════════
+// DOWNLOAD MODELOS (gerados em JS, sem ficheiro externo)
+// ═══════════════════════════════════════════════
+
+function downloadModeloExcel() {
+  if (typeof XLSX === 'undefined') {
+    toast('A biblioteca Excel ainda está a carregar. Tenta novamente.', 'ti-alert-circle');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+
+  // ── INSTRUÇÕES ──────────────────────────────────────────────────────────
+  const inst = [
+    ['EF DIGITAL — Modelo de Importação 2025/26'],
+    [],
+    ['INSTRUÇÕES'],
+    ['1. Preenche a folha ALUNOS com os dados dos teus alunos.'],
+    ['2. Só o Nome é obrigatório. Género, Nº e Turma são opcionais.'],
+    ['3. Para o Género usa: M (Masculino), F (Feminino) ou O (Outro).'],
+    ['4. Para a Turma usa: 5ºA, 5ºB, 6ºA ou 6ºB.'],
+    ['5. Guarda e importa na app: Importar Excel → seleciona o ficheiro.'],
+    [],
+    ['FOLHAS DISPONÍVEIS'],
+    ['ALUNOS   — Lista de alunos (Nome, Género, Nº, Turma)'],
+    ['FALTAS   — Presenças por aula (P=Presente, F=Falta)'],
+    ['FITESCOLA — Resultados das provas FITescola'],
+    ['MODALIDADES — Notas por modalidade (1-5)'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(inst), 'INSTRUÇÕES');
+
+  // ── ALUNOS ───────────────────────────────────────────────────────────────
+  const alunos = [
+    ['Nome Completo', 'Nº Aluno', 'Turma', 'Género', 'Data Nasc. (AAAA-MM-DD)', 'Obs. Saúde'],
+    ['Ana Rodrigues (exemplo)', '2301', '5ºA', 'F', '2013-09-15', ''],
+    ['Carlos Marques (exemplo)', '2302', '5ºA', 'M', '2013-03-22', 'Asma leve'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(alunos), 'ALUNOS');
+
+  // ── FALTAS ───────────────────────────────────────────────────────────────
+  const faltas = [
+    ['Nome Completo', 'Nº Aluno', 'Turma', 'Data Aula (AAAA-MM-DD)', 'Presença (P/F)', 'Modalidade'],
+    ['Ana Rodrigues (exemplo)', '2301', '5ºA', '2025-09-10', 'P', 'Futebol'],
+    ['Carlos Marques (exemplo)', '2302', '5ºA', '2025-09-10', 'F', 'Futebol'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(faltas), 'FALTAS');
+
+  // ── FITESCOLA ─────────────────────────────────────────────────────────────
+  const fit = [
+    ['Nome Completo', 'Nº Aluno', 'Turma', 'Vaivém (percursos)', 'Abdominais (reps)', 'Flex. Braços (reps)', 'Imp. Horizontal T1 (cm)', 'Imp. Horizontal T2 (cm)', 'Imp. Horizontal T3 (cm)', 'Data (AAAA-MM-DD)'],
+    ['Ana Rodrigues (exemplo)', '2301', '5ºA', 34, 28, 14, 142, 148, 151, '2025-10-15'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fit), 'FITESCOLA');
+
+  // ── MODALIDADES ───────────────────────────────────────────────────────────
+  const mods = [
+    ['Nome Completo', 'Nº Aluno', 'Turma', 'Modalidade', 'Habilidades (1-5)', 'Regras/Cultura (1-5)', 'Atitudes (1-5)', 'Nota Final (1-5)', 'Observações'],
+    ['Ana Rodrigues (exemplo)', '2301', '5ºA', 'Futebol', 4, 4, 4, 4, 'Boa visão de jogo'],
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mods), 'MODALIDADES');
+
+  // Tab colors
+  ['INSTRUÇÕES','ALUNOS','FALTAS','FITESCOLA','MODALIDADES'].forEach((name, i) => {
+    const colors = ['2D7A52','388E3C','EF6C00','C2185B','6A1B9A'];
+    if (wb.Sheets[name] && wb.Sheets[name]['!tab']) {}
+  });
+
+  XLSX.writeFile(wb, 'EF_Digital_Modelo_Importacao.xlsx');
+  toast('Modelo Excel descarregado!', 'ti-download');
+}
+
+function downloadModeloCSV() {
+  const csv = '\uFEFF' + // BOM for Excel compatibility
+    'Nome Completo,Nº Aluno,Turma,Género,Data Nasc. (AAAA-MM-DD),Obs. Saúde\n' +
+    'Ana Rodrigues (exemplo),2301,5ºA,F,2013-09-15,\n' +
+    'Carlos Marques (exemplo),2302,5ºA,M,2013-03-22,Asma leve\n';
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'EF_Digital_Modelo_Alunos.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Modelo CSV descarregado!', 'ti-download');
+}
+
+// ═══════════════════════════════════════════════
+// INIT — wait for Firebase SDKs to load
+// ═══════════════════════════════════════════════
+// Wait for Firebase SDKs then init
+(function waitForFirebase() {
+  if (typeof firebase !== 'undefined') {
+    initFirebase();
+  } else {
+    setTimeout(waitForFirebase, 50);
+  }
+})();
+</script>
+<!-- ═══ MODAL GERIR TURMAS ═══ -->
+<div class="overlay" id="mgturmas" onclick="if(event.target===this)closeModal('mgturmas')">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title">Gerir turmas</span>
+      <button class="modal-close" onclick="closeModal('mgturmas')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="turmasListEdit" style="margin-bottom:14px;max-height:300px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+      <input class="form-input" id="novaTurmaInput" placeholder="Ex: 7ºA, Turma EFA…" style="flex:1" maxlength="10"
+        onkeydown="if(event.key==='Enter')addTurma()">
+      <button class="btn btn-primary btn-sm" onclick="addTurma()"><i class="ti ti-plus"></i>Adicionar</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:7px">Qualquer nome: 5ºA, 6ºB, Turma 1, EFA…</div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('mgturmas')"><i class="ti ti-check"></i>Fechar</button>
+    </div>
+  </div>
+</div>
+
+
 </body>
 </html>
