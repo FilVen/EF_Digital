@@ -7,7 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">// ═══ GLOBALS PRE-DECLARADOS (evitar erros de redeclaração) ═══
+FIT_REF = null;
+FIT_TESTS = null;
+TURMA_COLORS = null;
+TURMA_COLORS_PALETTE = null;
+MESES_PLAN = null;
+DIAS_SEMANA_PLAN = null;
+planCalState = null;
+
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -723,8 +732,7 @@ tr:hover td { background: #FAFBFA; }
             <option value="">Todas as turmas</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="calGoToday()"><i class="ti ti-calendar"></i>Hoje</button>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modalAulaPlaneada')"><i class="ti ti-plus"></i>Planear aula</button>
-        </div>
+          </div>
       </div>
       <div class="cal-legend">
         <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#2D7A52"></div>Aula registada</div>
@@ -1230,9 +1238,9 @@ tr:hover td { background: #FAFBFA; }
       </div>
     </div>
     <div class="modal-footer">
-      <button id="btnDeletePlan" style="display:none;margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font)" onclick="deletePlanAula()"><i class="ti ti-trash"></i> Apagar</button>
+      
       <button class="btn btn-secondary" onclick="closeModal('modalAulaPlaneada')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveAulaPlaneada()"><i class="ti ti-check"></i>Guardar</button>
+      
     </div>
   </div>
 </div>
@@ -2346,7 +2354,13 @@ function getCalEvents(dateStr) {
     (state.aulas[t]||[]).forEach(a => {
       if (a.data === dateStr) {
         const hasFaltas = a.faltas && a.faltas.length > 0;
-        events.push({ type:'registada', turma:t, label:`${t} — ${a.modal}`, modal:a.modal, faltas:a.faltas||[], obs:a.obs, hasFaltas });
+        events.push({
+          type:'registada', id:a.id, turma:t,
+          label:`${t} — ${a.modal}`, modal:a.modal,
+          faltas:a.faltas||[], faltasDetail:a.faltasDetail||[],
+          obs:a.obs, obj:a.obj, dur:a.dur, periodo:a.periodo,
+          hasFaltas
+        });
       }
     });
   });
@@ -2753,7 +2767,7 @@ function renderCalDayDetail(dateStr) {
       <div class="cal-detail-title">${label}</div>
       ${addFeriadoBtn}
       <div style="color:var(--text3);font-size:13px">Sem aulas neste dia.
-        <button class="btn btn-primary btn-sm" style="margin-left:10px" onclick="quickPlanAula('${dateStr}')"><i class="ti ti-plus"></i>Planear aula</button>
+        
       </div>
     </div>`;
     return;
@@ -2775,10 +2789,10 @@ function renderCalDayDetail(dateStr) {
         ${e.obs?`<div style="font-size:12px;color:var(--text2);margin-top:3px">${e.obs}</div>`:''}
         ${e.type==='registada'&&e.faltas&&e.faltas.length?`<div style="margin-top:5px">${e.faltas.map(f=>`<span class="badge badge-red" style="font-size:10px;margin:2px">${f.split(' ')[0]}</span>`).join('')}</div>`:''}
       </div>
-      ${e.type==='planeada'?`<div style="display:flex;gap:4px">
-        <button class="btn btn-secondary btn-sm" onclick="convertToAula('${e.id}','${dateStr}')" title="Converter em aula registada"><i class="ti ti-clipboard-check"></i></button>
-        <button class="btn btn-secondary btn-sm" onclick="deletePlaneada('${e.id}')" title="Remover"><i class="ti ti-trash"></i></button>
-      </div>`:''}
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        ${e.type==='planeada'?`<button class="btn btn-secondary btn-sm" title="Converter" onclick="convertToAula(this.dataset.id,this.dataset.ds)" data-id="${e.id}" data-ds="${dateStr}"><i class="ti ti-clipboard-check"></i></button><button class="btn btn-secondary btn-sm" title="Apagar" onclick="deletePlaneada(this.dataset.id)" data-id="${e.id}" style="color:var(--red)"><i class="ti ti-trash"></i></button>`:''}
+        ${e.type==='registada'?`<button class="btn btn-secondary btn-sm" title="Editar" onclick="calEditAula(this.dataset.id,this.dataset.turma)" data-id="${e.id}" data-turma="${e.turma}"><i class="ti ti-pencil"></i></button><button class="btn btn-secondary btn-sm" title="Apagar" onclick="calDeleteAula(this.dataset.id,this.dataset.turma)" data-id="${e.id}" data-turma="${e.turma}" style="color:var(--red)"><i class="ti ti-trash"></i></button>`:''}
+      </div>
     </div>`;
   }).join('');
 
@@ -2786,7 +2800,7 @@ function renderCalDayDetail(dateStr) {
   detail.innerHTML = `<div class="cal-detail">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="cal-detail-title">${label}</div>
-      <button class="btn btn-primary btn-sm" onclick="quickPlanAula('${dateStr}')"><i class="ti ti-plus"></i>Planear aula</button>
+      
     </div>
     ${feriadoBlock}
     ${addFeriadoBtn}
@@ -3772,7 +3786,7 @@ console.log('✅ saveAula patch carregado');
 // ═══ FIT_REF + renderFit PATCH ═══
 
 // Tabelas de referência FITescola OFICIAIS (retiradas dos documentos FITescola Portugal)
-const FIT_REF = {
+FIT_REF = {
   // VAIVÉM — Nº de Percursos (Zona Saudável ≥)
   vaivem: {
     F: {9:13, 10:16, 11:20, 12:22, 13:25, 14:27, 15:29, 16:32, 17:35, 18:37},
@@ -3863,7 +3877,7 @@ function fitZona(val, ref, refA) {
   return 'abaixo';
 }
 
-const FIT_TESTS = [
+FIT_TESTS = [
   {key:'vaivem', name:'Vaivém',          icon:'ti-arrows-horizontal', unit:'perc.', refKey:'vaivem'},
   {key:'abd',    name:'Abdominais',       icon:'ti-run',               unit:'reps',  refKey:'abd'},
   {key:'bracos', name:'Flex. Braços',     icon:'ti-barbell',           unit:'reps',  refKey:'bracos'},
@@ -4013,7 +4027,7 @@ console.log('✅ FIT_REF + renderFit patch carregado');
 <script>
 // ═══ FIT_REF CORRIGIDO com valores oficiais dos documentos FITescola ═══
 
-const FIT_REF = {
+FIT_REF = {
   // VAIVÉM — Nº de Percursos
   vaivem: {
     F: {9:13, 10:16, 11:20, 12:22, 13:25, 14:27, 15:29, 16:32, 17:35, 18:37},
@@ -4098,7 +4112,7 @@ function alunoFitClassificacao(f, aluno) {
   return Math.max(1, 5 - nAbaixo);
 }
 
-const FIT_TESTS = [
+FIT_TESTS = [
   {key:'vaivem', name:'Vaivém',         icon:'ti-arrows-horizontal', unit:'perc.', refKey:'vaivem'},
   {key:'abd',    name:'Abdominais',      icon:'ti-run',               unit:'reps',  refKey:'abd'},
   {key:'bracos', name:'Flex. Braços',    icon:'ti-barbell',           unit:'reps',  refKey:'bracos'},
@@ -4389,7 +4403,7 @@ console.log('✅ FIT_REF oficial carregado (docs FITescola)');
 // ═══ TURMA_COLORS + renderTurmasDashboard PATCH ═══
 
 // Cores por turma (dinâmicas para qualquer nome)
-const TURMA_COLORS_PALETTE = [
+TURMA_COLORS_PALETTE = [
   {bg:'#1B4F72', light:'#D6EAF8'},
   {bg:'#1A5C3A', light:'#D5F5E3'},
   {bg:'#6C3483', light:'#E8DAEF'},
@@ -4407,7 +4421,7 @@ function getTurmaColor(t) {
   return TURMA_COLORS_PALETTE[Math.abs(i) % TURMA_COLORS_PALETTE.length] || {bg:'#37474F', light:'#ECEFF1'};
 }
 // Make TURMA_COLORS work as a proxy
-const TURMA_COLORS = new Proxy({}, {
+TURMA_COLORS = new Proxy({}, {
   get(_, t) { return getTurmaColor(t); }
 });
 
@@ -4518,7 +4532,7 @@ console.log('✅ Dashboard turmas patch carregado');
 <script>
 // ═══ PLANIFICAÇÃO = HORÁRIO POR TURMA PATCH ═══
 
-const DIAS_SEMANA_PLAN = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+DIAS_SEMANA_PLAN = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
 
 function renderPlanificacao() {
   const page = document.getElementById('page-planificacao');
@@ -4836,7 +4850,7 @@ console.log('✅ FITescola editar/apagar patch carregado');
 <script>
 // ═══ PLANIFICAÇÃO — Horário + Calendário PATCH ═══
 
-const MESES_PLAN = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+MESES_PLAN = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 if (typeof MESES === 'undefined') window.MESES = MESES_PLAN;
 
 // State for planificação calendar
@@ -5260,7 +5274,7 @@ function planCalDayClick(ds) {
   let html = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-top:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
       <strong style="font-size:14px;color:var(--text)">${dLabel}</strong>
-      <button class="btn btn-primary btn-sm" onclick="planCalNewAula('${ds}')"><i class="ti ti-plus"></i>Planear aula</button>
+      
     </div>`;
 
   if (fer) html += `<div style="background:var(--red-light);color:var(--red);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:10px;font-size:13px;font-weight:500">🔴 ${fer.nome}</div>`;
@@ -5289,7 +5303,7 @@ function planCalDayClick(ds) {
         ${p.obs?`<div style="font-size:12px;color:var(--text3)">${p.obs}</div>`:''}
       </div>
       <div style="display:flex;gap:5px;flex-shrink:0">
-        <button onclick="editPlanAula('${p.id}')" title="Editar" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--text3)"><i class="ti ti-pencil"></i></button>
+        
         <button onclick="confirmDeletePlan('${p.id}')" title="Apagar" style="background:#FADBD8;border:1px solid #E8A09B;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px;color:#922B21"><i class="ti ti-trash"></i></button>
       </div>
     </div>`;
@@ -5361,4 +5375,85 @@ window.showPage = function(id, btn) {
 };
 
 console.log('✅ refreshPage unificado carregado');
+</script>
+<script>
+// ═══ CALENDÁRIO — Editar/Apagar aulas registadas ═══
+
+function calEditAula(id, turma) {
+  // Find the aula
+  const t = turma || state.turma;
+  const aula = (state.aulas[t] || []).find(a => a.id === id);
+  if (!aula) { toast('Aula não encontrada', 'ti-alert-circle'); return; }
+
+  // Use existing editAula function if available
+  if (typeof editAula === 'function') {
+    // Set turma first
+    const prevTurma = state.turma;
+    state.turma = t;
+    editAula(id);
+    state.turma = prevTurma;
+    return;
+  }
+
+  // Fallback: open modal manually
+  editingAulaId = id;
+  state.turma   = t;
+
+  const title  = document.getElementById('modalAulaTitle');
+  const delBtn = document.getElementById('btnDeleteAula');
+  if (title)  title.textContent    = 'Editar aula';
+  if (delBtn) delBtn.style.display = '';
+
+  document.getElementById('auData').value  = aula.data   || '';
+  document.getElementById('auDur').value   = aula.dur    || 50;
+  document.getElementById('auModal').value = aula.modal  || '';
+  document.getElementById('auTipo').value  = aula.tipo   || 'exerc';
+  document.getElementById('auObj').value   = aula.obj    || '';
+  document.getElementById('auObs').value   = aula.obs    || '';
+
+  renderPresencaGrid();
+
+  const details = aula.faltasDetail || (aula.faltas||[]).map(n=>({name:n,tipo:'FP',obs:''}));
+  const alunos  = state.alunos[t] || [];
+  details.forEach(fd => {
+    const al = alunos.find(a => a.id===fd.alunoId || a.name===fd.name);
+    if (al) setPresenca(al.id, fd.tipo||'FP');
+  });
+
+  document.getElementById('modalAula').classList.add('open');
+}
+
+function calDeleteAula(id, turma) {
+  const t = turma || state.turma;
+  const aula = (state.aulas[t] || []).find(a => a.id === id);
+  if (!aula) { toast('Aula não encontrada', 'ti-alert-circle'); return; }
+
+  if (!confirm(`Apagar aula de ${aula.modal||'?'} de ${aula.data}? As faltas associadas serão revertidas.`)) return;
+
+  // Reverse faltas
+  const details = aula.faltasDetail || (aula.faltas||[]).map(n=>({name:n,tipo:'FP',obs:''}));
+  details.forEach(fd => {
+    const al = (state.alunos[t]||[]).find(a => a.id===fd.alunoId || a.name===fd.name);
+    if (!al || !al.faltas || !al.faltas[aula.periodo]) return;
+    const f = al.faltas[aula.periodo];
+    if (typeof f === 'number') { al.faltas[aula.periodo] = Math.max(0, f-1); return; }
+    if (fd.tipo==='FP') f.fp = Math.max(0,(f.fp||0)-1);
+    if (fd.tipo==='FM') f.fm = Math.max(0,(f.fm||0)-1);
+    if (fd.tipo==='FJ') f.fj = Math.max(0,(f.fj||0)-1);
+  });
+
+  state.aulas[t] = (state.aulas[t]||[]).filter(a => a.id !== id);
+  saveState();
+  renderCalendario();
+  toast('Aula apagada');
+
+  // Refresh detail panel if open
+  const det = document.getElementById('calDayDetail');
+  if (det && det.style.display !== 'none') {
+    if (typeof calSelectDay === 'function') calSelectDay(aula.data);
+    else renderCalDayDetail(aula.data);
+  }
+}
+
+console.log('✅ Calendário editar/apagar aulas registadas patch carregado');
 </script>
