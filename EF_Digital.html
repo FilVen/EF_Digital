@@ -8,13 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">// ═══ GLOBALS PRE-DECLARADOS (evitar erros de redeclaração) ═══
-FIT_REF = null;
-FIT_TESTS = null;
-TURMA_COLORS = null;
-TURMA_COLORS_PALETTE = null;
-MESES_PLAN = null;
-DIAS_SEMANA_PLAN = null;
-planCalState = null;
+var FIT_REF             = null;
+var FIT_TESTS           = null;
+var TURMA_COLORS        = null;
+var TURMA_COLORS_PALETTE= null;
+var MESES_PLAN          = null;
+var DIAS_SEMANA_PLAN    = null;
+var planCalState        = null;
 
 </script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -988,7 +988,7 @@ tr:hover td { background: #FAFBFA; }
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Nome completo *</label><input class="form-input" id="aNome" placeholder="Nome completo do aluno"></div>
       <div class="form-group"><label class="form-label">Nº de aluno *</label><input class="form-input" id="aNum" placeholder="Ex: 2301"></div>
-      <div class="form-group"><label class="form-label">Data de nascimento</label><input class="form-input" type="date" id="aNasc"></div>
+      <div class="form-group"><label class="form-label">Data de nascimento</label><input class="form-input" type="text" id="aNasc" placeholder="DD/MM/AAAA" maxlength="10"></div>
       <div class="form-group"><label class="form-label">Género</label>
         <select class="form-select" id="aGenre"><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
       </div>
@@ -2300,7 +2300,7 @@ function saveAluno() {
   if (!state.alunos[turma]) state.alunos[turma] = [];
 
   const genre = document.getElementById('aGenre').value;
-  const nasc  = document.getElementById('aNasc').value;
+  const nasc  = normDate(document.getElementById('aNasc').value);
   const foto  = document.getElementById('aFoto').value.trim();
   const obs   = document.getElementById('aObs').value.trim();
   const status = document.getElementById('aStatus')?.value||'ativo';
@@ -2962,7 +2962,7 @@ const COL_ALIAS = {
   NUM:   ['Nº Aluno','Numero Aluno','Nº','Numero','NºAluno','num_aluno','Número','ID','N Aluno'],
   TURMA: ['Turma','Ano/Turma','AnoTurma','Ano Turma','turma','Classe'],
   GENRE: ['Género','Genero','Sexo','M/F','genero','gender','Género'],
-  NASC:  ['Data Nasc.','Data Nasc','Data Nascimento','nascimento','data_nasc'],
+  NASC:  ['Data Nasc.','Data Nasc','Data Nascimento','nascimento','data_nasc','Nasc','Dt Nasc','Dt. Nasc.','Dt.Nasc','Data de Nascimento','DataNasc','birth','birthday','birthdate','DOB','Nascimento','data_nascimento','DtNasc','D.Nasc.'],
   OBS:   ['Obs. Saúde / Dispensa','Observações','Obs','obs_saude'],
   FOTO:  ['URL Foto','Foto','foto_url'],
   DATA_AULA:  ['Data Aula','Data','data_aula','Data Aula (AAAA-MM-DD)'],
@@ -2984,13 +2984,17 @@ const COL_ALIAS = {
 };
 
 function findCol(row, aliases) {
+  function norm(s) { return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  const normAliases = aliases.map(norm);
   const keys = Object.keys(row);
-  for (const alias of aliases) {
-    const found = keys.find(k => k.trim().toLowerCase() === alias.toLowerCase());
-    if (found !== undefined) {
-      const val = row[found];
-      return (val === null || val === undefined) ? '' : val;
-    }
+  // Exact match (case+accent insensitive)
+  for (const key of keys) {
+    if (normAliases.includes(norm(key))) return row[key];
+  }
+  // Partial match fallback
+  for (const key of keys) {
+    const nk = norm(key);
+    if (normAliases.some(a => nk.includes(a) || a.includes(nk))) return row[key];
   }
   return '';
 }
@@ -3025,8 +3029,46 @@ function normNota(v) { const n=parseInt(v); return (n>=1&&n<=5)?n:null; }
 
 function normDate(v) {
   if (!v) return '';
-  if (v instanceof Date) return v.toISOString().split('T')[0];
-  return String(v).trim();
+  let d;
+  if (v instanceof Date) {
+    d = v;
+  } else {
+    const s = String(v).trim();
+    if (!s) return '';
+    // Try YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      d = new Date(s + 'T12:00:00');
+    }
+    // Try DD/MM/YYYY or DD-MM-YYYY
+    else if (/^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$/.test(s)) {
+      const parts = s.split(/[/\-]/);
+      d = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T12:00:00`);
+    }
+    // Try Excel serial number (Excel stores dates as days since 1900-01-01)
+    else if (/^\d{4,5}$/.test(s) && parseInt(s) > 1000) {
+      const serial = parseInt(s);
+      d = new Date((serial - 25569) * 86400 * 1000);
+    }
+    // Try MM/DD/YYYY (US format)
+    else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+      // Ambiguous - try DD/MM/YYYY first, if month > 12 swap
+      const parts = s.split('/');
+      if (parseInt(parts[0]) > 12) {
+        // Must be DD/MM/YYYY
+        d = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T12:00:00`);
+      } else {
+        // Assume DD/MM/YYYY (Portuguese format)
+        d = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T12:00:00`);
+      }
+    }
+    else return s; // keep as-is if unrecognized
+  }
+  if (isNaN(d.getTime())) return String(v).trim();
+  // Store as DD/MM/YYYY
+  const dd = d.getDate().toString().padStart(2,'0');
+  const mm = (d.getMonth()+1).toString().padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function validateSheet(sheet, rows) {
@@ -3175,6 +3217,138 @@ function showSheetValidation(sheet) {
   document.getElementById('btnImportar').disabled = hasErrors;
 }
 
+
+function _mostrarConfirmacaoImportAlunos(aExistentes, aNovos, sheet) {
+  const div = document.createElement('div');
+  div.id = 'modalImportAlunosConfirm';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:14px';
+
+  const listHTML = aExistentes.slice(0,8).map(e =>
+    `<div style="padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)">
+      <strong>${e.existing.name}</strong>
+      ${e.changes.length ? `<span style="color:var(--text3);font-size:11px"> — alterações: ${e.changes.join(', ')}</span>` : '<span style="color:var(--green);font-size:11px"> — sem alterações</span>'}
+    </div>`
+  ).join('') + (aExistentes.length>8 ? `<div style="font-size:11px;color:var(--text3);padding:5px 0">...e mais ${aExistentes.length-8}</div>` : '');
+
+  // Build per-field checkboxes for each existing aluno
+  const hasNumChanges  = aExistentes.some(e => e.p.num && !e.p.num.startsWith('IMP-') && e.existing.num !== e.p.num);
+  const hasNascChanges = aExistentes.some(e => e.p.nasc && e.existing.nasc !== e.p.nasc);
+  const hasGenreChanges= aExistentes.some(e => e.p.genre && e.p.genre !== 'O' && e.existing.genre !== e.p.genre);
+  const hasNomeChanges = aExistentes.some(e => e.existing.name !== e.p.nome);
+
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:540px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">⚠ Alunos já existem</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px">
+        <strong>${aExistentes.length}</strong> aluno(s) já existem.
+        ${aNovos.length ? `<strong>${aNovos.length}</strong> novo(s) serão adicionados.` : ''}
+        Escolhe <strong>quais os campos a atualizar</strong> nos alunos existentes:
+      </div>
+
+      <!-- Campos a atualizar -->
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Campos a atualizar</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${hasNomeChanges ? `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="updNome" checked style="width:16px;height:16px;cursor:pointer">
+            <span><strong>Nome</strong> — atualizar nome do aluno</span>
+          </label>` : ''}
+          ${hasNumChanges ? `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="updNum" checked style="width:16px;height:16px;cursor:pointer">
+            <span><strong>Número</strong> — atualizar número de aluno</span>
+          </label>` : ''}
+          ${hasNascChanges ? `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="updNasc" checked style="width:16px;height:16px;cursor:pointer">
+            <span><strong>Data de nascimento</strong> — atualizar data de nascimento</span>
+          </label>` : ''}
+          ${hasGenreChanges ? `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="updGenre" checked style="width:16px;height:16px;cursor:pointer">
+            <span><strong>Género</strong> — atualizar género</span>
+          </label>` : ''}
+          ${!hasNomeChanges && !hasNumChanges && !hasNascChanges && !hasGenreChanges
+            ? '<div style="font-size:12px;color:var(--text3)">✅ Sem alterações detectadas nos dados dos alunos existentes.</div>'
+            : ''}
+        </div>
+      </div>
+
+      <!-- Lista de alunos com diferenças -->
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;max-height:180px;overflow-y:auto">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Detalhes por aluno</div>
+        ${listHTML}
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button onclick="document.getElementById('modalImportAlunosConfirm').remove()"
+          style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Cancelar
+        </button>
+        <button onclick="document.getElementById('modalImportAlunosConfirm').remove();_executarImportAlunos(window._importAlunosData.aExistentes, window._importAlunosData.aNovos, {nome:false,num:false,nasc:false,genre:false})"
+          style="padding:8px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Só adicionar novos
+        </button>
+        <button onclick="_confirmarImportAlunos()"
+          style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+          <i class="ti ti-users"></i> Importar
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(div);
+  window._importAlunosData = { aExistentes, aNovos, sheet };
+
+  // Highlight on radio change
+  div.querySelectorAll('input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => {
+      div.querySelectorAll('label').forEach(l => l.style.borderColor='var(--border)');
+      r.closest('label').style.borderColor='var(--green)';
+    });
+  });
+}
+
+function _confirmarImportAlunos() {
+  const flags = {
+    nome:  !!document.getElementById('updNome')?.checked,
+    num:   !!document.getElementById('updNum')?.checked,
+    nasc:  !!document.getElementById('updNasc')?.checked,
+    genre: !!document.getElementById('updGenre')?.checked,
+  };
+  document.getElementById('modalImportAlunosConfirm')?.remove();
+  _executarImportAlunos(window._importAlunosData.aExistentes, window._importAlunosData.aNovos, flags);
+}
+
+function _executarImportAlunos(aExistentes, aNovos, flags) {
+  flags = flags || {nome:true, num:true, nasc:true, genre:true};
+  let importados = 0, atualizados = 0;
+
+  aExistentes.forEach(({existing, p}) => {
+    let changed = false;
+    if (flags.nome  && p.nome  && existing.name  !== p.nome)  { existing.name  = p.nome;  changed=true; }
+    if (flags.num   && p.num   && !p.num.startsWith('IMP-') && existing.num !== p.num) { existing.num = p.num; changed=true; }
+    if (flags.nasc  && p.nasc  && existing.nasc  !== p.nasc)  { existing.nasc  = p.nasc;  changed=true; }
+    if (flags.genre && p.genre && p.genre !== 'O' && existing.genre !== p.genre) { existing.genre = p.genre; changed=true; }
+    if (p.obs) existing.obs = p.obs;
+    if (changed) atualizados++;
+    importados++;
+  });
+
+  aNovos.forEach(p => {
+    if (!state.alunos[p.turma]) state.alunos[p.turma] = [];
+    state.alunos[p.turma].push({
+      id:uid(), name:p.nome, num:p.num, genre:p.genre||'O',
+      nasc:p.nasc||'', foto:p.foto||'', obs:p.obs||'', status:'ativo', statusObs:'', faltas:{1:0,2:0,3:0}
+    });
+    importados++;
+  });
+
+  saveState();
+  resetImport();
+  const btn = document.querySelector('.nav-item[onclick*=\'alunos\']');
+  showPage('alunos', btn);
+  const novosMsg   = aNovos.length   ? ` · ${aNovos.length} novo(s)` : '';
+  const atuMsg     = atualizados     ? ` · ${atualizados} atualizado(s)` : '';
+  toast(`✅ ${importados} aluno(s) importado(s)${novosMsg}${atuMsg}`);
+}
+
 function confirmarImportacao() {
   if (!importedData || !activeImpSheet) return;
   const sheet = activeImpSheet;
@@ -3183,6 +3357,8 @@ function confirmarImportacao() {
   let imported = 0;
 
   if (sheet === 'ALUNOS') {
+    // Check for existing alunos that would be modified
+    const aExistentes = [], aNovos = [];
     parsed.forEach(p => {
       const turma = p.turma;
       if (!state.alunos[turma]) state.alunos[turma] = [];
@@ -3191,15 +3367,27 @@ function confirmarImportacao() {
         a.name.toLowerCase() === p.nome.toLowerCase()
       );
       if (existing) {
-        existing.name = p.nome;
-        if (p.genre && p.genre !== 'O') existing.genre = p.genre;
-        if (p.nasc)  existing.nasc = p.nasc;
-        if (p.obs)   existing.obs  = p.obs;
-        if (p.foto)  existing.foto = p.foto;
+        const changes = [];
+        if (existing.name !== p.nome)                                          changes.push('nome');
+        if (p.num && !p.num.startsWith('IMP-') && existing.num !== p.num)      changes.push(`Nº ${existing.num||'?'}→${p.num}`);
+        if (p.nasc && p.nasc !== '' && existing.nasc !== p.nasc)               changes.push(`nasc. ${existing.nasc||'(vazio)'}→${p.nasc}`);
+        if (p.genre && p.genre !== 'O' && existing.genre !== p.genre)          changes.push('género');
+        aExistentes.push({ existing, p, changes });
       } else {
-        state.alunos[turma].push({id:uid(), name:p.nome, num:p.num, genre:p.genre||'O',
-          nasc:p.nasc||'', foto:p.foto||'', obs:p.obs||'', status:'ativo', statusObs:'', faltas:{1:0,2:0,3:0}});
+        aNovos.push(p);
       }
+    });
+
+    if (aExistentes.length > 0) {
+      // Show confirmation modal
+      _mostrarConfirmacaoImportAlunos(aExistentes, aNovos, sheet);
+      return;
+    }
+
+    // No conflicts — import directly
+    aNovos.forEach(p => {
+      state.alunos[p.turma].push({id:uid(), name:p.nome, num:p.num, genre:p.genre||'O',
+        nasc:p.nasc||'', foto:p.foto||'', obs:p.obs||'', status:'ativo', statusObs:'', faltas:{1:0,2:0,3:0}});
       imported++;
     });
   }
@@ -3519,8 +3707,8 @@ function downloadModeloCSV() {
 </div>
 
 
-</body>
-</html><script>
+
+<script>
 // ═══════════════════════════════════════════════
 // FUNÇÕES EM FALTA — PATCH
 // ═══════════════════════════════════════════════
@@ -4000,10 +4188,23 @@ function getRef(table, genre, age) {
 function getAge(nascStr) {
   if (!nascStr) return null;
   let d;
-  const parts = nascStr.split('-');
-  if (parts[0].length === 4) d = new Date(nascStr);
-  else d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-  if (isNaN(d)) return null;
+  const s = String(nascStr).trim();
+  // DD/MM/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [dd, mm, yyyy] = s.split('/');
+    d = new Date(`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}T12:00:00`);
+  }
+  // YYYY-MM-DD
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    d = new Date(s + 'T12:00:00');
+  }
+  // DD-MM-YYYY
+  else if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+    const parts = s.split('-');
+    d = new Date(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T12:00:00`);
+  }
+  else return null;
+  if (isNaN(d.getTime())) return null;
   const today = new Date();
   let age = today.getFullYear() - d.getFullYear();
   if (today.getMonth() - d.getMonth() < 0 ||
@@ -7643,3 +7844,5 @@ setTimeout(() => {
 
 console.log('✅ Aulas turma selector carregado');
 </script>
+</body>
+</html>
