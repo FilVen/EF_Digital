@@ -6259,7 +6259,7 @@ function doImportarNotasExcel() {
     return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   }
 
-  const turma   = document.getElementById('notasTurmaDestino')?.value;
+  const turma    = document.getElementById('notasTurmaDestino')?.value;
   const importP1 = document.getElementById('notasP1')?.checked;
   const importP2 = document.getElementById('notasP2')?.checked;
   const importP3 = document.getElementById('notasP3')?.checked;
@@ -6269,7 +6269,118 @@ function doImportarNotasExcel() {
   const alunos = state.alunos[turma] || [];
   if (!state.avaliacoes[turma]) state.avaliacoes[turma] = [];
 
-  let importados = 0;
+  // Check for existing records that would be overwritten
+  const jaExistem = [];
+  _notasImportadas.forEach(entry => {
+    const aluno = alunos.find(a => normName(a.name) === normName(entry.nome));
+    if (!aluno) return;
+    const periodos = [];
+    if (importP1 && entry.p1) periodos.push('1');
+    if (importP2 && entry.p2) periodos.push('2');
+    if (importP3 && entry.p3) periodos.push('3');
+    periodos.forEach(p => {
+      const exists = state.avaliacoes[turma].find(a => a.alunoId === aluno.id && a.periodo === p);
+      if (exists) jaExistem.push({ nome: aluno.name, periodo: p, nota: exists.final });
+    });
+  });
+
+  // If records exist, show confirmation modal
+  if (jaExistem.length > 0) {
+    document.getElementById('modalImportNotas')?.remove();
+    _mostrarConfirmacaoImport(turma, importP1, importP2, importP3, jaExistem);
+    return;
+  }
+
+  // No conflicts — import directly
+  _executarImport(turma, importP1, importP2, importP3, 'substituir');
+}
+
+function _mostrarConfirmacaoImport(turma, p1, p2, p3, jaExistem) {
+  const div = document.createElement('div');
+  div.id = 'modalImportConfirm';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:14px';
+
+  const listHTML = jaExistem.slice(0,6).map(e =>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)">
+      <span>${e.nome}</span>
+      <span style="color:var(--text3)">${e.periodo}º P · Nota atual: <strong>${e.nota}</strong></span>
+    </div>`
+  ).join('') + (jaExistem.length > 6
+    ? `<div style="font-size:11px;color:var(--text3);padding:6px 0">...e mais ${jaExistem.length-6} registos</div>`
+    : '');
+
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">⚠ Registos já existem</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px">
+        Foram encontrados <strong>${jaExistem.length}</strong> registos de avaliação já existentes para a turma <strong>${turma}</strong>.
+        O que pretendes fazer?
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;max-height:180px;overflow-y:auto">
+        ${listHTML}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer" id="optSubstituir">
+          <input type="radio" name="importOpcao" value="substituir" checked style="margin-top:2px;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Substituir tudo</div>
+            <div style="font-size:11px;color:var(--text3)">Substitui todos os registos existentes com os valores do Excel</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer" id="optManter">
+          <input type="radio" name="importOpcao" value="manter" style="margin-top:2px;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Manter existentes</div>
+            <div style="font-size:11px;color:var(--text3)">Importa apenas alunos/períodos sem nota registada, mantém os que já têm</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer" id="optCancelar">
+          <input type="radio" name="importOpcao" value="cancelar" style="margin-top:2px;cursor:pointer">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Cancelar importação</div>
+            <div style="font-size:11px;color:var(--text3)">Não importar nenhuma nota</div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('modalImportConfirm').remove();_notasImportadas=null;"
+          style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Cancelar
+        </button>
+        <button onclick="_confirmarImport('${turma}',${p1},${p2},${p3})"
+          style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+          <i class="ti ti-table-import"></i> Continuar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+
+  // Highlight selected option
+  div.querySelectorAll('input[type=radio]').forEach(r => {
+    r.addEventListener('change', () => {
+      div.querySelectorAll('label').forEach(l => l.style.borderColor='var(--border)');
+      r.closest('label').style.borderColor = 'var(--green)';
+    });
+  });
+  div.querySelector('input[value=substituir]').closest('label').style.borderColor = 'var(--green)';
+}
+
+function _confirmarImport(turma, p1, p2, p3) {
+  const opcao = document.querySelector('input[name=importOpcao]:checked')?.value || 'substituir';
+  document.getElementById('modalImportConfirm')?.remove();
+  if (opcao === 'cancelar') { _notasImportadas = null; toast('Importação cancelada'); return; }
+  _executarImport(turma, p1, p2, p3, opcao);
+}
+
+function _executarImport(turma, p1, p2, p3, opcao) {
+  function normName(s) {
+    return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  }
+
+  const alunos = state.alunos[turma] || [];
+  if (!state.avaliacoes[turma]) state.avaliacoes[turma] = [];
+
+  let importados = 0, ignorados = 0;
   const naoEncontrados = [];
 
   _notasImportadas.forEach(entry => {
@@ -6277,30 +6388,30 @@ function doImportarNotasExcel() {
     if (!aluno) { naoEncontrados.push(entry.nome); return; }
 
     const periodos = [];
-    if (importP1 && entry.p1) periodos.push(['1', entry.p1]);
-    if (importP2 && entry.p2) periodos.push(['2', entry.p2]);
-    if (importP3 && entry.p3) periodos.push(['3', entry.p3]);
+    if (p1 && entry.p1) periodos.push(['1', entry.p1]);
+    if (p2 && entry.p2) periodos.push(['2', entry.p2]);
+    if (p3 && entry.p3) periodos.push(['3', entry.p3]);
 
     periodos.forEach(([periodo, nota]) => {
-      const idx = state.avaliacoes[turma].findIndex(
-        a => a.alunoId === aluno.id && a.periodo === periodo
-      );
-      const av = { alunoId: aluno.id, periodo, fit: nota, mod: nota, atit: nota, final: nota };
-      if (idx >= 0) state.avaliacoes[turma][idx] = av;
-      else          state.avaliacoes[turma].push(av);
-      importados++;
+      const idx = state.avaliacoes[turma].findIndex(a => a.alunoId === aluno.id && a.periodo === periodo);
+      const av  = { alunoId: aluno.id, periodo, fit: nota, mod: nota, atit: nota, final: nota };
+
+      if (idx >= 0) {
+        if (opcao === 'substituir') { state.avaliacoes[turma][idx] = av; importados++; }
+        else                        { ignorados++; } // manter
+      } else {
+        state.avaliacoes[turma].push(av); importados++;
+      }
     });
   });
 
-  document.getElementById('modalImportNotas')?.remove();
   _notasImportadas = null;
-
   saveState();
   renderPeriodos();
 
-  let msg = '✅ ' + importados + ' notas importadas para ' + turma;
-  if (naoEncontrados.length)
-    msg += ' · ' + naoEncontrados.length + ' não encontrados: ' + naoEncontrados.slice(0,3).join(', ') + (naoEncontrados.length>3?'…':'');
+  let msg = `✅ ${importados} notas importadas para ${turma}`;
+  if (ignorados)         msg += ` · ${ignorados} mantidas (já existiam)`;
+  if (naoEncontrados.length) msg += ` · ${naoEncontrados.length} não encontrados`;
   toast(msg);
 }
 
