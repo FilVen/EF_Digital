@@ -567,13 +567,13 @@ tr:hover td { background: #FAFBFA; }
 
     <div class="sidebar-section">Planeamento</div>
     <button class="nav-item" onclick="showPage('horario',this)"><i class="ti ti-clock"></i>Horário</button>
-    <button class="nav-item" onclick="showPage('calendario',this)"><i class="ti ti-calendar"></i>Calendário</button>
+    <button class="nav-item" onclick="showPage('planificacao',this)"><i class="ti ti-calendar"></i>Planeamento</button>
     <div class="sidebar-section">Visibilidade</div>
     <button class="nav-item" onclick="showPage('turmas-dashboard',this)"><i class="ti ti-layout-dashboard"></i>Dashboard turmas</button>
     <button class="nav-item" onclick="showPage('turmas-comparar',this)"><i class="ti ti-columns"></i>Comparar turmas</button>
     <button class="nav-item" onclick="showPage('turmas-ficha',this)"><i class="ti ti-report"></i>Ficha de turma</button>
     <div class="sidebar-section">Dados</div>
-    <button class="nav-item" onclick="showPage('planificacao',this)"><i class="ti ti-book-2"></i>Planificação</button>
+
     <button class="nav-item" onclick="showPage('importar-excel',this)"><i class="ti ti-table-import"></i>Importar Excel</button>
     <button class="nav-item" onclick="showPage('exportar',this)"><i class="ti ti-download"></i>Exportar</button>
   </div>
@@ -614,6 +614,9 @@ tr:hover td { background: #FAFBFA; }
         <select class="filter-select" id="filterGenre" onchange="filterAlunos()">
           <option value="">Todos</option><option value="M">Masculino</option><option value="F">Feminino</option>
         </select>
+        <select class="filter-select" id="filterTurma" onchange="filterAlunos()">
+          <option value="">Todas as turmas</option>
+        </select>
         <select class="filter-select" id="filterStatus" onchange="filterAlunos()">
           <option value="ativo">Activos</option><option value="todos">Todos</option>
           <option value="transferido">Transferidos</option><option value="anulado">Anulados</option>
@@ -624,7 +627,11 @@ tr:hover td { background: #FAFBFA; }
 
     <!-- ═══ AULAS ═══ -->
     <div class="page" id="page-aulas">
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--text2)">Turma:</label>
+        <select id="aulasTurmaSelect" onchange="aulasTurmaChange()"
+          style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface)">
+        </select>
         <button class="btn btn-primary btn-sm" onclick="openModal('modalAula')"><i class="ti ti-plus"></i>Registar aula</button>
       </div>
       <div class="aulas-list" id="aulasList"></div>
@@ -632,6 +639,12 @@ tr:hover td { background: #FAFBFA; }
 
     <!-- ═══ FALTAS ═══ -->
     <div class="page" id="page-faltas">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--text2)">Turma:</label>
+        <select id="faltasTurmaSelect" onchange="faltasTurmaChange()"
+          style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface)">
+        </select>
+      </div>
       <div class="stats-grid" id="faltasStats"></div>
       <div class="card">
         <div class="card-header">
@@ -647,11 +660,17 @@ tr:hover td { background: #FAFBFA; }
 
     <!-- ═══ FITESCOLA ═══ -->
     <div class="page" id="page-fitescola">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--text2)">Turma:</label>
+        <select id="fitTurmaSelect" onchange="fitTurmaChange()"
+          style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface)">
+        </select>
+      </div>
       <div class="stats-grid" id="fitStats"></div>
       <div class="fit-cards" id="fitCards"></div>
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Resultados por aluno</span>
+          <span class="card-title" id="fitTableTitle">Resultados por aluno</span>
           <div style="display:flex;gap:6px">
             <button class="btn btn-secondary btn-sm" onclick="openModal('modalFit')"><i class="ti ti-plus"></i>Registar</button>
             <button class="btn btn-secondary btn-sm" onclick="exportFit()"><i class="ti ti-download"></i>Exportar</button>
@@ -680,13 +699,21 @@ tr:hover td { background: #FAFBFA; }
 
     <!-- ═══ PERÍODOS ═══ -->
     <div class="page" id="page-periodos">
-      <div class="tabs" id="periodoTabs"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="tabs" id="periodoTabs" style="margin-bottom:0"></div>
+        <select id="periodoTurmaSelect" onchange="periodoTurmaChange()"
+          style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text);cursor:pointer">
+        </select>
+      </div>
       <div class="stats-grid" id="periodosStats"></div>
       <div class="periodo-compare" id="periodoCompare"></div>
       <div class="card">
         <div class="card-header">
           <span class="card-title" id="periodoTableTitle">Pauta — 1º Período</span>
+          <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="abrirImportarNotas()" title="Importar notas de um ficheiro Excel"><i class="ti ti-table-import"></i> Importar notas</button>
           <button class="btn btn-secondary btn-sm" onclick="openModal('modalAvaliacao')"><i class="ti ti-pencil"></i>Lançar nota</button>
+          </div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>Aluno</th><th>FITescola</th><th>Modalidades</th><th>Atitudes</th><th>Nota Final</th><th>Menção</th><th>Evolução</th></tr></thead>
@@ -702,6 +729,7 @@ tr:hover td { background: #FAFBFA; }
         <div class="page-title-text" id="title-horario">Horário semanal</div>
         <div class="hdr-actions">
           <button class="btn btn-primary btn-sm" onclick="openModal('modalHorario')"><i class="ti ti-plus"></i>Adicionar aula</button>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modalNonLetivo')"><i class="ti ti-coffee"></i>Componente não letiva</button>
         </div>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
@@ -1136,10 +1164,10 @@ tr:hover td { background: #FAFBFA; }
     </div>
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Aluno *</label>
-        <select class="form-select" id="avalAluno"></select>
+        <select class="form-select" id="avalAluno" onchange="autoFillAval()"></select>
       </div>
       <div class="form-group"><label class="form-label">Período</label>
-        <select class="form-select" id="avalPeriodo"><option value="1">1º Período</option><option value="2">2º Período</option><option value="3">3º Período</option></select>
+        <select class="form-select" id="avalPeriodo" onchange="autoFillAval()"><option value="1">1º Período</option><option value="2">2º Período</option><option value="3">3º Período</option></select>
       </div>
       <div class="form-group"><label class="form-label">FITescola (1–5)</label>
         <select class="form-select" id="avalFit"><option>5</option><option>4</option><option selected>3</option><option>2</option><option>1</option></select>
@@ -1155,6 +1183,7 @@ tr:hover td { background: #FAFBFA; }
       </div>
     </div>
     <div class="modal-footer">
+      <div id="avalAutoInfo" style="display:none;font-size:11px;color:#1A5C3A;background:#D5F5E3;padding:7px 11px;border-radius:6px;margin-right:auto;line-height:1.5"></div>
       <button class="btn btn-secondary" onclick="closeModal('modalAvaliacao')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveAvaliacao()"><i class="ti ti-check"></i>Guardar</button>
     </div>
@@ -1196,6 +1225,7 @@ tr:hover td { background: #FAFBFA; }
       </div>
     </div>
     <div class="modal-footer">
+      <button id="btnDeleteHorario" style="display:none;margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font)" onclick="deleteHorario()"><i class="ti ti-trash"></i> Apagar</button>
       <button class="btn btn-secondary" onclick="closeModal('modalHorario')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveHorario()"><i class="ti ti-check"></i>Guardar</button>
     </div>
@@ -1295,6 +1325,8 @@ let state = {
   modalidades: {},
   avaliacoes: {},
   horario: {},
+  nonLetivo: [],  // [{id,dia,inicio,fim,tipo,desc}]
+  toques: {},    // {dia: [{id,hora,tipo,label}]} — mapa de toques
   planeadas: [],
   feriados: [],
   calYear: new Date().getFullYear(),
@@ -1814,7 +1846,7 @@ function showPage(id, btn) {
   document.getElementById('page-' + id).classList.add('active');
   if (btn) btn.classList.add('active');
 
-  const titles = { alunos:'Alunos', aulas:'Aulas', faltas:'Faltas', fitescola:'FITescola', modalidades:'Modalidades', periodos:'Avaliação por Período', planificacao:'Planificação 2025/26', 'importar-excel':'Importar Excel', horario:'Horário', calendario:'Calendário', 'turmas-dashboard':'Dashboard de Turmas', 'turmas-comparar':'Comparar Turmas', 'turmas-ficha':'Ficha de Turma', exportar:'Exportar dados' };
+  const titles = { alunos:'Alunos', aulas:'Aulas', faltas:'Faltas', fitescola:'FITescola', modalidades:'Modalidades', periodos:'Avaliação por Período', planificacao:'Planeamento', 'importar-excel':'Importar Excel', horario:'Horário', calendario:'Calendário', 'turmas-dashboard':'Dashboard de Turmas', 'turmas-comparar':'Comparar Turmas', 'turmas-ficha':'Ficha de Turma', exportar:'Exportar dados' };
   document.getElementById('topbarTitle').textContent = titles[id] || id;
 
   const addBtns = { alunos: {label:'Novo aluno', fn:"openModal('modalAluno', true)"}, aulas: {label:'Registar aula', fn:"openModal('modalAula')"}, fitescola:{label:'Registar', fn:"openModal('modalFit')"}, modalidades:{label:'Registar nota', fn:"openModal('modalNota')"}, periodos:{label:'Lançar nota', fn:"openModal('modalAvaliacao')"} };
@@ -1886,33 +1918,71 @@ function renderAlunos() {
 // RENDER AULAS
 // ═══════════════════════════════════════════════
 function renderAulas() {
-  const list = aulasByPeriodo(state.turma, state.periodo).slice().reverse();
+  const turma   = typeof getAulasTurma === 'function' ? getAulasTurma() : state.turma;
+  const alunos  = state.alunos[turma] || [];
+  const todasAulas = (state.aulas[turma] || [])
+    .slice()
+    .sort((a, b) => (b.data || '').localeCompare(a.data || '')); // mais recente primeiro
+
   const container = document.getElementById('aulasList');
-  if (!list.length) {
-    container.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard"></i><p>Sem aulas registadas neste período<br><button class="btn btn-primary" style="margin-top:12px" onclick="openModal('modalAula')"><i class="ti ti-plus"></i>Registar primeira aula</button></p></div>`;
+  if (!todasAulas.length) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard"></i>
+      <p>Sem aulas registadas<br>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="openModal('modalAula')">
+        <i class="ti ti-plus"></i>Registar primeira aula</button></p></div>`;
     return;
   }
-  container.innerHTML = list.map(a => {
-    const d = new Date(a.data + 'T12:00:00');
-    const day = d.getDate().toString().padStart(2,'0');
-    const mon = d.toLocaleDateString('pt-PT', {month:'short'}).toUpperCase();
-    const alunos = state.alunos[state.turma] || [];
+
+  // Group by período
+  const byPeriodo = {'1':[], '2':[], '3':[]};
+  todasAulas.forEach(a => {
+    const p = String(a.periodo || '1');
+    if (!byPeriodo[p]) byPeriodo[p] = [];
+    byPeriodo[p].push(a);
+  });
+
+  function aulaCard(a) {
+    const d = new Date((a.data || '') + 'T12:00:00');
+    const day = isNaN(d) ? '??' : d.getDate().toString().padStart(2,'0');
+    const mon = isNaN(d) ? '???' : d.toLocaleDateString('pt-PT', {month:'short'}).toUpperCase();
     const presentes = alunos.length - (a.faltas?.length || 0);
     return `<div class="aula-card">
       <div class="aula-date"><div class="aula-day">${day}</div><div class="aula-mon">${mon}</div></div>
       <div class="aula-body">
-        <div class="aula-title">${a.modal} <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo}</span></div>
+        <div class="aula-title">${a.modal||'—'}
+          <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo||''}</span>
+        </div>
         ${a.obj ? `<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>` : ''}
         ${a.obs ? `<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>` : ''}
         ${a.faltas?.length ? `<div class="aula-chips">${a.faltas.map(n=>`<span class="badge badge-red" style="font-size:10px">${n.split(' ')[0]}</span>`).join('')}</div>` : ''}
       </div>
       <div class="aula-meta">
-        <div>${a.dur}min</div>
+        <div>${a.dur||50}min</div>
         <div style="margin-top:4px">${presentes}✓ ${a.faltas?.length||0}✗</div>
-        <button onclick="editAula('${a.id}',event)" title="Editar" style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:5px;padding:3px 7px;cursor:pointer;color:var(--text3);font-size:12px"><i class="ti ti-pencil"></i></button>
+        <button onclick="editAula('${a.id}',event)" title="Editar"
+          style="margin-top:6px;background:none;border:1px solid var(--border);border-radius:5px;padding:3px 7px;cursor:pointer;color:var(--text3);font-size:12px">
+          <i class="ti ti-pencil"></i>
+        </button>
       </div>
     </div>`;
-  }).join('');
+  }
+
+  let html = '';
+  ['1','2','3'].forEach(p => {
+    const aulas = byPeriodo[p] || [];
+    if (!aulas.length) return;
+    html += `
+      <div style="margin-bottom:6px;margin-top:${p==='1'?'0':'18px'}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700;color:var(--text2)">${PERIODOS[parseInt(p)-1]}</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span class="badge badge-gray" style="font-size:11px">${aulas.length} aula${aulas.length!==1?'s':''}</span>
+        </div>
+        ${aulas.map(a => aulaCard(a)).join('')}
+      </div>`;
+  });
+
+  container.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════
@@ -2190,6 +2260,23 @@ function openModal(id, isNew=false) {
   }
   if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
   if (id === 'mgturmas') { renderTurmasListEdit(); setTimeout(()=>document.getElementById('novaTurmaInput')?.focus(),100); }
+  if (id === 'modalHorario') {
+    updateTurmaSels();
+    const ht = document.getElementById('horTurma');
+    if (ht && !ht.value) ht.value = state.turma;
+    // Reset to "new" mode if not editing
+    if (!editHorarioId) {
+      document.getElementById('btnDeleteHorario').style.display = 'none';
+      document.getElementById('modalHorarioTitle').textContent = 'Adicionar aula ao horário';
+      editHorarioTurma = null;
+      // Clear fields
+      ['horInicio','horFim','horLocal','horModalidade','horObs'].forEach(fid => {
+        const el = document.getElementById(fid); if (el) el.value = '';
+      });
+      document.getElementById('horInicio').value = '09:00';
+      document.getElementById('horFim').value    = '10:30';
+    }
+  }
   if (id === 'modalNota') populateSelect('notaAluno', state.alunos[state.turma]||[]);
   if (id === 'modalAvaliacao') populateSelect('avalAluno', state.alunos[state.turma]||[]);
 }
@@ -2301,10 +2388,11 @@ function editHorarioItem(id) {
   document.getElementById('modalHorario').classList.add('open');
 }
 function saveHorario() {
-  const turma = document.getElementById('horTurma').value;
+  const turma = document.getElementById('horTurma').value || state.turma;
   const dia   = parseInt(document.getElementById('horDia').value);
   const ini   = document.getElementById('horInicio').value;
   const fim   = document.getElementById('horFim').value;
+  if (!turma) { toast('Seleciona uma turma','ti-alert-circle'); return; }
   if (!ini || !fim) { toast('Preenche hora de início e fim','ti-alert-circle'); return; }
   if (timeToMin(fim) <= timeToMin(ini)) { toast('Hora de fim tem de ser posterior ao início','ti-alert-circle'); return; }
   if (!state.horario[turma]) state.horario[turma] = [];
@@ -2521,7 +2609,7 @@ function renderHorario() {
   // Title and list title
   const titleEl = document.getElementById('title-horario');
   const listEl  = document.getElementById('horListTitle');
-  if (titleEl) titleEl.textContent = isSingle ? 'Horário — ' + state.turma : 'Horário — Todas as turmas';
+  if (titleEl) titleEl.textContent = isSingle ? 'Horário — ' + state.turma + ' (destacado)' : 'Horário — Todas as turmas';
   if (listEl)  listEl.textContent  = isSingle ? 'Aulas de ' + state.turma : 'Todas as aulas';
 
   // Legend
@@ -2547,8 +2635,32 @@ function renderHorario() {
     maxSlot = Math.min(18*60, Math.ceil(Math.max(...maxs)/30)*30 + 30);
   }
 
-  const slots = [];
-  for (let m = minSlot; m < maxSlot; m += 30) slots.push(m);
+  // Build slots from toques if defined, otherwise fall back to 30-min grid
+  const toquesForSlots = typeof getAllToquesFlat === 'function' ? getAllToquesFlat() : [];
+  let slots = [];
+  if (toquesForSlots.length) {
+    // Use toque hours + aula start/end times as slot anchors
+    const slotSet = new Set();
+    toquesForSlots.forEach(t => slotSet.add(timeToMin(t.hora)));
+    // Also add aula inicio/fim so aulas align with toques
+    allItems.forEach(a => {
+      slotSet.add(timeToMin(a.inicio));
+      slotSet.add(timeToMin(a.fim));
+    });
+    (state.nonLetivo || []).forEach(n => {
+      slotSet.add(timeToMin(n.inicio));
+      slotSet.add(timeToMin(n.fim));
+    });
+    slots = [...slotSet].sort((a,b) => a-b);
+    // Filter to reasonable range
+    slots = slots.filter(s => s >= minSlot && s <= maxSlot);
+  } else {
+    // No toques defined — use 30-min grid
+    for (let m = minSlot; m < maxSlot; m += 30) slots.push(m);
+  }
+  if (!slots.length) {
+    for (let m = minSlot; m < maxSlot; m += 30) slots.push(m);
+  }
 
   // Build grid HTML — one column per turma (multi) or just the grid
   const numCols = isSingle ? 5 : turmas.length * 5; // 5 days each turma or 5 days single
@@ -3355,6 +3467,53 @@ function downloadModeloCSV() {
     <div style="font-size:11px;color:var(--text3);margin-top:7px">Qualquer nome: 5ºA, 6ºB, Turma 1, EFA…</div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="closeModal('mgturmas')"><i class="ti ti-check"></i>Fechar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ MODAL COMPONENTE NÃO LETIVA ═══ -->
+<div class="overlay" id="modalNonLetivo" onclick="if(event.target===this)closeModal('modalNonLetivo')">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title" id="modalNonLetivoTitle">Componente não letiva</span>
+      <button class="modal-close" onclick="closeModal('modalNonLetivo')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Dia *</label>
+        <select class="form-select" id="nlDia">
+          <option value="1">Segunda-feira</option><option value="2">Terça-feira</option>
+          <option value="3">Quarta-feira</option><option value="4">Quinta-feira</option>
+          <option value="5">Sexta-feira</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="nlTipo">
+          <option value="reuniao">Reunião</option>
+          <option value="apoio">Apoio/Substituição</option>
+          <option value="coordenacao">Coordenação</option>
+          <option value="diretor_turma">Dir. de Turma</option>
+          <option value="formacao">Formação</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Hora início *</label>
+        <input class="form-input" type="time" id="nlInicio" value="09:00">
+      </div>
+      <div class="form-group"><label class="form-label">Hora fim *</label>
+        <input class="form-input" type="time" id="nlFim" value="10:00">
+      </div>
+      <div class="form-group full"><label class="form-label">Descrição</label>
+        <input class="form-input" id="nlDesc" placeholder="Ex: Reunião de grupo, Conselho de turma…">
+      </div>
+      <div class="form-group full"><label class="form-label">Local</label>
+        <input class="form-input" id="nlLocal" placeholder="Ex: Sala de professores">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnDeleteNL" style="display:none;margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font)" onclick="deleteNonLetivo()"><i class="ti ti-trash"></i> Apagar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalNonLetivo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNonLetivo()"><i class="ti ti-check"></i>Guardar</button>
     </div>
   </div>
 </div>
@@ -4948,118 +5107,45 @@ function renderPlanificacao() {
   const page = document.getElementById('page-planificacao');
   if (!page) { console.error('page-planificacao not found'); return; }
 
+  // Show only the monthly calendar (same logic as renderCalendario)
+  // but embedded in this page
   const turmas = getTURMAS();
-  console.log('renderPlanificacao called, turmas:', turmas.length);
 
-  // ── Horário semanal ──────────────────────────────────────────────────
-  let html = `
-    <div style="margin-bottom:20px">
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">🗓 Horário semanal por turma</div>
-      <div style="font-size:12px;color:var(--text3)">Baseado no horário registado em cada turma.</div>
-    </div>`;
-
-  turmas.forEach(t => {
-    const aulas  = state.horario[t] || [];
-    const col    = typeof getTurmaColor === 'function' ? getTurmaColor(t) : {bg:'#37474F', light:'#ECEFF1'};
-    const byDay  = {1:[],2:[],3:[],4:[],5:[]};
-    aulas.forEach(a => { if (byDay[a.dia]) byDay[a.dia].push(a); });
-    Object.values(byDay).forEach(d => d.sort((a,b)=>a.inicio.localeCompare(b.inicio)));
-    const totalMin = aulas.reduce((s,a)=>{const [h1,m1]=a.inicio.split(':').map(Number),[h2,m2]=a.fim.split(':').map(Number);return s+((h2*60+m2)-(h1*60+m1));},0);
-
-    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px">
-      <div style="background:${col.bg};padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <span style="font-size:18px;font-weight:800;color:#fff">${t}</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.75);margin-left:10px">${aulas.length} bloco${aulas.length!==1?'s':''}/semana · ${(totalMin/60).toFixed(1)}h</span>
-        </div>
-        <div style="display:flex;gap:5px">
-          ${[1,2,3,4,5].filter(d=>byDay[d].length).map(d=>`<div style="background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">${['','Seg','Ter','Qua','Qui','Sex'][d]}</div>`).join('')}
-        </div>
-      </div>
-      <div style="padding:12px 16px">`;
-
-    if (!aulas.length) {
-      html += `<div style="color:var(--text3);font-size:13px">Sem aulas no horário.</div>`;
-    } else {
-      html += `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">`;
-      for (let d=1;d<=5;d++) {
-        html += `<div><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-bottom:5px">${['','Seg','Ter','Qua','Qui','Sex'][d]}</div>`;
-        if (!byDay[d].length) {
-          html += `<div style="background:var(--surface2);border-radius:var(--radius-sm);min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:11px">—</div>`;
-        } else {
-          byDay[d].forEach(a => {
-            const [h1,m1]=a.inicio.split(':').map(Number),[h2,m2]=a.fim.split(':').map(Number);
-            const dur=(h2*60+m2)-(h1*60+m1);
-            html += `<div style="background:${col.light};border-left:3px solid ${col.bg};border-radius:var(--radius-sm);padding:7px 9px;margin-bottom:4px">
-              <div style="font-size:12px;font-weight:700;color:${col.bg}">${a.inicio}–${a.fim}</div>
-              <div style="font-size:10px;color:var(--text3)">${dur}min${a.local?' · '+a.local:''}</div>
-              ${a.modal?`<div style="font-size:11px;color:var(--text2);margin-top:1px">${a.modal}</div>`:''}
-            </div>`;
-          });
-        }
-        html += `</div>`;
-      }
-      html += `</div>`;
-    }
-    html += `</div></div>`;
-  });
-
-  // ── Calendário mensal ────────────────────────────────────────────────
+  planCalState = planCalState || {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    turma: state.turma,
+  };
   if (!planCalState.turma) planCalState.turma = state.turma;
 
-  html += `
-    <div style="margin-top:24px;margin-bottom:14px">
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">📅 Calendário de aulas</div>
-      <div style="font-size:12px;color:var(--text3)">Aulas registadas, planeadas e horário semanal.</div>
-    </div>
+  page.innerHTML = `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:9px">
           <button onclick="planCalNav(-1)" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:16px;color:var(--text2)">&#8249;</button>
-          <span id="plan-cal-label" style="font-size:16px;font-weight:700;color:var(--text);min-width:160px;text-align:center"></span>
+          <span id="plan-cal-label" style="font-size:17px;font-weight:700;color:var(--text);min-width:170px;text-align:center"></span>
           <button onclick="planCalNav(1)"  style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;cursor:pointer;font-size:16px;color:var(--text2)">&#8250;</button>
-          <button onclick="planCalToday()" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 9px;cursor:pointer;font-size:12px;color:var(--text2)">Hoje</button>
+          <button onclick="planCalToday()" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 9px;cursor:pointer;font-size:12px;color:var(--text2)"><i class="ti ti-calendar"></i> Hoje</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <select id="plan-cal-turma" onchange="planCalState.turma=this.value;renderPlanCalendar()"
             style="padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface)">
-            ${turmas.map(t=>`<option value="${t}"${t===planCalState.turma?' selected':''}>${t}</option>`).join('')}
+            ${turmas.map(t=>'<option value="'+t+'"'+(t===planCalState.turma?' selected':'')+'>'+t+'</option>').join('')}
           </select>
         </div>
       </div>
-      <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;margin-bottom:11px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)"><div style="width:10px;height:10px;border-radius:2px;background:#2D7A52"></div>Registada</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)"><div style="width:10px;height:10px;border-radius:2px;background:#1B4F72"></div>Planeada</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)"><div style="width:10px;height:10px;border-radius:2px;background:#7B241C"></div>Horário</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)"><div style="width:10px;height:10px;border-radius:2px;background:#922B21"></div>Feriado</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px" id="plan-cal-grid"></div>
+      <div id="plan-cal-detail"></div>
     </div>
-    <div style="text-align:center">
-      <button class="btn btn-secondary btn-sm" onclick="showPage('horario',document.querySelector('.nav-item[onclick*=\\'horario\\']'))">
-        <i class="ti ti-clock"></i> Gerir horários
-      </button>
-      <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="showPage('calendario',document.querySelector('.nav-item[onclick*=\\'calendario\\']'))">
-        <i class="ti ti-calendar"></i> Calendário completo
-      </button>
-    </div>`;
-
-  page.innerHTML = html;
+  `;
   renderPlanCalendar();
 }
-
-function planCalToday() {
-  planCalState.year  = new Date().getFullYear();
-  planCalState.month = new Date().getMonth();
-  renderPlanCalendar();
-}
-
-// Patch refreshPage
-const _planCalRefresh = window.refreshPage;
-window.refreshPage = function(id) {
-  if (typeof _planCalRefresh === 'function') _planCalRefresh(id);
-  if (id === 'planificacao') renderPlanificacao();
-};
 
 console.log('✅ Planificação Horário + Calendário patch carregado');
 </script>
@@ -5456,4 +5542,1993 @@ function calDeleteAula(id, turma) {
 }
 
 console.log('✅ Calendário editar/apagar aulas registadas patch carregado');
+</script>
+<script>
+// ═══ AUTO-FILL AVALIAÇÃO POR PERÍODO ═══
+
+function autoFillAval() {
+  const alunoId = document.getElementById('avalAluno')?.value;
+  const periodo = document.getElementById('avalPeriodo')?.value || state.periodo;
+  const infoEl  = document.getElementById('avalAutoInfo');
+
+  if (!alunoId) { if(infoEl) infoEl.style.display='none'; return; }
+
+  const aluno = getAluno(state.turma, alunoId);
+  if (!aluno)  { if(infoEl) infoEl.style.display='none'; return; }
+
+  const msgs = [];
+
+  // ── 1. FITescola ──────────────────────────────────────────────────────
+  const fitEntry = (state.fit[state.turma] || []).find(f => f.alunoId === alunoId);
+  let fitNota = null;
+  if (fitEntry) {
+    fitNota = alunoFitClassificacao(fitEntry, aluno);
+    if (fitNota) {
+      document.getElementById('avalFit').value = String(fitNota);
+      msgs.push(`FITescola: ${fitNota} (calculado automaticamente)`);
+    }
+  }
+
+  // ── 2. Modalidades ───────────────────────────────────────────────────
+  const mods = (state.modalidades[state.turma] || []).filter(m => m.alunoId === alunoId);
+  let modNota = null;
+  if (mods.length) {
+    // Average of all final grades, rounded
+    const avg = mods.reduce((s, m) => s + (m.final || 3), 0) / mods.length;
+    modNota = Math.round(avg);
+    modNota = Math.max(1, Math.min(5, modNota));
+    document.getElementById('avalMod').value = String(modNota);
+    const modNames = mods.map(m => m.modal).join(', ');
+    msgs.push(`Modalidades: ${modNota} (média de ${mods.length} — ${modNames})`);
+  }
+
+  // ── 3. Atitudes — média dos atit das modalidades ──────────────────────
+  if (mods.length) {
+    const atitAvg = mods.reduce((s, m) => s + (m.atit || 3), 0) / mods.length;
+    const atitNota = Math.max(1, Math.min(5, Math.round(atitAvg)));
+    document.getElementById('avalAtit').value = String(atitNota);
+    msgs.push(`Atitudes: ${atitNota} (média das modalidades)`);
+  }
+
+  // ── 4. Nota final sugerida ────────────────────────────────────────────
+  const fit  = parseInt(document.getElementById('avalFit')?.value)  || 3;
+  const mod  = parseInt(document.getElementById('avalMod')?.value)  || 3;
+  const atit = parseInt(document.getElementById('avalAtit')?.value) || 3;
+
+  // Formula: 40% FIT + 40% Modalidades + 20% Atitudes
+  const sugerida = Math.round(fit * 0.4 + mod * 0.4 + atit * 0.2);
+  const notaFinal = Math.max(1, Math.min(5, sugerida));
+
+  // Only set nota final if we have both FIT and Mod data
+  if (fitNota && modNota) {
+    const avalFinalSel = document.getElementById('avalNotaFinal') || document.getElementById('avalFinal');
+    if (avalFinalSel) {
+      avalFinalSel.value = String(notaFinal);
+      msgs.push(`Nota final sugerida: ${notaFinal} (40% FIT + 40% Modal. + 20% Atit.)`);
+    }
+  }
+
+  // Check if there's an existing avaliacao to pre-fill
+  const existingAval = (state.avaliacoes[state.turma] || [])
+    .find(a => a.alunoId === alunoId && a.periodo === periodo);
+  if (existingAval) {
+    document.getElementById('avalFit').value  = String(existingAval.fit  || fitNota  || 3);
+    document.getElementById('avalMod').value  = String(existingAval.mod  || modNota  || 3);
+    document.getElementById('avalAtit').value = String(existingAval.atit || 3);
+    const avalFinalSel = document.getElementById('avalNotaFinal') || document.getElementById('avalFinal');
+    if (avalFinalSel) avalFinalSel.value = String(existingAval.final || notaFinal || 3);
+    msgs.unshift('A editar avaliação existente');
+  }
+
+  // Show info
+  if (infoEl) {
+    if (msgs.length) {
+      infoEl.style.display = 'block';
+      infoEl.innerHTML = '📊 ' + msgs.join('<br>📊 ');
+    } else {
+      infoEl.style.display = 'block';
+      infoEl.style.background = '#FEF3E7';
+      infoEl.style.color = '#7D4E00';
+      infoEl.innerHTML = '⚠ Sem dados de FITescola ou Modalidades para este aluno.';
+    }
+  }
+}
+
+// Patch openModal to trigger autoFill when opening avaliacao modal
+const _origOpenModalAval = window.openModal;
+window.openModal = function(id, isNew) {
+  if (typeof _origOpenModalAval === 'function') _origOpenModalAval(id, isNew);
+  if (id === 'modalAvaliacao') {
+    // Set periodo to current
+    const per = document.getElementById('avalPeriodo');
+    if (per) per.value = state.currentDesempPeriodo || state.periodo;
+    // Trigger auto-fill for first aluno
+    setTimeout(autoFillAval, 100);
+  }
+};
+
+// Patch saveAvaliacao to read nota final correctly
+const _origSaveAval = window.saveAvaliacao;
+window.saveAvaliacao = function() {
+  // Find nota final field (might be avalNotaFinal or avalFinal)
+  const finalEl = document.getElementById('avalNotaFinal') || document.getElementById('avalFinal');
+  if (!finalEl) {
+    // No nota final field - calculate it
+    const fit  = parseInt(document.getElementById('avalFit')?.value)  || 3;
+    const mod  = parseInt(document.getElementById('avalMod')?.value)  || 3;
+    const atit = parseInt(document.getElementById('avalAtit')?.value) || 3;
+    const calc = Math.max(1, Math.min(5, Math.round(fit*0.4 + mod*0.4 + atit*0.2)));
+    // Add a hidden input temporarily
+    let hidden = document.getElementById('_avalFinalHidden');
+    if (!hidden) {
+      hidden = document.createElement('select');
+      hidden.id = '_avalFinalHidden';
+      hidden.style.display = 'none';
+      hidden.innerHTML = [1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('');
+      document.body.appendChild(hidden);
+    }
+    hidden.value = String(calc);
+  }
+  if (typeof _origSaveAval === 'function') _origSaveAval();
+};
+
+console.log('✅ Auto-fill avaliação patch carregado');
+</script>
+<script>
+// ═══ saveAvaliacao — função completa ═══
+window.saveAvaliacao = function() {
+  const alunoId = document.getElementById('avalAluno')?.value;
+  if (!alunoId) { toast('Seleciona um aluno', 'ti-alert-circle'); return; }
+
+  const periodo = document.getElementById('avalPeriodo')?.value || state.periodo;
+  const fit     = parseInt(document.getElementById('avalFit')?.value)   || 3;
+  const mod     = parseInt(document.getElementById('avalMod')?.value)   || 3;
+  const atit    = parseInt(document.getElementById('avalAtit')?.value)  || 3;
+  const final   = parseInt(document.getElementById('avalFinal')?.value) ||
+                  Math.max(1, Math.min(5, Math.round(fit*0.4 + mod*0.4 + atit*0.2)));
+
+  if (!state.avaliacoes[state.turma]) state.avaliacoes[state.turma] = [];
+
+  const entry = { alunoId, periodo, fit, mod, atit, final };
+  const ei = state.avaliacoes[state.turma]
+    .findIndex(a => a.alunoId === alunoId && a.periodo === periodo);
+
+  if (ei >= 0) state.avaliacoes[state.turma][ei] = entry;
+  else         state.avaliacoes[state.turma].push(entry);
+
+  saveState();
+  closeModal('modalAvaliacao');
+  renderPeriodos();
+  toast('Nota guardada — ' + (document.getElementById('avalAluno').options[document.getElementById('avalAluno').selectedIndex]?.text?.split('(')[0]?.trim() || '') + ' · ' + periodo + 'º P · ' + final);
+};
+console.log('✅ saveAvaliacao carregada');
+</script>
+
+<script>
+// ═══ IMPORTAR NOTAS FINAIS — 5º D ═══
+var NOTAS_5D_DATA = [{"nome": "Ana Sophia Leite Santos", "num": "1", "p1": 3, "p2": 3}, {"nome": "Daniel André Finta Catarino", "num": "2", "p1": 4, "p2": 5}, {"nome": "Diana Sofia Caseiro Pereira", "num": "3", "p1": 3, "p2": 3}, {"nome": "Dinis Miguel da Cruz Dinis", "num": "4", "p1": 4, "p2": 5}, {"nome": "Dinis Miguel Santos da Silva", "num": "5", "p1": 4, "p2": 5}, {"nome": "Diogo José Couto do Carmo", "num": "6", "p1": 3, "p2": 3}, {"nome": "Enzo Guilherme Corsine Campos", "num": "7", "p1": 4, "p2": 4}, {"nome": "Íris Sofia Inglês Silva", "num": "8", "p1": 3, "p2": 4}, {"nome": "Isis Raquel Rocha de Oliveira", "num": "9", "p1": 3, "p2": 3}, {"nome": "João Pedro Nunes Paciência", "num": "10", "p1": 4, "p2": 4}, {"nome": "Leonor Isabel Letras Faria", "num": "11", "p1": 3, "p2": 3}, {"nome": "Márcia Isabel Morgado Antunes", "num": "12", "p1": 4, "p2": 4}, {"nome": "Miguel Almeida Pereira", "num": "13", "p1": 3, "p2": 3}, {"nome": "Pedro Duarte da Silva Roque", "num": "14", "p1": 4, "p2": 5}, {"nome": "Rafael Pereira Maia", "num": "15", "p1": 4, "p2": 4}, {"nome": "Santiago José Pagaime Vultos", "num": "16", "p1": 3, "p2": 4}, {"nome": "Tomás Enzo Simões Ascenso", "num": "17", "p1": 4, "p2": 4}, {"nome": "Tomás Filipe Mendes Duarte", "num": "18", "p1": 3, "p2": 3}, {"nome": "Tomás Machuqueiro Lota", "num": "19", "p1": 3, "p2": 3}, {"nome": "Breno Teotônio Silva", "num": "20", "p1": null, "p2": null}];
+
+function importarNotas5D() {
+  function normName(s) {
+    return s.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+  }
+
+  const turmas = getTURMAS();
+  if (!turmas.length) {
+    toast('Sem turmas configuradas.', 'ti-alert-circle');
+    return;
+  }
+
+  // Calculate matches per turma
+  const nomesExcel = NOTAS_5D_DATA.map(a => normName(a.nome));
+  const scores = turmas.map(t => {
+    const al = state.alunos[t] || [];
+    const score = al.filter(a => nomesExcel.includes(normName(a.name))).length;
+    return { t, score };
+  });
+
+  // Build modal HTML with turma selector
+  const modalHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px">
+      <div style="background:var(--surface);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+        <div style="font-size:16px;font-weight:700;margin-bottom:5px">Importar notas — 5ºD Excel</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:16px">Escolhe para que turma importar as notas do ficheiro Excel.</div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Turma de destino</label>
+          <select id="importTurmaDestino" style="width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:var(--surface)">
+            ${scores.map(s => `<option value="${s.t}">${s.t} (${s.score} aluno${s.score!==1?'s':''} encontrado${s.score!==1?'s':''})</option>`).join('')}
+          </select>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px;padding:9px 11px;background:var(--surface2);border-radius:var(--radius-sm)">
+          <strong>Dados do Excel:</strong> ${NOTAS_5D_DATA.length} alunos · 1º e 2º Período
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('importTurmaModal').remove()" 
+            style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+            Cancelar
+          </button>
+          <button onclick="doImportarNotas5D()" 
+            style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+            <i class="ti ti-table-import"></i> Importar
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  // Remove existing modal if any
+  const existing = document.getElementById('importTurmaModal');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.id = 'importTurmaModal';
+  div.innerHTML = modalHTML;
+  document.body.appendChild(div);
+
+  // Pre-select best match
+  const best = scores.reduce((a, b) => b.score > a.score ? b : a, scores[0]);
+  const sel = document.getElementById('importTurmaDestino');
+  if (sel && best) sel.value = best.t;
+}
+
+function doImportarNotas5D() {
+  function normName(s) {
+    return s.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+  }
+
+  const turma = document.getElementById('importTurmaDestino')?.value;
+  if (!turma) { toast('Seleciona uma turma', 'ti-alert-circle'); return; }
+
+  document.getElementById('importTurmaModal')?.remove();
+
+  const alunos = state.alunos[turma] || [];
+  if (!state.avaliacoes[turma]) state.avaliacoes[turma] = [];
+
+  let importados = 0;
+  const naoEncontrados = [];
+
+  NOTAS_5D_DATA.forEach(entry => {
+    const aluno = alunos.find(a => normName(a.name) === normName(entry.nome));
+    if (!aluno) { naoEncontrados.push(entry.nome); return; }
+
+    [['1', entry.p1], ['2', entry.p2]].forEach(([periodo, nota]) => {
+      if (!nota) return;
+      const idx = state.avaliacoes[turma].findIndex(
+        a => a.alunoId === aluno.id && a.periodo === periodo
+      );
+      const av = { alunoId: aluno.id, periodo, fit: nota, mod: nota, atit: nota, final: nota };
+      if (idx >= 0) state.avaliacoes[turma][idx] = av;
+      else          state.avaliacoes[turma].push(av);
+      importados++;
+    });
+  });
+
+  saveState();
+  renderPeriodos();
+
+  let msg = '✅ ' + importados + ' notas importadas para ' + turma;
+  if (naoEncontrados.length) msg += ' | Não encontrados (' + naoEncontrados.length + '): ' + naoEncontrados.slice(0,3).join(', ') + (naoEncontrados.length > 3 ? '...' : '');
+  toast(msg);
+}
+console.log('✅ importarNotas5D carregado');
+</script><script>
+// ═══ PERÍODOS — Selector de turma ═══
+
+// State for selected turma in periodos page
+if (!window.periodosTurma) window.periodosTurma = null;
+
+function getPeriodosTurma() {
+  return window.periodosTurma || state.turma;
+}
+
+function periodoTurmaChange() {
+  const sel = document.getElementById('periodoTurmaSelect');
+  if (sel) window.periodosTurma = sel.value;
+  renderPeriodos();
+}
+
+// Patch renderPeriodos to use periodosTurma and populate selector
+const _origRenderPeriodos = window.renderPeriodos;
+window.renderPeriodos = function() {
+  // Populate selector
+  const sel = document.getElementById('periodoTurmaSelect');
+  if (sel) {
+    const turmas = getTURMAS();
+    const cur = getPeriodosTurma();
+    sel.innerHTML = turmas.map(t =>
+      `<option value="${t}"${t===cur?' selected':''}>${t}</option>`
+    ).join('');
+    if (!turmas.includes(cur)) {
+      window.periodosTurma = turmas[0] || state.turma;
+      if (sel.value !== window.periodosTurma) sel.value = window.periodosTurma;
+    }
+  }
+
+  // Call original but override state.turma temporarily
+  const prevTurma = state.turma;
+  state.turma = getPeriodosTurma();
+  if (typeof _origRenderPeriodos === 'function') _origRenderPeriodos();
+  state.turma = prevTurma;
+
+  // Update modal aluno select with correct turma's students
+  const avalAluno = document.getElementById('avalAluno');
+  if (avalAluno) {
+    const alunos = state.alunos[getPeriodosTurma()] || [];
+    populateSelect('avalAluno', alunos);
+  }
+
+  // Update title to show turma
+  const titleEl = document.getElementById('periodoTableTitle');
+  if (titleEl) {
+    const dp = state.currentDesempPeriodo || '1';
+    titleEl.textContent = `Pauta — ${dp}º Período · ${getPeriodosTurma()}`;
+  }
+};
+
+// Patch saveAvaliacao to save to the right turma
+const _origSaveAvalPeriodo = window.saveAvaliacao;
+window.saveAvaliacao = function() {
+  const alunoId = document.getElementById('avalAluno')?.value;
+  if (!alunoId) { toast('Seleciona um aluno', 'ti-alert-circle'); return; }
+
+  const turma   = getPeriodosTurma();
+  const periodo = document.getElementById('avalPeriodo')?.value || state.periodo;
+  const fit     = parseInt(document.getElementById('avalFit')?.value)   || 3;
+  const mod     = parseInt(document.getElementById('avalMod')?.value)   || 3;
+  const atit    = parseInt(document.getElementById('avalAtit')?.value)  || 3;
+  const final   = parseInt(document.getElementById('avalFinal')?.value) ||
+                  Math.max(1, Math.min(5, Math.round(fit*0.4 + mod*0.4 + atit*0.2)));
+
+  if (!state.avaliacoes[turma]) state.avaliacoes[turma] = [];
+
+  const entry = { alunoId, periodo, fit, mod, atit, final };
+  const ei = state.avaliacoes[turma].findIndex(
+    a => a.alunoId === alunoId && a.periodo === periodo
+  );
+  if (ei >= 0) state.avaliacoes[turma][ei] = entry;
+  else         state.avaliacoes[turma].push(entry);
+
+  saveState();
+  closeModal('modalAvaliacao');
+  renderPeriodos();
+
+  const nomeAluno = document.getElementById('avalAluno')?.options[
+    document.getElementById('avalAluno')?.selectedIndex]?.text?.split('(')[0]?.trim() || '';
+  toast(`Nota guardada — ${nomeAluno} · ${turma} · ${periodo}º P · ${final}`);
+};
+
+// Also patch autoFillAval to use periodosTurma
+const _origAutoFill = window.autoFillAval;
+window.autoFillAval = function() {
+  const prevTurma = state.turma;
+  state.turma = getPeriodosTurma();
+  if (typeof _origAutoFill === 'function') _origAutoFill();
+  state.turma = prevTurma;
+};
+
+// Populate selector when page loads
+const _origShowPagePer = window.showPage;
+window.showPage = function(id, btn) {
+  if (typeof _origShowPagePer === 'function') _origShowPagePer(id, btn);
+  if (id === 'periodos') {
+    // Sync periodosTurma with sidebar active turma if not set
+    if (!window.periodosTurma) window.periodosTurma = state.turma;
+    setTimeout(renderPeriodos, 50);
+  }
+};
+
+console.log('✅ Períodos turma selector patch carregado');
+</script>
+<script>
+// ═══ ALUNOS — Filtro de turma ═══
+
+// Populate turma filter whenever turmas change or page loads
+function updateAlunosTurmaFilter() {
+  const sel = document.getElementById('filterTurma');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todas as turmas</option>' +
+    getTURMAS().map(t => `<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+}
+
+// Patch filterAlunos to support turma filter
+const _origFilterAlunos = window.filterAlunos;
+window.filterAlunos = function() {
+  const q   = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const g   = document.getElementById('filterGenre')?.value  || '';
+  const st  = document.getElementById('filterStatus')?.value || 'ativo';
+  const tf  = document.getElementById('filterTurma')?.value  || '';  // '' = todas
+
+  // Determine which turmas to show
+  const turmas = tf ? [tf] : getTURMAS();
+
+  // Collect alunos from selected turmas
+  let list = [];
+  turmas.forEach(t => {
+    const alunos = (state.alunos[t] || []).map(a => ({...a, _turma: t}));
+    list = list.concat(alunos);
+  });
+
+  // Apply filters
+  list = list.filter(a => {
+    if (!a.name.toLowerCase().includes(q)) return false;
+    if (g && a.genre !== g) return false;
+    const as = a.status || 'ativo';
+    if (st === 'ativo'       && as !== 'ativo')       return false;
+    if (st === 'transferido' && as !== 'transferido') return false;
+    if (st === 'anulado'     && as !== 'anulado')     return false;
+    return true;
+  });
+
+  // Sort by name
+  list.sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+
+  renderAlunosList(list, tf);
+};
+
+function renderAlunosList(list, turmaFilter) {
+  const grid = document.getElementById('studentsGrid');
+  if (!grid) return;
+
+  if (!list.length) {
+    const total = getTURMAS().reduce((s,t)=>(state.alunos[t]||[]).length+s,0);
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <i class="ti ti-users-group"></i>
+      <p>${total ? 'Sem alunos com esse filtro' : 'Sem alunos registados'}
+      <br><button class="btn btn-primary" style="margin-top:12px"
+        onclick="openModal('modalAluno',true)">
+        <i class="ti ti-plus"></i>Adicionar aluno</button></p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((a, i) => {
+    const c = colorFor(i);
+    const fp    = faltasByPeriodo(a, state.periodo, 'fp');
+    const fm    = faltasByPeriodo(a, state.periodo, 'fm');
+    const fj    = faltasByPeriodo(a, state.periodo, 'fj');
+    const fTotal = fp + fm + fj;
+    const risk  = fp >= 4;
+    const avatarContent = a.foto
+      ? `<img src="${a.foto}" alt="${a.name}" onerror="this.parentNode.innerHTML='${initials(a.name)}'">`
+      : initials(a.name);
+    const aStatus = a.status || 'ativo';
+    const sCfg = {
+      transferido: {bg:'#FEF3E7', fg:'#B7770D', lbl:'Transferido'},
+      anulado:     {bg:'var(--red-light)', fg:'var(--red)', lbl:'Anulou'},
+    }[aStatus];
+
+    // Show turma badge when showing all turmas
+    const turmaBadge = !turmaFilter && a._turma
+      ? `<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">${a._turma}</div>`
+      : '';
+
+    return `<div class="student-card${aStatus!=='ativo'?' inativo':''}" onclick="editAlunoByTurma('${a.id}','${a._turma||state.turma}')">
+      ${risk && aStatus==='ativo' ? '<div class="risk-dot" title="Em risco de faltas"></div>' : ''}
+      <div class="student-avatar" style="${!a.foto?'background:'+c.bg+';color:'+c.fg:''}">${avatarContent}</div>
+      ${turmaBadge}
+      ${sCfg ? `<div class="status-ribbon" style="background:${sCfg.bg};color:${sCfg.fg}">${sCfg.lbl}</div>` : ''}
+      <div class="student-name">${a.name}</div>
+      <div class="student-meta">Nº ${a.num} · ${a.genre==='M'?'Masc.':a.genre==='F'?'Fem.':'Outro'}</div>
+      ${a.obs ? `<div class="student-obs"><i class="ti ti-alert-circle" style="font-size:11px"></i> ${a.obs}</div>` : ''}
+      <div class="student-badge">
+        ${fp>0  ? `<span class="badge badge-red"   style="font-size:10px">${fp}FP</span> ` : ''}
+        ${fm>0  ? `<span class="badge" style="background:#FEF3E7;color:#B7770D;font-size:10px">${fm}FM</span> ` : ''}
+        ${fj>0  ? `<span class="badge badge-blue"  style="font-size:10px">${fj}FJ</span>` : ''}
+        ${fTotal===0 ? `<span class="badge badge-green" style="font-size:10px">✓</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Edit aluno from any turma (override state.turma temporarily)
+function editAlunoByTurma(id, turma) {
+  const prevTurma = state.turma;
+  state.turma = turma || state.turma;
+  if (typeof editAluno === 'function') editAluno(id);
+  state.turma = prevTurma;
+}
+
+// Populate filter when turmas change
+const _origUpdateTurmaSels2 = window.updateTurmaSels;
+window.updateTurmaSels = function() {
+  if (typeof _origUpdateTurmaSels2 === 'function') _origUpdateTurmaSels2();
+  updateAlunosTurmaFilter();
+};
+
+// Populate on page show
+const _origShowPageAlunos = window.showPage;
+window.showPage = function(id, btn) {
+  if (typeof _origShowPageAlunos === 'function') _origShowPageAlunos(id, btn);
+  if (id === 'alunos') setTimeout(updateAlunosTurmaFilter, 50);
+};
+
+// Init
+setTimeout(updateAlunosTurmaFilter, 600);
+console.log('✅ Alunos filtro turma patch carregado');
+</script>
+<script>
+// ═══ IMPORTAR NOTAS — genérico com escolha de Excel + turma ═══
+
+var _notasImportadas = null; // dados do Excel carregado
+
+function abrirImportarNotas() {
+  // Remove modal anterior
+  document.getElementById('modalImportNotas')?.remove();
+
+  const turmas = getTURMAS();
+  const div = document.createElement('div');
+  div.id = 'modalImportNotas';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px';
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">📥 Importar notas de período</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:18px">Seleciona o ficheiro Excel e a turma de destino.</div>
+
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Ficheiro Excel (.xlsx)</label>
+        <div id="notasFileZone" onclick="document.getElementById('notasFileInput').click()"
+          style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--surface2);transition:border-color .15s"
+          onmouseenter="this.style.borderColor='var(--green)'" onmouseleave="this.style.borderColor='var(--border2)'"
+          ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
+          ondragleave="this.style.borderColor='var(--border2)'"
+          ondrop="notasHandleDrop(event)">
+          <i class="ti ti-file-spreadsheet" style="font-size:28px;color:var(--green);display:block;margin-bottom:6px"></i>
+          <div id="notasFileName" style="font-size:13px;color:var(--text3)">Clica ou arrasta o ficheiro aqui</div>
+        </div>
+        <input type="file" id="notasFileInput" accept=".xlsx,.xls" style="display:none" onchange="notasLerFicheiro(event)">
+      </div>
+
+      <div id="notasPreview" style="display:none;margin-bottom:14px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text2)"></div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Turma de destino</label>
+        <select id="notasTurmaDestino" style="width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:var(--surface)">
+          ${turmas.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Períodos a importar</label>
+        <div style="display:flex;gap:8px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="notasP1" checked> 1º Período</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="notasP2" checked> 2º Período</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="notasP3"> 3º Período</label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('modalImportNotas').remove()"
+          style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Cancelar
+        </button>
+        <button id="btnDoImport" onclick="doImportarNotasExcel()" disabled
+          style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:#ccc;color:#fff;cursor:not-allowed;font-family:var(--font);font-size:13px;font-weight:600">
+          <i class="ti ti-table-import"></i> Importar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+
+  // Pre-select turma do selector de períodos
+  const selPer = document.getElementById('periodoTurmaSelect');
+  const selDest = document.getElementById('notasTurmaDestino');
+  if (selPer && selDest && selPer.value) selDest.value = selPer.value;
+}
+
+function notasHandleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file) processNotasFile(file);
+}
+
+function notasLerFicheiro(e) {
+  const file = e.target.files[0];
+  if (file) processNotasFile(file);
+}
+
+function processNotasFile(file) {
+  if (typeof XLSX === 'undefined') { toast('Biblioteca Excel não carregada', 'ti-alert-circle'); return; }
+
+  document.getElementById('notasFileName').textContent = '⏳ A ler ' + file.name + '...';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', raw:false});
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+
+      // Try to find the header row by scanning raw sheet data
+      // The header might not be on row 1 (some files have title rows first)
+      let rows = [];
+      let nomeCol = null, perCols = {};
+
+      // First try default (row 1 as header)
+      const rowsTry = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      let cols = rowsTry.length ? Object.keys(rowsTry[0]) : [];
+      nomeCol = cols.find(c => /nome|aluno|designa/i.test(c));
+
+      if (!nomeCol) {
+        // Scan for the header row (find row where a cell matches "Nome")
+        const ref = ws['!ref'];
+        if (!ref) { document.getElementById('notasFileName').textContent = '❌ Ficheiro vazio'; return; }
+        const range = XLSX.utils.decode_range(ref);
+        let headerRow = -1;
+        for (let r = range.s.r; r <= Math.min(range.e.r, 10); r++) {
+          for (let c = range.s.c; c <= range.e.c; c++) {
+            const cell = ws[XLSX.utils.encode_cell({r, c})];
+            if (cell && /^nome$/i.test(String(cell.v||'').trim())) {
+              headerRow = r;
+              break;
+            }
+          }
+          if (headerRow >= 0) break;
+        }
+        if (headerRow >= 0) {
+          rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false, range: headerRow});
+          cols = rows.length ? Object.keys(rows[0]) : [];
+          nomeCol = cols.find(c => /nome|aluno|designa/i.test(c));
+        }
+      } else {
+        rows = rowsTry;
+      }
+
+      // Find period columns (look for P1, P2, P3 or date patterns)
+      cols.forEach(c => {
+        if (/1\.?[oº°]\s*p|p\.?\s*1|1[oº°]\s*per|16.12/i.test(c)) perCols['1'] = c;
+        if (/2\.?[oº°]\s*p|p\.?\s*2|2[oº°]\s*per|27.03/i.test(c)) perCols['2'] = c;
+        if (/3\.?[oº°]\s*p|p\.?\s*3|3[oº°]\s*per|12.06/i.test(c)) perCols['3'] = c;
+      });
+
+      if (!nomeCol) {
+        document.getElementById('notasFileName').textContent = '❌ Coluna "Nome" não encontrada. Colunas: ' + cols.slice(0,5).join(', ');
+        return;
+      }
+
+      // Parse data
+      _notasImportadas = rows
+        .filter(r => r[nomeCol] && String(r[nomeCol]).trim())
+        .map(r => {
+          const entry = { nome: String(r[nomeCol]).trim() };
+          Object.entries(perCols).forEach(([p, col]) => {
+            const v = parseInt(r[col]);
+            if (v >= 1 && v <= 5) entry['p' + p] = v;
+          });
+          return entry;
+        });
+
+      const nTotal = _notasImportadas.length;
+      const nP1 = _notasImportadas.filter(a => a.p1).length;
+      const nP2 = _notasImportadas.filter(a => a.p2).length;
+      const nP3 = _notasImportadas.filter(a => a.p3).length;
+
+      document.getElementById('notasFileName').textContent = '✅ ' + file.name;
+      document.getElementById('notasFileName').style.color = 'var(--green)';
+
+      const prev = document.getElementById('notasPreview');
+      prev.style.display = 'block';
+      prev.innerHTML = `<strong>${nTotal} alunos</strong> encontrados · ` +
+        `${nP1} notas 1ºP · ${nP2} notas 2ºP · ${nP3} notas 3ºP` +
+        `<br>Colunas: Nome="${nomeCol}"` +
+        (perCols['1'] ? ` · 1ºP="${perCols['1']}"` : '') +
+        (perCols['2'] ? ` · 2ºP="${perCols['2']}"` : '') +
+        (perCols['3'] ? ` · 3ºP="${perCols['3']}"` : '');
+
+      // Enable import button
+      const btn = document.getElementById('btnDoImport');
+      btn.disabled = false;
+      btn.style.background = 'var(--green)';
+      btn.style.cursor = 'pointer';
+
+      // Auto-detect turma
+      autoDetectTurma();
+    } catch(ex) {
+      document.getElementById('notasFileName').textContent = '❌ Erro ao ler o ficheiro: ' + ex.message;
+      console.error(ex);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function autoDetectTurma() {
+  if (!_notasImportadas) return;
+  function normName(s) {
+    return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  }
+  const nomes = _notasImportadas.map(a => normName(a.nome));
+  let best = null, bestScore = 0;
+  getTURMAS().forEach(t => {
+    const score = (state.alunos[t]||[]).filter(a => nomes.includes(normName(a.name))).length;
+    if (score > bestScore) { bestScore = score; best = t; }
+  });
+  const sel = document.getElementById('notasTurmaDestino');
+  if (sel && best) sel.value = best;
+}
+
+function doImportarNotasExcel() {
+  if (!_notasImportadas || !_notasImportadas.length) {
+    toast('Carrega um ficheiro Excel primeiro', 'ti-alert-circle'); return;
+  }
+
+  function normName(s) {
+    return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  }
+
+  const turma   = document.getElementById('notasTurmaDestino')?.value;
+  const importP1 = document.getElementById('notasP1')?.checked;
+  const importP2 = document.getElementById('notasP2')?.checked;
+  const importP3 = document.getElementById('notasP3')?.checked;
+
+  if (!turma) { toast('Seleciona uma turma', 'ti-alert-circle'); return; }
+
+  const alunos = state.alunos[turma] || [];
+  if (!state.avaliacoes[turma]) state.avaliacoes[turma] = [];
+
+  let importados = 0;
+  const naoEncontrados = [];
+
+  _notasImportadas.forEach(entry => {
+    const aluno = alunos.find(a => normName(a.name) === normName(entry.nome));
+    if (!aluno) { naoEncontrados.push(entry.nome); return; }
+
+    const periodos = [];
+    if (importP1 && entry.p1) periodos.push(['1', entry.p1]);
+    if (importP2 && entry.p2) periodos.push(['2', entry.p2]);
+    if (importP3 && entry.p3) periodos.push(['3', entry.p3]);
+
+    periodos.forEach(([periodo, nota]) => {
+      const idx = state.avaliacoes[turma].findIndex(
+        a => a.alunoId === aluno.id && a.periodo === periodo
+      );
+      const av = { alunoId: aluno.id, periodo, fit: nota, mod: nota, atit: nota, final: nota };
+      if (idx >= 0) state.avaliacoes[turma][idx] = av;
+      else          state.avaliacoes[turma].push(av);
+      importados++;
+    });
+  });
+
+  document.getElementById('modalImportNotas')?.remove();
+  _notasImportadas = null;
+
+  saveState();
+  renderPeriodos();
+
+  let msg = '✅ ' + importados + ' notas importadas para ' + turma;
+  if (naoEncontrados.length)
+    msg += ' · ' + naoEncontrados.length + ' não encontrados: ' + naoEncontrados.slice(0,3).join(', ') + (naoEncontrados.length>3?'…':'');
+  toast(msg);
+}
+
+console.log('✅ Importar notas genérico carregado');
+</script>
+<script>
+// ═══ FALTAS — Calendário individual por aluno ═══
+
+var faltaCalState = {
+  alunoId: null,
+  turma: null,
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),
+};
+
+function abrirFaltasCal(alunoId, turma) {
+  faltaCalState.alunoId = alunoId;
+  faltaCalState.turma   = turma || state.turma;
+  faltaCalState.year    = new Date().getFullYear();
+  faltaCalState.month   = new Date().getMonth();
+
+  const aluno = getAluno(faltaCalState.turma, alunoId);
+  if (!aluno) return;
+
+  // Remove modal anterior
+  document.getElementById('modalFaltasCal')?.remove();
+
+  const div = document.createElement('div');
+  div.id = 'modalFaltasCal';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:620px;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${aluno.name}</div>
+          <div style="font-size:12px;color:var(--text3)">${faltaCalState.turma} · Nº ${aluno.num||'—'}</div>
+        </div>
+        <button onclick="document.getElementById('modalFaltasCal').remove()"
+          style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);padding:4px"><i class="ti ti-x"></i></button>
+      </div>
+
+      <!-- Legenda -->
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:14px;height:14px;border-radius:3px;background:#52B788"></div>Presente (aula reg.)</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:14px;height:14px;border-radius:3px;background:#E74C3C"></div>Falta Presença</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:14px;height:14px;border-radius:3px;background:#F0A500"></div>Falta Material</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:14px;height:14px;border-radius:3px;background:#5DADE2"></div>Falta Justificada</div>
+      </div>
+
+      <!-- Navegação mês -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button onclick="faltaCalNav(-1)" style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 10px;cursor:pointer;font-size:16px">&#8249;</button>
+        <span id="faltaCalLabel" style="font-size:15px;font-weight:700;color:var(--text)"></span>
+        <button onclick="faltaCalNav(1)"  style="background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px 10px;cursor:pointer;font-size:16px">&#8250;</button>
+      </div>
+
+      <!-- Grid calendário -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px" id="faltaCalGrid"></div>
+
+      <!-- Painel detalhe do dia -->
+      <div id="faltaCalDayDetail"></div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+        <button onclick="document.getElementById('modalFaltasCal').remove()"
+          style="padding:8px 18px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+          Fechar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  renderFaltaCalendar();
+}
+
+function faltaCalNav(dir) {
+  faltaCalState.month += dir;
+  if (faltaCalState.month > 11) { faltaCalState.month = 0; faltaCalState.year++; }
+  if (faltaCalState.month < 0)  { faltaCalState.month = 11; faltaCalState.year--; }
+  renderFaltaCalendar();
+}
+
+function renderFaltaCalendar() {
+  const grid = document.getElementById('faltaCalGrid');
+  if (!grid) return;
+
+  const y = faltaCalState.year, m = faltaCalState.month;
+  const turma = faltaCalState.turma, alunoId = faltaCalState.alunoId;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  document.getElementById('faltaCalLabel').textContent = MESES_PLAN[m] + ' ' + y;
+
+  const firstDow  = new Date(y, m, 1).getDay();
+  const daysInMon = new Date(y, m+1, 0).getDate();
+  const daysInPrev= new Date(y, m, 0).getDate();
+  const startDow  = (firstDow + 6) % 7;
+  const total     = Math.ceil((startDow + daysInMon) / 7) * 7;
+
+  // Build lookup: date → aula info for this aluno
+  const aulaMap = {};
+  (state.aulas[turma] || []).forEach(aula => {
+    if (!aula.data) return;
+    const detail = (aula.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+    if (detail) {
+      aulaMap[aula.data] = { tipo: detail.tipo, obs: detail.obs || '', modal: aula.modal, aulaId: aula.id };
+    } else {
+      // Aluno was in aula but no falta = presente
+      const inAula = (state.alunos[turma] || []).find(a => a.id === alunoId);
+      if (inAula) {
+        // Check if aula exists for this turma on this date  
+        if (!aulaMap[aula.data]) aulaMap[aula.data] = { tipo: 'P', modal: aula.modal, aulaId: aula.id };
+      }
+    }
+  });
+
+  const CORES = { P:'#52B788', FP:'#E74C3C', FM:'#F0A500', FJ:'#5DADE2' };
+  const ICONS = { P:'✓', FP:'✗', FM:'📦', FJ:'📄' };
+
+  let html = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d =>
+    `<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:3px 0;text-transform:uppercase">${d}</div>`
+  ).join('');
+
+  for (let i = 0; i < total; i++) {
+    let day, mo, yr, isOther = false;
+    if      (i < startDow)            { day = daysInPrev-startDow+1+i; mo=m-1; yr=y; isOther=true; if(mo<0){mo=11;yr--;} }
+    else if (i >= startDow+daysInMon) { day = i-startDow-daysInMon+1;  mo=m+1; yr=y; isOther=true; if(mo>11){mo=0;yr++;} }
+    else                              { day = i-startDow+1;             mo=m;   yr=y; }
+
+    const ds  = `${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const inf = aulaMap[ds];
+    const isToday = ds === todayStr;
+    const dow = new Date(ds+'T12:00:00').getDay();
+    const isWe = dow===0||dow===6;
+    const fer = (state.feriados||[]).find(f=>f.data===ds);
+
+    let bg = 'var(--surface)', border = 'var(--border)', dot = '';
+    if (inf) {
+      bg = CORES[inf.tipo] + '20';
+      border = CORES[inf.tipo];
+      dot = `<div style="font-size:12px;text-align:center;color:${CORES[inf.tipo]};font-weight:700">${ICONS[inf.tipo]}</div>`;
+    }
+    if (fer) dot += `<div style="font-size:8px;color:#922B21;text-align:center">🔴</div>`;
+
+    html += `<div onclick="faltaCalDayClick('${ds}')"
+      style="min-height:52px;border:1.5px solid ${border};border-radius:5px;padding:3px 4px;
+      cursor:pointer;background:${isOther?'var(--surface2)':isToday?'#F0FAF5':isWe?'#FAFAFA':bg};
+      opacity:${isOther?'.4':'1'};transition:border-color .12s;
+      ${isToday?'border-color:var(--green);border-width:2px;':''}"
+      onmouseenter="this.style.borderColor='var(--green)'"
+      onmouseleave="this.style.borderColor='${isToday?'var(--green)':inf?CORES[inf.tipo]:'var(--border)'}'">
+      <div style="font-size:11px;font-weight:${isToday?'800':'600'};color:${isToday?'var(--green)':'var(--text2)'};margin-bottom:1px">${day}</div>
+      ${dot}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  document.getElementById('faltaCalDayDetail').innerHTML = '';
+}
+
+function faltaCalDayClick(ds) {
+  const turma   = faltaCalState.turma;
+  const alunoId = faltaCalState.alunoId;
+  const aluno   = getAluno(turma, alunoId);
+  const detEl   = document.getElementById('faltaCalDayDetail');
+  if (!detEl) return;
+
+  // Find aula on this day
+  const aula = (state.aulas[turma] || []).find(a => a.data === ds);
+  const fer  = (state.feriados || []).find(f => f.data === ds);
+
+  const d = new Date(ds+'T12:00:00');
+  const label = `${d.getDate()} de ${MESES_PLAN[d.getMonth()]} (${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()]})`;
+
+  const CORES = { P:'#52B788', FP:'#E74C3C', FM:'#F0A500', FJ:'#5DADE2' };
+  const BGLBL = {
+    P:  {bg:'#D5F5E3', fg:'#1A5C3A', lbl:'✓ Presente'},
+    FP: {bg:'#FADBD8', fg:'#922B21', lbl:'✗ Falta de Presença'},
+    FM: {bg:'#FEF3E7', fg:'#7D4E00', lbl:'📦 Falta de Material'},
+    FJ: {bg:'#D6EAF8', fg:'#1B4F72', lbl:'📄 Falta Justificada'},
+  };
+
+  if (!aula) {
+    detEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--text3)">
+      <strong>${label}</strong> — Sem aula registada neste dia.
+      ${fer ? `<br><span style="color:#922B21">🔴 ${fer.nome}</span>` : ''}
+    </div>`;
+    return;
+  }
+
+  // Find current falta state
+  const detail = (aula.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+  const tipoAtual = detail ? detail.tipo : 'P';
+  const obsAtual  = detail ? (detail.obs || '') : '';
+
+  detEl.innerHTML = `<div style="background:var(--surface2);border-radius:var(--radius-lg);padding:14px;border:1px solid var(--border)">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">${label} · ${aula.modal||'Aula'}</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Estado actual:
+      <span style="font-weight:700;color:${CORES[tipoAtual]};background:${BGLBL[tipoAtual].bg};padding:2px 8px;border-radius:10px;margin-left:4px">${BGLBL[tipoAtual].lbl}</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      ${Object.entries(BGLBL).map(([tipo, cfg]) =>
+        `<button onclick="setFaltaCal('${aula.id}','${ds}','${tipo}')"
+          style="padding:7px 12px;border:2px solid ${tipo===tipoAtual?CORES[tipo]:'var(--border2)'};border-radius:var(--radius-sm);
+          background:${tipo===tipoAtual?CORES[tipo]+'20':'var(--surface)'};
+          color:${tipo===tipoAtual?CORES[tipo]:'var(--text2)'};
+          font-weight:${tipo===tipoAtual?'700':'400'};cursor:pointer;font-family:var(--font);font-size:12px">
+          ${cfg.lbl}
+        </button>`
+      ).join('')}
+    </div>
+    <div id="faltaObsWrap" style="${tipoAtual==='FJ'?'':'display:none'}">
+      <input id="faltaObsInput" value="${obsAtual}" placeholder="Justificação…"
+        style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)"
+        onchange="setFaltaCalObs('${aula.id}','${ds}',this.value)">
+    </div>
+  </div>`;
+}
+
+function setFaltaCal(aulaId, ds, tipo) {
+  const turma   = faltaCalState.turma;
+  const alunoId = faltaCalState.alunoId;
+  const aluno   = getAluno(turma, alunoId);
+  if (!aluno) return;
+
+  const aulaIdx = (state.aulas[turma] || []).findIndex(a => a.id === aulaId);
+  if (aulaIdx < 0) return;
+  const aula = state.aulas[turma][aulaIdx];
+
+  // Get existing obs if FJ
+  const obsEl = document.getElementById('faltaObsInput');
+  const obs = (tipo === 'FJ' && obsEl) ? obsEl.value : '';
+
+  // Update or add faltasDetail entry
+  if (!aula.faltasDetail) aula.faltasDetail = [];
+  const dIdx = aula.faltasDetail.findIndex(fd => fd.alunoId === alunoId);
+
+  if (tipo === 'P') {
+    // Remove from faltasDetail and faltas
+    if (dIdx >= 0) {
+      const oldTipo = aula.faltasDetail[dIdx].tipo;
+      aula.faltasDetail.splice(dIdx, 1);
+      aula.faltas = (aula.faltas || []).filter(n => n !== aluno.name);
+      // Decrement aluno faltas count
+      adjustFaltaCount(aluno, aula.periodo, oldTipo, -1);
+    }
+  } else {
+    const oldTipo = dIdx >= 0 ? aula.faltasDetail[dIdx].tipo : null;
+    const entry = { alunoId, name: aluno.name, tipo, obs };
+    if (dIdx >= 0) aula.faltasDetail[dIdx] = entry;
+    else           aula.faltasDetail.push(entry);
+    // Update faltas array
+    if (!(aula.faltas || []).includes(aluno.name)) {
+      if (!aula.faltas) aula.faltas = [];
+      aula.faltas.push(aluno.name);
+    }
+    // Adjust counts
+    if (oldTipo && oldTipo !== tipo) adjustFaltaCount(aluno, aula.periodo, oldTipo, -1);
+    if (!oldTipo) adjustFaltaCount(aluno, aula.periodo, tipo, +1);
+    else if (oldTipo !== tipo) adjustFaltaCount(aluno, aula.periodo, tipo, +1);
+  }
+
+  state.aulas[turma][aulaIdx] = aula;
+  saveState();
+  renderFaltaCalendar();
+  faltaCalDayClick(ds);
+  renderFaltas();
+
+  // Show obs field for FJ
+  const wrap = document.getElementById('faltaObsWrap');
+  if (wrap) wrap.style.display = tipo === 'FJ' ? '' : 'none';
+}
+
+function setFaltaCalObs(aulaId, ds, obs) {
+  const turma = faltaCalState.turma, alunoId = faltaCalState.alunoId;
+  const aula  = (state.aulas[turma] || []).find(a => a.id === aulaId);
+  if (!aula) return;
+  const d = (aula.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+  if (d) { d.obs = obs; saveState(); }
+}
+
+function adjustFaltaCount(aluno, periodo, tipo, delta) {
+  if (!aluno.faltas) aluno.faltas = {};
+  if (typeof aluno.faltas[periodo] === 'number')
+    aluno.faltas[periodo] = { fp: aluno.faltas[periodo], fm: 0, fj: 0 };
+  if (!aluno.faltas[periodo] || typeof aluno.faltas[periodo] !== 'object')
+    aluno.faltas[periodo] = { fp: 0, fm: 0, fj: 0 };
+  if (tipo === 'FP') aluno.faltas[periodo].fp = Math.max(0, (aluno.faltas[periodo].fp||0) + delta);
+  if (tipo === 'FM') aluno.faltas[periodo].fm = Math.max(0, (aluno.faltas[periodo].fm||0) + delta);
+  if (tipo === 'FJ') aluno.faltas[periodo].fj = Math.max(0, (aluno.faltas[periodo].fj||0) + delta);
+}
+
+// Add "📅" button to each aluno row in faltas table
+const _origRenderFaltas = window.renderFaltas;
+window.renderFaltas = function() {
+  if (typeof _origRenderFaltas === 'function') _origRenderFaltas();
+  // Add calendar button to each row
+  const tbody = document.getElementById('faltasBody');
+  if (!tbody) return;
+  const alunos = (state.alunos[state.turma] || []).filter(a => (a.status||'ativo')==='ativo');
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((tr, i) => {
+    const aluno = alunos[i];
+    if (!aluno) return;
+    // Add button if not already there
+    if (!tr.querySelector('.btn-falta-cal')) {
+      const td = document.createElement('td');
+      td.innerHTML = `<button class="btn-falta-cal" onclick="abrirFaltasCal('${aluno.id}','${state.turma}')"
+        style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--text3)"
+        title="Ver calendário de faltas">
+        <i class="ti ti-calendar"></i>
+      </button>`;
+      tr.appendChild(td);
+    }
+  });
+  // Add th if not there
+  const thead = tbody.closest('table')?.querySelector('thead tr');
+  if (thead && !thead.querySelector('th.cal-th')) {
+    const th = document.createElement('th');
+    th.className = 'cal-th';
+    thead.appendChild(th);
+  }
+};
+
+console.log('✅ Faltas calendário individual patch carregado');
+</script>
+<script>
+// ═══ CORRECÇÃO: timeToMin estava em falta ═══
+function timeToMin(timeStr) {
+  if (!timeStr) return 0;
+  const parts = String(timeStr).split(':');
+  return parseInt(parts[0]||0) * 60 + parseInt(parts[1]||0);
+}
+console.log('✅ timeToMin definido');
+</script>
+<script>
+// ═══ COMPONENTE NÃO LETIVA + HORÁRIO MELHORADO ═══
+
+var editingNLId = null;
+
+// Tipo labels e cores
+const NL_TIPOS = {
+  reuniao:      {lbl:'Reunião',          cor:'#6C3483', bg:'#E8DAEF'},
+  apoio:        {lbl:'Apoio/Subst.',     cor:'#117A65', bg:'#D0ECE7'},
+  coordenacao:  {lbl:'Coordenação',      cor:'#1B4F72', bg:'#D6EAF8'},
+  diretor_turma:{lbl:'Dir. de Turma',    cor:'#B7770D', bg:'#FDEBD0'},
+  formacao:     {lbl:'Formação',         cor:'#922B21', bg:'#FADBD8'},
+  outro:        {lbl:'Outro',            cor:'#555',    bg:'#F2F3F4'},
+};
+
+function saveNonLetivo() {
+  const dia    = parseInt(document.getElementById('nlDia').value);
+  const inicio = document.getElementById('nlInicio').value;
+  const fim    = document.getElementById('nlFim').value;
+  const tipo   = document.getElementById('nlTipo').value;
+  const desc   = document.getElementById('nlDesc').value.trim();
+  const local  = document.getElementById('nlLocal').value.trim();
+
+  if (!inicio || !fim) { toast('Preenche hora de início e fim','ti-alert-circle'); return; }
+  if (timeToMin(fim) <= timeToMin(inicio)) { toast('Hora de fim posterior ao início','ti-alert-circle'); return; }
+
+  if (!state.nonLetivo) state.nonLetivo = [];
+  const entry = { id: editingNLId || uid(), dia, inicio, fim, tipo, desc, local };
+
+  if (editingNLId) {
+    const idx = state.nonLetivo.findIndex(x => x.id === editingNLId);
+    if (idx >= 0) state.nonLetivo[idx] = entry; else state.nonLetivo.push(entry);
+  } else {
+    state.nonLetivo.push(entry);
+  }
+
+  editingNLId = null;
+  document.getElementById('btnDeleteNL').style.display = 'none';
+  document.getElementById('modalNonLetivoTitle').textContent = 'Componente não letiva';
+  saveState();
+  closeModal('modalNonLetivo');
+  renderHorario();
+  toast('Componente não letiva guardada');
+}
+
+function editNonLetivo(id) {
+  const entry = (state.nonLetivo || []).find(x => x.id === id);
+  if (!entry) return;
+  editingNLId = id;
+  document.getElementById('nlDia').value    = entry.dia;
+  document.getElementById('nlInicio').value = entry.inicio;
+  document.getElementById('nlFim').value    = entry.fim;
+  document.getElementById('nlTipo').value   = entry.tipo;
+  document.getElementById('nlDesc').value   = entry.desc || '';
+  document.getElementById('nlLocal').value  = entry.local || '';
+  document.getElementById('btnDeleteNL').style.display = '';
+  document.getElementById('modalNonLetivoTitle').textContent = 'Editar componente não letiva';
+  document.getElementById('modalNonLetivo').classList.add('open');
+}
+
+function deleteNonLetivo() {
+  if (!editingNLId) return;
+  if (!confirm('Apagar esta componente não letiva?')) return;
+  state.nonLetivo = (state.nonLetivo || []).filter(x => x.id !== editingNLId);
+  editingNLId = null;
+  saveState();
+  closeModal('modalNonLetivo');
+  renderHorario();
+  toast('Removida');
+}
+
+// Override renderHorario — vista turma única + todas as turmas
+window.renderHorario = function() {
+  if (!state.nonLetivo) state.nonLetivo = [];
+  if (!state.toques)    state.toques    = {};
+
+  const isSingle = horView === 'single';
+  const titleEl  = document.getElementById('title-horario');
+  if (titleEl) titleEl.textContent = isSingle
+    ? 'Horário — ' + state.turma
+    : 'Horário — Todas as turmas';
+
+  // Toques para eixo vertical
+  const toquesAll = typeof getAllToquesFlat === 'function' ? getAllToquesFlat() : [];
+
+  // Todos os itens para calcular range de horas
+  const todasTurmas = getTURMAS();
+  const allAulas = todasTurmas.flatMap(t => state.horario[t] || []);
+  const allNL    = state.nonLetivo || [];
+
+  let minSlot = 8 * 60, maxSlot = 17 * 60;
+  const allTimes = [
+    ...allAulas.flatMap(a => [timeToMin(a.inicio), timeToMin(a.fim)]),
+    ...allNL.flatMap(n => [timeToMin(n.inicio), timeToMin(n.fim)]),
+    ...toquesAll.map(t => timeToMin(t.hora)),
+  ].filter(v => v > 0);
+  if (allTimes.length) {
+    minSlot = Math.max(7*60,  Math.floor(Math.min(...allTimes)/30)*30 - 30);
+    maxSlot = Math.min(20*60, Math.ceil( Math.max(...allTimes)/30)*30 + 30);
+  }
+
+  // Slots = horas dos toques + inicio/fim das aulas
+  let slots = [];
+  if (toquesAll.length) {
+    const slotSet = new Set([
+      ...toquesAll.map(t => timeToMin(t.hora)),
+      ...allAulas.flatMap(a => [timeToMin(a.inicio), timeToMin(a.fim)]),
+      ...allNL.flatMap(n => [timeToMin(n.inicio), timeToMin(n.fim)]),
+    ]);
+    slots = [...slotSet].filter(s => s >= minSlot && s <= maxSlot).sort((a,b)=>a-b);
+  }
+  if (!slots.length) {
+    for (let m = minSlot; m < maxSlot; m += 30) slots.push(m);
+  }
+
+  function toStr(min) {
+    return Math.floor(min/60).toString().padStart(2,'0') + ':' + (min%60).toString().padStart(2,'0');
+  }
+
+  const DIAS    = ['','Segunda','Terça','Quarta','Quinta','Sexta'];
+  const DIASSH  = ['','Seg','Ter','Qua','Qui','Sex'];
+  const occupied = {};
+
+  function tCol(t) {
+    return typeof getTurmaColor === 'function' ? getTurmaColor(t).bg : '#37474F';
+  }
+
+  const horGrid = document.getElementById('horarioGrid');
+  if (!horGrid) return;
+
+  let html = '';
+
+  if (isSingle) {
+    // ── MODO TURMA ÚNICA ─────────────────────────────────────────────────
+    // Pills para mudar turma
+    html += `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      ${todasTurmas.map(t => {
+        const c = tCol(t), active = t === state.turma;
+        return `<button onclick="state.turma='${t}';renderHorario()"
+          style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+          border:2px solid ${c};background:${active?c:'transparent'};color:${active?'#fff':c}">${t}</button>`;
+      }).join('')}
+    </div>`;
+
+    const aulasTurma = state.horario[state.turma] || [];
+
+    html += `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">
+      <thead>
+        <tr>
+          <th style="background:var(--surface2);border:1px solid var(--border);padding:7px 10px;width:60px;font-size:10px;color:var(--text3)">Hora</th>
+          ${[1,2,3,4,5].map(d => `<th style="background:${tCol(state.turma)};color:#fff;border:1px solid var(--border);padding:7px 10px;text-align:center;font-size:11px;font-weight:700;min-width:110px">${DIAS[d]}</th>`).join('')}
+          <th style="background:#EDE7F6;color:#512DA8;border:1px solid var(--border);padding:7px 10px;text-align:center;font-size:10px;min-width:80px">Não letivo</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    const occ = {};
+    slots.forEach((slotMin, si) => {
+      const slotStr   = toStr(slotMin);
+      const tqSlot    = toquesAll.filter(t => t.hora === slotStr);
+      const hasToque  = tqSlot.length > 0;
+      const toqueInfo = hasToque
+        ? tqSlot.map(t => { const cfg=(typeof TOQUE_TIPOS!=='undefined'?TOQUE_TIPOS:{})[t.tipo]||{cor:'#555',lbl:'🔔'}; return `<div style="font-size:9px;color:${cfg.cor};font-weight:700">${cfg.lbl}${t.label?' '+t.label:''}</div>`; }).join('')
+        : '';
+
+      html += `<tr style="${hasToque?'background:#FFFDE7;':''}">`; 
+      html += `<td style="background:${hasToque?'#FFF9C4':'var(--surface2)'};border:${hasToque?'1px solid #F9A825':'1px solid var(--border)'};padding:5px 8px;font-family:var(--mono);font-size:11px;font-weight:${hasToque?'700':'400'};color:${hasToque?'#F57F17':'var(--text3)'};white-space:nowrap;vertical-align:top">
+        ${slotStr}${toqueInfo}
+      </td>`;
+
+      for (let d = 1; d <= 5; d++) {
+        const key = `${d}-${si}`;
+        if (occ[key]) { continue; }
+
+        const match = aulasTurma.filter(a =>
+          a.dia == d && timeToMin(a.inicio) <= slotMin && slotMin < timeToMin(a.fim)
+        );
+
+        if (match.length) {
+          const a = match[0];
+          if (timeToMin(a.inicio) === slotMin) {
+            const rows = Math.max(1, slots.filter(s => s >= timeToMin(a.inicio) && s < timeToMin(a.fim)).length);
+            for (let r = 1; r < rows; r++) occ[`${d}-${si+r}`] = true;
+            const c = tCol(state.turma);
+            html += `<td rowspan="${rows}" style="background:${c}22;border:2px solid ${c};border-radius:4px;padding:8px 10px;vertical-align:top;cursor:pointer" onclick="editHorarioEntry('${a.id}','${state.turma}')">
+              <div style="font-size:12px;font-weight:700;color:${c}">${a.inicio} – ${a.fim}</div>
+              ${a.modalidade?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${a.modalidade}</div>`:''}
+              ${a.local?`<div style="font-size:10px;color:var(--text3)"><i class="ti ti-map-pin"></i> ${a.local}</div>`:''}
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${Math.round((timeToMin(a.fim)-timeToMin(a.inicio)))} min</div>
+            </td>`;
+          }
+        } else {
+          html += `<td style="border:1px solid var(--border);padding:2px;min-height:24px;cursor:pointer" onclick="quickAddHorario(${d},'${slotStr}','${state.turma}')"></td>`;
+        }
+      }
+
+      // Não letivo column
+      const nlKey = `nl-${si}`;
+      if (!occ[nlKey]) {
+        const nlMatch = allNL.filter(n => n.dia == 0 || ([1,2,3,4,5].some(d => {
+          // nonLetivo doesn't have dia per day — show if time matches
+          return n.dia != null && timeToMin(n.inicio) <= slotMin && slotMin < timeToMin(n.fim);
+        })));
+        const nlDay = allNL.filter(n => timeToMin(n.inicio) <= slotMin && slotMin < timeToMin(n.fim));
+        if (nlDay.length) {
+          const n = nlDay[0];
+          if (timeToMin(n.inicio) === slotMin) {
+            const rows = Math.max(1, slots.filter(s => s >= timeToMin(n.inicio) && s < timeToMin(n.fim)).length);
+            for (let r = 1; r < rows; r++) occ[`nl-${si+r}`] = true;
+            const cfg = (typeof NL_TIPOS!=='undefined'?NL_TIPOS:{})[n.tipo]||{bg:'#F3E5F5',cor:'#6A1B9A'};
+            html += `<td rowspan="${rows}" style="background:${cfg.bg};border:1px solid ${cfg.cor}55;padding:6px 7px;vertical-align:top;cursor:pointer" onclick="editNonLetivo('${n.id}')">
+              <div style="font-size:10px;font-weight:700;color:${cfg.cor}">${cfg.lbl||n.tipo}</div>
+              ${n.desc?`<div style="font-size:10px;color:var(--text2)">${n.desc}</div>`:''}
+              <div style="font-size:9px;color:var(--text3)">${n.inicio}–${n.fim}</div>
+            </td>`;
+          }
+        } else {
+          html += `<td style="border:1px solid var(--border);background:#FAF9FD;cursor:pointer" onclick="openModal('modalNonLetivo')"></td>`;
+        }
+      }
+
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+
+  } else {
+    // ── MODO TODAS AS TURMAS ──────────────────────────────────────────────
+    html += `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:11px;width:100%;min-width:${180+todasTurmas.length*80}px">
+      <thead>
+        <tr>
+          <th rowspan="2" style="background:var(--surface2);border:1px solid var(--border);padding:7px 8px;width:55px;font-size:10px;color:var(--text3)">Hora</th>
+          ${[1,2,3,4,5].map(d => `<th colspan="${todasTurmas.length+1}" style="background:var(--surface2);border:1px solid var(--border);padding:5px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">${DIASSH[d]}</th>`).join('')}
+        </tr>
+        <tr>
+          ${[1,2,3,4,5].map(d => `
+            ${todasTurmas.map(t => `<th style="background:${tCol(t)};color:#fff;border:1px solid var(--border);padding:4px 4px;text-align:center;font-size:9px;min-width:65px">${t}</th>`).join('')}
+            <th style="background:#EDE7F6;color:#512DA8;border:1px solid var(--border);padding:4px;font-size:9px;min-width:55px">NL</th>
+          `).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+    const occ2 = {};
+    slots.forEach((slotMin, si) => {
+      const slotStr  = toStr(slotMin);
+      const tqSlot   = toquesAll.filter(t => t.hora === slotStr);
+      const hasToque = tqSlot.length > 0;
+
+      html += `<tr>`;
+      html += `<td style="background:${hasToque?'#FFF9C4':'var(--surface2)'};border:1px solid var(--border);padding:4px 7px;font-family:var(--mono);font-size:10px;color:${hasToque?'#F57F17':'var(--text3)'};font-weight:${hasToque?700:400};white-space:nowrap">${slotStr}</td>`;
+
+      for (let d = 1; d <= 5; d++) {
+        todasTurmas.forEach((t, ti) => {
+          const key = `${d}-${ti}-${si}`;
+          if (occ2[key]) return;
+          const match = (state.horario[t]||[]).filter(a => a.dia==d && timeToMin(a.inicio)<=slotMin && slotMin<timeToMin(a.fim));
+          if (match.length && timeToMin(match[0].inicio)===slotMin) {
+            const a = match[0];
+            const rows = Math.max(1, slots.filter(s => s>=timeToMin(a.inicio) && s<timeToMin(a.fim)).length);
+            for (let r=1;r<rows;r++) occ2[`${d}-${ti}-${si+r}`]=true;
+            const c = tCol(t);
+            html += `<td rowspan="${rows}" style="background:${c}22;border:1px solid ${c};padding:4px 5px;vertical-align:top;cursor:pointer" onclick="editHorarioEntry('${a.id}','${t}')">
+              <div style="font-size:9px;font-weight:700;color:${c}">${a.inicio}–${a.fim}</div>
+              ${a.modalidade?`<div style="font-size:9px;color:var(--text2)">${a.modalidade}</div>`:''}
+            </td>`;
+          } else if (!match.length) {
+            html += `<td style="border:1px solid var(--border);padding:2px;cursor:pointer" onclick="quickAddHorario(${d},'${slotStr}','${t}')"></td>`;
+          }
+        });
+
+        // NL column
+        const nlk = `nl-${d}-${si}`;
+        if (!occ2[nlk]) {
+          const nlDay = allNL.filter(n => n.dia==d && timeToMin(n.inicio)<=slotMin && slotMin<timeToMin(n.fim));
+          if (nlDay.length && timeToMin(nlDay[0].inicio)===slotMin) {
+            const n=nlDay[0], rows=Math.max(1,slots.filter(s=>s>=timeToMin(n.inicio)&&s<timeToMin(n.fim)).length);
+            for(let r=1;r<rows;r++) occ2[`nl-${d}-${si+r}`]=true;
+            const cfg=(typeof NL_TIPOS!=='undefined'?NL_TIPOS:{})[n.tipo]||{bg:'#EDE7F6',cor:'#512DA8',lbl:'NL'};
+            html += `<td rowspan="${rows}" style="background:${cfg.bg};border:1px solid ${cfg.cor}55;padding:3px 4px;vertical-align:top;cursor:pointer;font-size:9px" onclick="editNonLetivo('${n.id}')">
+              <div style="color:${cfg.cor};font-weight:700">${cfg.lbl||n.tipo}</div>
+              ${n.desc?`<div style="color:var(--text2)">${n.desc}</div>`:''}
+            </td>`;
+          } else {
+            html += `<td style="border:1px solid var(--border);background:#FAF9FD"></td>`;
+          }
+        }
+      }
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+
+  // Non-letivo list
+  if (allNL.length) {
+    const DIAS_FULL = ['','Segunda','Terça','Quarta','Quinta','Sexta'];
+    html += `<div class="card" style="margin-top:14px"><div class="card-header">
+      <span class="card-title">⏸ Componentes não letivas</span>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modalNonLetivo')"><i class="ti ti-plus"></i>Adicionar</button>
+    </div><div class="table-wrap"><table>
+      <thead><tr><th>Dia</th><th>Início</th><th>Fim</th><th>Tipo</th><th>Descrição</th><th>Local</th><th></th></tr></thead>
+      <tbody>${allNL.sort((a,b)=>a.dia-b.dia||timeToMin(a.inicio)-timeToMin(b.inicio)).map(n=>{
+        const cfg=(typeof NL_TIPOS!=='undefined'?NL_TIPOS:{})[n.tipo]||{bg:'#eee',cor:'#555',lbl:n.tipo};
+        return `<tr>
+          <td>${DIAS_FULL[n.dia]||'Todos'}</td>
+          <td style="font-family:var(--mono)">${n.inicio}</td>
+          <td style="font-family:var(--mono)">${n.fim}</td>
+          <td><span class="badge" style="background:${cfg.bg};color:${cfg.cor}">${cfg.lbl}</span></td>
+          <td>${n.desc||'—'}</td><td>${n.local||'—'}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="editNonLetivo('${n.id}')"><i class="ti ti-pencil"></i></button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div></div>`;
+  }
+
+  horGrid.innerHTML = html;
+};
+
+console.log('✅ Horário melhorado + componente não letiva carregado');
+</script>
+<script>
+// ═══ MAPA DE TOQUES ═══
+
+const TOQUE_TIPOS = {
+  entrada:    { lbl: '🔔 Entrada',     cor: '#1A5C3A', bg: '#D5F5E3' },
+  saida:      { lbl: '🔕 Saída',       cor: '#7B241C', bg: '#FADBD8' },
+  intervalo:  { lbl: '☕ Intervalo',   cor: '#B7770D', bg: '#FDEBD0' },
+  alm_inicio: { lbl: '🍽 Almoço inicio',cor:'#1B4F72', bg: '#D6EAF8' },
+  alm_fim:    { lbl: '🍽 Almoço fim',  cor: '#1B4F72', bg: '#D6EAF8' },
+  outro:      { lbl: '🔔 Outro',       cor: '#555',    bg: '#F2F3F4' },
+};
+
+const DIAS_TOQUES = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'];
+
+// Render toques section in planificacao page
+function renderToques() {
+  if (!state.toques) state.toques = {};
+  const page = document.getElementById('page-planificacao');
+  if (!page) return;
+
+  // Build toques HTML
+  const toquesHtml = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">🔔 Mapa de Toques</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Toques de entrada, saída e intervalos para adaptar o horário.</div>
+        </div>
+        <button onclick="abrirModalToque()" class="btn btn-secondary btn-sm"><i class="ti ti-plus"></i>Adicionar toque</button>
+      </div>
+
+      ${buildToquesGrid()}
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Legenda</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${Object.entries(TOQUE_TIPOS).map(([,cfg]) =>
+            `<div style="display:flex;align-items:center;gap:5px;font-size:11px">
+              <div style="width:10px;height:10px;border-radius:2px;background:${cfg.cor}"></div>${cfg.lbl}
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // Prepend to page before calendar
+  const existing = document.getElementById('toques-section');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'toques-section';
+  div.innerHTML = toquesHtml;
+  page.insertBefore(div, page.firstChild);
+}
+
+function buildToquesGrid() {
+  const allToques = getAllToquesFlat();
+  if (!allToques.length) {
+    return `<div style="color:var(--text3);font-size:13px;padding:12px 0;text-align:center">
+      Sem toques definidos. Clica em "Adicionar toque" para começar.
+    </div>`;
+  }
+
+  // Group by hora for the vertical axis, by dia for columns
+  const horas = [...new Set(allToques.map(t => t.hora))].sort();
+  const diasComToques = [1,2,3,4,5].filter(d =>
+    allToques.some(t => t.dia === d || t.dia === 0)
+  );
+  // If any toque is dia=0 (todos os dias), show all dias
+  const hasTodosDias = allToques.some(t => t.dia === 0);
+  const diasShow = hasTodosDias || diasComToques.length === 0 ? [1,2,3,4,5] : diasComToques;
+
+  let html = `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">
+    <thead><tr>
+      <th style="background:var(--surface2);border:1px solid var(--border);padding:7px 10px;text-align:left;font-size:10px;color:var(--text3)">Hora</th>
+      ${diasShow.map(d => `<th style="background:var(--surface2);border:1px solid var(--border);padding:7px 10px;text-align:center;font-size:10px;color:var(--text3);text-transform:uppercase">${DIAS_TOQUES[d]}</th>`).join('')}
+    </tr></thead>
+    <tbody>`;
+
+  horas.forEach(hora => {
+    html += `<tr><td style="border:1px solid var(--border);padding:6px 10px;font-family:var(--mono);font-weight:700;color:var(--text);white-space:nowrap">${hora}</td>`;
+    diasShow.forEach(d => {
+      // Find toques for this hora+dia (dia-specific or todos os dias)
+      const matches = allToques.filter(t => t.hora === hora && (t.dia === d || t.dia === 0));
+      if (matches.length) {
+        html += `<td style="border:1px solid var(--border);padding:4px 6px;vertical-align:top">`;
+        matches.forEach(t => {
+          const cfg = TOQUE_TIPOS[t.tipo] || TOQUE_TIPOS.outro;
+          html += `<div style="display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:5px;background:${cfg.bg};margin-bottom:3px;cursor:pointer" onclick="editToque('${t.id}')">
+            <span style="font-size:11px;color:${cfg.cor};font-weight:600">${cfg.lbl}</span>
+            ${t.label?`<span style="font-size:10px;color:var(--text3)">· ${t.label}</span>`:''}
+          </div>`;
+        });
+        html += `</td>`;
+      } else {
+        html += `<td style="border:1px solid var(--border);padding:4px;cursor:pointer" onclick="abrirModalToque(${d},'${hora}')"></td>`;
+      }
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+function getAllToquesFlat() {
+  const list = [];
+  Object.entries(state.toques || {}).forEach(([dia, toques]) => {
+    (toques || []).forEach(t => list.push({...t, dia: parseInt(dia)}));
+  });
+  return list.sort((a,b) => a.hora.localeCompare(b.hora) || a.dia-b.dia);
+}
+
+// Modal para adicionar/editar toque
+var editingToqueId = null;
+
+function abrirModalToque(dia, hora) {
+  document.getElementById('modalToque')?.remove();
+  editingToqueId = null;
+
+  const div = document.createElement('div');
+  div.id = 'modalToque';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px';
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span id="toqueModalTitle" style="font-size:16px;font-weight:700">Adicionar toque</span>
+        <button onclick="document.getElementById('modalToque').remove()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3)"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Hora *</label>
+          <input type="time" id="toqueHora" value="${hora||'09:00'}"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:var(--mono)">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Tipo *</label>
+          <select id="toqueTipo" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+            ${Object.entries(TOQUE_TIPOS).map(([k,v]) => `<option value="${k}">${v.lbl}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Aplica-se a</label>
+          <select id="toqueDia" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+            <option value="0">Todos os dias</option>
+            <option value="1"${dia==1?' selected':''}>Segunda-feira</option>
+            <option value="2"${dia==2?' selected':''}>Terça-feira</option>
+            <option value="3"${dia==3?' selected':''}>Quarta-feira</option>
+            <option value="4"${dia==4?' selected':''}>Quinta-feira</option>
+            <option value="5"${dia==5?' selected':''}>Sexta-feira</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Descrição (opcional)</label>
+          <input type="text" id="toqueLabel" placeholder="Ex: 1ª aula, Recreio…"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="btnDeleteToque" style="display:none;margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font)" onclick="deleteToque()">
+          <i class="ti ti-trash"></i> Apagar
+        </button>
+        <button onclick="document.getElementById('modalToque').remove()"
+          style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Cancelar
+        </button>
+        <button onclick="saveToque()"
+          style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+          <i class="ti ti-check"></i> Guardar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function editToque(id) {
+  const all = getAllToquesFlat();
+  const toque = all.find(t => t.id === id);
+  if (!toque) return;
+
+  // Remove modal anterior
+  document.getElementById('modalToque')?.remove();
+  editingToqueId = id;  // set BEFORE creating modal
+
+  const div = document.createElement('div');
+  div.id = 'modalToque';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px';
+  div.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:22px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font-size:16px;font-weight:700">Editar toque</span>
+        <button onclick="document.getElementById('modalToque').remove()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3)"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Hora *</label>
+          <input type="time" id="toqueHora" value="${toque.hora}"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:var(--mono)">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Tipo *</label>
+          <select id="toqueTipo" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+            ${Object.entries(TOQUE_TIPOS).map(([k,v]) => `<option value="${k}"${k===toque.tipo?' selected':''}>${v.lbl}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Aplica-se a</label>
+          <select id="toqueDia" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+            <option value="0"${toque.dia===0?' selected':''}>Todos os dias</option>
+            <option value="1"${toque.dia===1?' selected':''}>Segunda-feira</option>
+            <option value="2"${toque.dia===2?' selected':''}>Terça-feira</option>
+            <option value="3"${toque.dia===3?' selected':''}>Quarta-feira</option>
+            <option value="4"${toque.dia===4?' selected':''}>Quinta-feira</option>
+            <option value="5"${toque.dia===5?' selected':''}>Sexta-feira</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:5px">Descrição</label>
+          <input type="text" id="toqueLabel" value="${toque.label||''}" placeholder="Ex: 1ª aula…"
+            style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+        <button onclick="deleteToque()"
+          style="margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font)">
+          <i class="ti ti-trash"></i> Apagar
+        </button>
+        <button onclick="document.getElementById('modalToque').remove()"
+          style="padding:8px 16px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;font-family:var(--font);font-size:13px">
+          Cancelar
+        </button>
+        <button onclick="saveToque()"
+          style="padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600">
+          <i class="ti ti-check"></i> Guardar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function saveToque() {
+  const hora  = document.getElementById('toqueHora').value;
+  const tipo  = document.getElementById('toqueTipo').value;
+  const dia   = parseInt(document.getElementById('toqueDia').value);
+  const label = document.getElementById('toqueLabel').value.trim();
+  if (!hora) { toast('Preenche a hora','ti-alert-circle'); return; }
+
+  if (!state.toques) state.toques = {};
+  if (!state.toques[dia]) state.toques[dia] = [];
+
+  if (editingToqueId) {
+    // Remove from wherever it is
+    Object.keys(state.toques).forEach(d => {
+      state.toques[d] = (state.toques[d]||[]).filter(t => t.id !== editingToqueId);
+    });
+  }
+
+  const entry = { id: editingToqueId || uid(), hora, tipo, label };
+  state.toques[dia].push(entry);
+  editingToqueId = null;
+
+  saveState();
+  document.getElementById('modalToque')?.remove();
+  renderToques();
+  toast('Toque guardado');
+}
+
+function deleteToque() {
+  if (!editingToqueId) return;
+  if (!confirm('Apagar este toque?')) return;
+  Object.keys(state.toques || {}).forEach(d => {
+    state.toques[d] = (state.toques[d]||[]).filter(t => t.id !== editingToqueId);
+  });
+  editingToqueId = null;
+  saveState();
+  document.getElementById('modalToque')?.remove();
+  renderToques();
+  toast('Toque apagado');
+}
+
+// Patch renderPlanificacao to include toques section
+const _origRenderPlanToques = window.renderPlanificacao;
+window.renderPlanificacao = function() {
+  if (typeof _origRenderPlanToques === 'function') _origRenderPlanToques();
+  setTimeout(renderToques, 100);
+};
+
+console.log('✅ Mapa de toques carregado');
+</script>
+<script>
+// ═══ HORÁRIO — editHorarioEntry + deleteHorario DEFINITIVOS ═══
+
+var _editHorarioEntryId    = null;
+var _editHorarioEntryTurma = null;
+
+function editHorarioEntry(id, turma) {
+  const t = turma || state.turma;
+  const a = (state.horario[t] || []).find(x => x.id === id);
+  if (!a) { toast('Aula não encontrada', 'ti-alert-circle'); return; }
+
+  _editHorarioEntryId    = id;
+  _editHorarioEntryTurma = t;
+  editHorarioId          = id;
+
+  // Populate modal
+  updateTurmaSels();
+  const setV = (fid, val) => { const el = document.getElementById(fid); if (el) el.value = val || ''; };
+  setV('horTurma',      t);
+  setV('horDia',        a.dia);
+  setV('horInicio',     a.inicio);
+  setV('horFim',        a.fim);
+  setV('horLocal',      a.local || '');
+  setV('horModalidade', a.modalidade || '');
+  setV('horObs',        a.obs || '');
+
+  const titleEl = document.getElementById('modalHorarioTitle');
+  if (titleEl) titleEl.textContent = 'Editar aula';
+
+  const delBtn = document.getElementById('btnDeleteHorario');
+  if (delBtn) delBtn.style.display = '';
+
+  document.getElementById('modalHorario').classList.add('open');
+}
+
+// Override deleteHorario to use stored id+turma
+window.deleteHorario = function(idArg) {
+  const id    = _editHorarioEntryId || idArg;
+  const turma = _editHorarioEntryTurma || state.turma;
+  if (!id) { toast('Sem aula selecionada', 'ti-alert-circle'); return; }
+
+  const a = (state.horario[turma] || []).find(x => x.id === id);
+  if (!a) { toast('Aula não encontrada', 'ti-alert-circle'); return; }
+
+  const diaLabel = ['','Seg','Ter','Qua','Qui','Sex'][a.dia] || '';
+  if (!confirm(`Apagar aula do horário?\n${diaLabel} ${a.inicio}–${a.fim}${a.modalidade?' · '+a.modalidade:''}`)) return;
+
+  state.horario[turma] = (state.horario[turma] || []).filter(x => x.id !== id);
+  _editHorarioEntryId    = null;
+  _editHorarioEntryTurma = null;
+  editHorarioId          = null;
+
+  saveState();
+  closeModal('modalHorario');
+  renderHorario();
+  toast('Aula removida do horário');
+};
+
+// Patch saveHorario to reset delete btn and stored vars
+const _origSaveHorario = window.saveHorario;
+window.saveHorario = function() {
+  if (typeof _origSaveHorario === 'function') _origSaveHorario();
+  _editHorarioEntryId    = null;
+  _editHorarioEntryTurma = null;
+  const delBtn = document.getElementById('btnDeleteHorario');
+  if (delBtn) delBtn.style.display = 'none';
+};
+
+// Reset when opening for new aula
+const _origOpenModalHor = window.openModal;
+window.openModal = function(id, isNew) {
+  if (typeof _origOpenModalHor === 'function') _origOpenModalHor(id, isNew);
+  if (id === 'modalHorario' && !editHorarioId) {
+    _editHorarioEntryId    = null;
+    _editHorarioEntryTurma = null;
+    const delBtn = document.getElementById('btnDeleteHorario');
+    if (delBtn) delBtn.style.display = 'none';
+    const titleEl = document.getElementById('modalHorarioTitle');
+    if (titleEl) titleEl.textContent = 'Adicionar aula ao horário';
+  }
+};
+
+console.log('✅ editHorarioEntry + deleteHorario definitivos carregados');
+</script>
+<script>
+// ═══ FIT ESCOLA + FALTAS — Selector de turma ═══
+
+// ── FIT ESCOLA ────────────────────────────────────────────────────────────
+var fitTurma = null;
+
+function getFitTurma() { return fitTurma || state.turma; }
+
+function fitTurmaChange() {
+  const sel = document.getElementById('fitTurmaSelect');
+  if (sel) fitTurma = sel.value;
+  renderFit();
+}
+
+function updateFitTurmaSelect() {
+  const sel = document.getElementById('fitTurmaSelect');
+  if (!sel) return;
+  const cur = getFitTurma();
+  const turmas = getTURMAS();
+  sel.innerHTML = turmas.map(t => `<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+  if (!turmas.includes(fitTurma)) fitTurma = turmas[0] || state.turma;
+  // Update title
+  const title = document.getElementById('fitTableTitle');
+  if (title) title.textContent = `Resultados por aluno — ${getFitTurma()}`;
+}
+
+// Patch renderFit to use fitTurma
+const _origRenderFitTurma = window.renderFit;
+window.renderFit = function() {
+  updateFitTurmaSelect();
+  const prevTurma = state.turma;
+  state.turma = getFitTurma();
+  if (typeof _origRenderFitTurma === 'function') _origRenderFitTurma();
+  // Also update populateSelect for fitAluno modal
+  populateSelect('fitAluno', state.alunos[getFitTurma()] || []);
+  state.turma = prevTurma;
+};
+
+// Patch saveFit to save to correct turma
+const _origSaveFitTurma = window.saveFit;
+window.saveFit = function() {
+  const prevTurma = state.turma;
+  state.turma = getFitTurma();
+  if (typeof _origSaveFitTurma === 'function') _origSaveFitTurma();
+  state.turma = prevTurma;
+};
+
+// Patch editFit/deleteFit
+const _origEditFitTurma = window.editFit;
+window.editFit = function(alunoId) {
+  const prevTurma = state.turma;
+  state.turma = getFitTurma();
+  if (typeof _origEditFitTurma === 'function') _origEditFitTurma(alunoId);
+  state.turma = prevTurma;
+};
+
+// ── FALTAS ────────────────────────────────────────────────────────────────
+var faltasTurma = null;
+
+function getFaltasTurma() { return faltasTurma || state.turma; }
+
+function faltasTurmaChange() {
+  const sel = document.getElementById('faltasTurmaSelect');
+  if (sel) faltasTurma = sel.value;
+  renderFaltas();
+}
+
+function updateFaltasTurmaSelect() {
+  const sel = document.getElementById('faltasTurmaSelect');
+  if (!sel) return;
+  const cur = getFaltasTurma();
+  const turmas = getTURMAS();
+  sel.innerHTML = turmas.map(t => `<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+  if (!turmas.includes(faltasTurma)) faltasTurma = turmas[0] || state.turma;
+}
+
+// Patch renderFaltas to use faltasTurma
+const _origRenderFaltasTurma = window.renderFaltas;
+window.renderFaltas = function() {
+  updateFaltasTurmaSelect();
+  const prevTurma = state.turma;
+  state.turma = getFaltasTurma();
+  if (typeof _origRenderFaltasTurma === 'function') _origRenderFaltasTurma();
+  state.turma = prevTurma;
+};
+
+// Patch renderPresencaGrid in save/register aula to use correct turma for faltas page
+const _origAbrirFaltasCal = window.abrirFaltasCal;
+window.abrirFaltasCal = function(alunoId, turma) {
+  if (typeof _origAbrirFaltasCal === 'function')
+    _origAbrirFaltasCal(alunoId, turma || getFaltasTurma());
+};
+
+// Populate selects when page shows
+const _origShowPageTurmaFit = window.showPage;
+window.showPage = function(id, btn) {
+  if (typeof _origShowPageTurmaFit === 'function') _origShowPageTurmaFit(id, btn);
+  if (id === 'fitescola') {
+    if (!fitTurma) fitTurma = state.turma;
+    setTimeout(updateFitTurmaSelect, 50);
+  }
+  if (id === 'faltas') {
+    if (!faltasTurma) faltasTurma = state.turma;
+    setTimeout(updateFaltasTurmaSelect, 50);
+  }
+};
+
+// Init on load
+setTimeout(() => {
+  if (!fitTurma)    fitTurma    = state.turma;
+  if (!faltasTurma) faltasTurma = state.turma;
+  updateFitTurmaSelect();
+  updateFaltasTurmaSelect();
+}, 700);
+
+console.log('✅ FIT + Faltas turma selector carregado');
+</script>
+<script>
+// ═══ AULAS — Selector de turma ═══
+
+var aulasTurma = null;
+
+function getAulasTurma() { return aulasTurma || state.turma; }
+
+function aulasTurmaChange() {
+  const sel = document.getElementById('aulasTurmaSelect');
+  if (sel) aulasTurma = sel.value;
+  renderAulas();
+}
+
+function updateAulasTurmaSelect() {
+  const sel = document.getElementById('aulasTurmaSelect');
+  if (!sel) return;
+  const turmas = getTURMAS();
+  const cur = getAulasTurma();
+  sel.innerHTML = turmas.map(t => `<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+  if (!turmas.includes(aulasTurma)) aulasTurma = turmas[0] || state.turma;
+}
+
+// Patch renderAulas to use aulasTurma
+const _origRenderAulasTurma = window.renderAulas;
+window.renderAulas = function() {
+  updateAulasTurmaSelect();
+  const prevTurma = state.turma;
+  state.turma = getAulasTurma();
+  if (typeof _origRenderAulasTurma === 'function') _origRenderAulasTurma();
+  state.turma = prevTurma;
+};
+
+// Patch openModal for modalAula to pre-set turma and render presença grid
+const _origOpenModalAulas = window.openModal;
+window.openModal = function(id, isNew) {
+  if (typeof _origOpenModalAulas === 'function') _origOpenModalAulas(id, isNew);
+  if (id === 'modalAula') {
+    // Ensure presença grid uses correct turma
+    const prevTurma = state.turma;
+    state.turma = getAulasTurma();
+    if (!editingAulaId) {
+      document.getElementById('auData').value = new Date().toISOString().split('T')[0];
+      renderPresencaGrid();
+    }
+    state.turma = prevTurma;
+  }
+};
+
+// Patch saveAula to use aulasTurma
+const _origSaveAulasTurma = window.saveAula;
+window.saveAula = function() {
+  const prevTurma = state.turma;
+  state.turma = getAulasTurma();
+  if (typeof _origSaveAulasTurma === 'function') _origSaveAulasTurma();
+  state.turma = prevTurma;
+};
+
+// Patch editAula to use correct turma
+const _origEditAulasTurma = window.editAula;
+window.editAula = function(id, evt) {
+  // Find which turma has this aula
+  let foundTurma = getAulasTurma();
+  getTURMAS().forEach(t => {
+    if ((state.aulas[t] || []).find(a => a.id === id)) foundTurma = t;
+  });
+  aulasTurma = foundTurma;
+  const prevTurma = state.turma;
+  state.turma = foundTurma;
+  if (typeof _origEditAulasTurma === 'function') _origEditAulasTurma(id, evt);
+  state.turma = prevTurma;
+};
+
+// Show page hook
+const _origShowPageAulas = window.showPage;
+window.showPage = function(id, btn) {
+  if (typeof _origShowPageAulas === 'function') _origShowPageAulas(id, btn);
+  if (id === 'aulas') {
+    if (!aulasTurma) aulasTurma = state.turma;
+    setTimeout(updateAulasTurmaSelect, 50);
+  }
+};
+
+// Init
+setTimeout(() => {
+  if (!aulasTurma) aulasTurma = state.turma;
+  updateAulasTurmaSelect();
+}, 800);
+
+console.log('✅ Aulas turma selector carregado');
 </script>
