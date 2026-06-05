@@ -1065,6 +1065,19 @@ tr:hover td { background: #FAFBFA; }
         </select>
       </div>
       <div class="form-group full"><label class="form-label">Objetivos da aula</label><input class="form-input" id="auObj" placeholder="Ex: passe e receção, drible, lançamento..."></div>
+      <div class="form-group"><label class="form-label">Local da aula</label>
+        <select class="form-select" id="auLocal">
+          <option value="">— Selecionar local —</option>
+          <option value="Pavilhão">🏟 Pavilhão</option>
+          <option value="Campo de Jogos">⚽ Campo de Jogos</option>
+          <option value="Campo de Voleibol">🏐 Campo de Voleibol</option>
+          <option value="Pista de Atletismo">🏃 Pista de Atletismo</option>
+          <option value="CR7">⭐ CR7</option>
+          <option value="Mesas de Ténis de Mesa">🏓 Mesas de Ténis de Mesa</option>
+          <option value="Exterior">🌳 Exterior</option>
+          <option value="Outro">📍 Outro</option>
+        </select>
+      </div>
       <div class="form-group full"><label class="form-label">Observações</label><input class="form-input" id="auObs" placeholder="Notas gerais..."></div>
     </div>
     <div style="margin:14px 0 6px;font-size:12px;font-weight:600;color:var(--text2);">Presenças — seleciona o estado de cada aluno</div>
@@ -1986,6 +1999,7 @@ function renderAulas() {
       <div class="aula-body">
         <div class="aula-title">${a.modal||'—'}
           <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo||''}</span>
+          ${a.local?`<span class="badge badge-gray" style="font-size:10px;margin-left:4px"><i class="ti ti-map-pin" style="font-size:9px"></i> ${a.local}</span>`:''}
         </div>
         ${a.obj ? `<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>` : ''}
         ${a.obs ? `<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>` : ''}
@@ -2290,7 +2304,7 @@ function openModal(id, isNew=false) {
     document.getElementById('modalAulaTitle').textContent = 'Registar aula';
     document.getElementById('btnDeleteAula').style.display = 'none';
     document.getElementById('auData').value = new Date().toISOString().split('T')[0];
-    ['auObj','auObs'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['auObj','auObs','auLocal'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderPresencaGrid();
   }
   if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
@@ -4134,11 +4148,12 @@ function saveAula() {
 
   const entry = {
     data, periodo: state.periodo,
-    dur:   parseInt(document.getElementById('auDur')?.value)  || 50,
-    modal: document.getElementById('auModal')?.value          || '',
-    tipo:  document.getElementById('auTipo')?.value           || 'exerc',
-    obj:   document.getElementById('auObj')?.value.trim()     || '',
-    obs:   document.getElementById('auObs')?.value.trim()     || '',
+    dur:   parseInt(document.getElementById('auDur')?.value)   || 50,
+    modal: document.getElementById('auModal')?.value           || '',
+    tipo:  document.getElementById('auTipo')?.value            || 'exerc',
+    local: document.getElementById('auLocal')?.value           || '',
+    obj:   document.getElementById('auObj')?.value.trim()      || '',
+    obs:   document.getElementById('auObs')?.value.trim()      || '',
     faltas, faltasDetail,
   };
 
@@ -5758,6 +5773,7 @@ function calEditAula(id, turma) {
   document.getElementById('auDur').value   = aula.dur    || 50;
   document.getElementById('auModal').value = aula.modal  || '';
   document.getElementById('auTipo').value  = aula.tipo   || 'exerc';
+  const auLocalEl = document.getElementById('auLocal'); if(auLocalEl) auLocalEl.value = aula.local || '';
   document.getElementById('auObj').value   = aula.obj    || '';
   document.getElementById('auObs').value   = aula.obs    || '';
 
@@ -9202,4 +9218,99 @@ window.renderPlanCalendar = function() {
 };
 
 console.log('✅ Sincronização calendário escolar carregado');
+</script>
+<script>
+// ═══ CORRIGIR PERÍODOS DAS AULAS COM BASE NAS DATAS ═══
+
+function getPeriodoPorData(dataStr) {
+  if (!dataStr || !state.periodosDatas) return null;
+  const p = state.periodosDatas;
+  if (p['1']?.inicio && p['1']?.fim && dataStr >= p['1'].inicio && dataStr <= p['1'].fim) return '1';
+  if (p['2']?.inicio && p['2']?.fim && dataStr >= p['2'].inicio && dataStr <= p['2'].fim) return '2';
+  if (p['3']?.inicio && p['3']?.fim && dataStr >= p['3'].inicio && dataStr <= p['3'].fim) return '3';
+  return null;
+}
+
+function corrigirPeriodosAulas() {
+  if (!state.periodosDatas) { toast('Define primeiro as datas dos períodos no Planeamento', 'ti-alert-circle'); return; }
+
+  let corrigidas = 0;
+  getTURMAS().forEach(t => {
+    (state.aulas[t] || []).forEach(a => {
+      if (!a.data) return;
+      const periodoCorreto = getPeriodoPorData(a.data);
+      if (periodoCorreto && a.periodo !== periodoCorreto) {
+        a.periodo = periodoCorreto;
+        corrigidas++;
+      }
+    });
+    // Also fix aulasSuspensas
+    (state.aulasSuspensas || []).forEach(n => {
+      if (!n.data) return;
+      const periodoCorreto = getPeriodoPorData(n.data);
+      if (periodoCorreto && n.periodo !== periodoCorreto) {
+        n.periodo = periodoCorreto;
+        corrigidas++;
+      }
+    });
+  });
+
+  if (corrigidas > 0) {
+    saveState();
+    renderAulas();
+    renderFaltas();
+    toast(`✅ ${corrigidas} aula${corrigidas!==1?'s':''} corrigida${corrigidas!==1?'s':''} para o período correto`);
+  } else {
+    toast('Todas as aulas já estão no período correto');
+  }
+}
+
+// Also patch saveAula to auto-set period based on date
+const _origSaveAulaAutoPeriodo = window.saveAula;
+window.saveAula = function() {
+  // Auto-correct period based on aula date before saving
+  const dataEl = document.getElementById('auData');
+  if (dataEl?.value && state.periodosDatas) {
+    const periodoCorreto = getPeriodoPorData(dataEl.value);
+    if (periodoCorreto) {
+      // Override state.periodo temporarily to use correct period
+      const prev = state.periodo;
+      state.periodo = periodoCorreto;
+      if (typeof _origSaveAulaAutoPeriodo === 'function') _origSaveAulaAutoPeriodo();
+      state.periodo = prev;
+      return;
+    }
+  }
+  if (typeof _origSaveAulaAutoPeriodo === 'function') _origSaveAulaAutoPeriodo();
+};
+
+// Add "Corrigir períodos" button to aulas page
+function addCorrigirBtn() {
+  const hdr = document.querySelector('#page-aulas > div');
+  if (!hdr || hdr.querySelector('#btnCorrigirPeriodos')) return;
+  const btn = document.createElement('button');
+  btn.id = 'btnCorrigirPeriodos';
+  btn.className = 'btn btn-secondary btn-sm';
+  btn.style.cssText = 'margin-left:4px;background:#D6EAF8;color:#1B4F72;border:1px solid #85C1E9';
+  btn.innerHTML = '<i class="ti ti-refresh"></i> Corrigir períodos';
+  btn.title = 'Corrige automaticamente o período de todas as aulas com base nas datas dos períodos letivos';
+  btn.onclick = corrigirPeriodosAulas;
+  hdr.appendChild(btn);
+}
+
+const _origShowPageCorrigir = window.showPage;
+window.showPage = function(id, btn) {
+  if (typeof _origShowPageCorrigir === 'function') _origShowPageCorrigir(id, btn);
+  if (id === 'aulas') setTimeout(addCorrigirBtn, 100);
+};
+
+// Run correction on load if periodosDatas exist
+setTimeout(() => {
+  if (state.periodosDatas?.['2']?.inicio) {
+    const antes = JSON.stringify(getTURMAS().flatMap(t => (state.aulas[t]||[]).map(a => a.periodo)));
+    corrigirPeriodosAulas();
+  }
+}, 1200);
+
+console.log('✅ Correção automática de períodos carregado');
 </script>
