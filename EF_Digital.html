@@ -1970,7 +1970,7 @@ function renderAulas() {
   const alunos  = state.alunos[turma] || [];
   const todasAulas = (state.aulas[turma] || [])
     .slice()
-    .sort((a, b) => (b.data || '').localeCompare(a.data || '')); // mais recente primeiro
+    .sort((a, b) => (a.data || '').localeCompare(b.data || '')); // mais antiga primeiro
 
   const container = document.getElementById('aulasList');
   if (!todasAulas.length) {
@@ -8571,7 +8571,7 @@ window.renderAulas = function() {
   // Get all items: aulas + aulasSuspensas for this turma, all periods
   const aulas    = (state.aulas[turma]    || []).map(a => ({...a, _kind:'aula'}));
   const aulasSuspensas = (state.aulasSuspensas || []).filter(n => n.turma === turma).map(n => ({...n, _kind:'aulasuspensa'}));
-  const allItems = [...aulas, ...aulasSuspensas].sort((a,b) => (b.data||'').localeCompare(a.data||''));
+  const allItems = [...aulas, ...aulasSuspensas].sort((a,b) => (a.data||'').localeCompare(b.data||''));
 
   const container = document.getElementById('aulasList');
   if (!allItems.length) {
@@ -8948,7 +8948,7 @@ window.renderAulas = function() {
     suspensas = suspensas.filter(n => String(n.periodo) === filtro);
   }
 
-  const allItems = [...aulas, ...suspensas].sort((a,b) => (b.data||'').localeCompare(a.data||''));
+  const allItems = [...aulas, ...suspensas].sort((a,b) => (a.data||'').localeCompare(b.data||''));
 
   const container = document.getElementById('aulasList');
   if (!allItems.length) {
@@ -9313,4 +9313,465 @@ setTimeout(() => {
 }, 1200);
 
 console.log('✅ Correção automática de períodos carregado');
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH 1 — FIX fbAuth null em doLogin / doRegister
+// Problema: doLogin e doRegister são chamados antes de initFirebase() terminar,
+// quando fbAuth ainda é null. Solução: guards que aguardam fbAuth estar pronto.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Sobrescreve doLogin com guard para fbAuth null
+window.doLogin = function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  const btn   = document.getElementById('loginBtn');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Preenche email e password.'; return; }
+
+  if (!window.fbAuth) {
+    // Firebase ainda não inicializou — aguarda até 5s
+    errEl.textContent = 'A ligar ao servidor...';
+    btn.disabled = true; btn.textContent = 'A ligar...';
+    let waited = 0;
+    const poll = setInterval(() => {
+      waited += 100;
+      if (window.fbAuth) {
+        clearInterval(poll);
+        errEl.textContent = '';
+        btn.disabled = true; btn.textContent = 'A entrar...';
+        window.fbAuth.signInWithEmailAndPassword(email, pass).catch(ex => {
+          btn.disabled = false; btn.textContent = 'Entrar';
+          const msgs = {
+            'auth/user-not-found': 'Email não encontrado.',
+            'auth/wrong-password': 'Password incorreta.',
+            'auth/invalid-email': 'Email inválido.',
+            'auth/invalid-credential': 'Email ou password incorretos.',
+            'auth/too-many-requests': 'Demasiadas tentativas.',
+            'auth/configuration-not-found': 'Authentication não ativado no Firebase.',
+            'auth/network-request-failed': 'Sem ligação à internet.'
+          };
+          errEl.textContent = msgs[ex.code] || 'Erro: ' + ex.message;
+        });
+      } else if (waited >= 5000) {
+        clearInterval(poll);
+        btn.disabled = false; btn.textContent = 'Entrar';
+        errEl.textContent = 'Sem ligação ao servidor. Tenta mais tarde ou usa o modo offline.';
+      }
+    }, 100);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'A entrar...';
+  window.fbAuth.signInWithEmailAndPassword(email, pass).catch(ex => {
+    btn.disabled = false; btn.textContent = 'Entrar';
+    const msgs = {
+      'auth/user-not-found': 'Email não encontrado.',
+      'auth/wrong-password': 'Password incorreta.',
+      'auth/invalid-email': 'Email inválido.',
+      'auth/invalid-credential': 'Email ou password incorretos.',
+      'auth/too-many-requests': 'Demasiadas tentativas.',
+      'auth/configuration-not-found': 'Authentication não ativado no Firebase.',
+      'auth/network-request-failed': 'Sem ligação à internet.'
+    };
+    errEl.textContent = msgs[ex.code] || 'Erro: ' + ex.message;
+  });
+};
+
+// Sobrescreve doRegister com guard para fbAuth null
+window.doRegister = function() {
+  const nome  = document.getElementById('regNome').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPass').value;
+  const errEl = document.getElementById('regErr');
+  const btn   = document.getElementById('regBtn');
+  errEl.textContent = '';
+  if (!nome || !email || !pass) { errEl.textContent = 'Preenche todos os campos.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password deve ter mín. 6 caracteres.'; return; }
+
+  if (!window.fbAuth) {
+    errEl.textContent = 'A ligar ao servidor...';
+    btn.disabled = true; btn.textContent = 'A ligar...';
+    let waited = 0;
+    const poll = setInterval(() => {
+      waited += 100;
+      if (window.fbAuth) {
+        clearInterval(poll);
+        errEl.textContent = '';
+        btn.disabled = true; btn.textContent = 'A criar conta...';
+        window.fbAuth.createUserWithEmailAndPassword(email, pass)
+          .then(uc => uc.user.updateProfile({ displayName: nome }))
+          .catch(ex => {
+            btn.disabled = false; btn.textContent = 'Criar conta';
+            const msgs = { 'auth/email-already-in-use': 'Email já registado.', 'auth/invalid-email': 'Email inválido.' };
+            errEl.textContent = msgs[ex.code] || 'Erro: ' + ex.message;
+          });
+      } else if (waited >= 5000) {
+        clearInterval(poll);
+        btn.disabled = false; btn.textContent = 'Criar conta';
+        errEl.textContent = 'Sem ligação ao servidor. Tenta mais tarde.';
+      }
+    }, 100);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'A criar conta...';
+  window.fbAuth.createUserWithEmailAndPassword(email, pass)
+    .then(uc => uc.user.updateProfile({ displayName: nome }))
+    .catch(ex => {
+      btn.disabled = false; btn.textContent = 'Criar conta';
+      const msgs = { 'auth/email-already-in-use': 'Email já registado.', 'auth/invalid-email': 'Email inválido.' };
+      errEl.textContent = msgs[ex.code] || 'Erro: ' + ex.message;
+    });
+};
+
+console.log('✅ Fix fbAuth null carregado');
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH 2 — CARDS DE AULAS EM 4 COLUNAS NA MESMA LINHA
+// O renderAulas gera wrappers de período que agrupam os cards internamente,
+// impedindo que o grid CSS os distribua em colunas.
+// Solução: após cada render, «achatar» o DOM — mover os .aula-card para
+// filhos directos do container, precedidos de um separador de período.
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  // CSS: container passa a grid 4 colunas; separadores ocupam linha inteira
+  const style = document.createElement('style');
+  style.textContent = `
+    #aulasList {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 10px !important;
+    }
+    #aulasList .aulas-periodo-sep {
+      grid-column: 1 / -1;
+      margin: 4px 0 2px;
+    }
+    #aulasList .aula-card {
+      height: 100%;
+      box-sizing: border-box;
+      margin: 0 !important;
+    }
+    @media (max-width: 1100px) {
+      #aulasList { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (max-width: 640px) {
+      #aulasList { grid-template-columns: 1fr !important; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Achata o DOM após cada render: extrai cards dos wrappers de período
+  // e coloca-os directamente no #aulasList como filhos flat.
+  function flattenAulasList() {
+    const container = document.getElementById('aulasList');
+    if (!container) return;
+    // Se já está flat (só tem .aula-card e .aulas-periodo-sep como filhos) não faz nada
+    const wrappers = [...container.children].filter(el =>
+      !el.classList.contains('aula-card') &&
+      !el.classList.contains('aulas-periodo-sep') &&
+      !el.classList.contains('empty-state')
+    );
+    if (!wrappers.length) return; // já flat ou empty-state
+
+    const flat = document.createDocumentFragment();
+    wrappers.forEach(wrapper => {
+      // Extrai o separador de período (o primeiro div interno com font-weight:700)
+      const sep = wrapper.querySelector('div[style*="font-weight:700"]')?.closest('div[style*="display:flex"]');
+      if (sep) {
+        const sepEl = document.createElement('div');
+        sepEl.className = 'aulas-periodo-sep';
+        sepEl.innerHTML = sep.outerHTML;
+        flat.appendChild(sepEl);
+      }
+      // Extrai todos os .aula-card do wrapper
+      wrapper.querySelectorAll('.aula-card').forEach(card => {
+        flat.appendChild(card.cloneNode(true));
+      });
+    });
+
+    container.innerHTML = '';
+    container.appendChild(flat);
+  }
+
+  // Patch renderAulas: chama o original e depois achata
+  const _origRenderAulas4Col = window.renderAulas;
+  window.renderAulas = function() {
+    _origRenderAulas4Col.apply(this, arguments);
+    // Timeout pequeno para garantir que o DOM foi escrito
+    setTimeout(flattenAulasList, 0);
+  };
+
+  console.log('✅ Aulas 4 colunas (flat grid) carregado');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH 3 — FITESCOLA COM SELECTOR DE PERÍODO
+// Adiciona select "Período" na página FITescola e filtra renderFit por período
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  let fitPeriodoFiltro = 'todos'; // 'todos' | '1' | '2' | '3'
+
+  // Injecta o selector de período na página FITescola
+  function injectFitPeriodoSelector() {
+    const page = document.getElementById('page-fitescola');
+    if (!page || document.getElementById('fitPeriodoSelectWrap')) return;
+    const topBar = page.querySelector('div[style*="display:flex"]');
+    if (!topBar) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'fitPeriodoSelectWrap';
+    wrap.style.cssText = 'display:flex;align-items:center;gap:8px';
+    wrap.innerHTML = `
+      <label style="font-size:12px;font-weight:600;color:var(--text2)">Período:</label>
+      <select id="fitPeriodoSelect"
+        style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+               font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text);cursor:pointer"
+        onchange="window._fitPeriodoChange(this.value)">
+        <option value="todos">Todos</option>
+        <option value="1">1º Período</option>
+        <option value="2">2º Período</option>
+        <option value="3">3º Período</option>
+      </select>`;
+    topBar.appendChild(wrap);
+  }
+
+  // Expõe a função de mudança globalmente
+  window._fitPeriodoChange = function(val) {
+    fitPeriodoFiltro = val;
+    if (typeof renderFit === 'function') renderFit();
+  };
+
+  // Patch renderFit para filtrar por período
+  // O período do registo FIT está em f.periodo; se não existir usa state.periodo
+  const _origRenderFitPeriodo = window.renderFit;
+  window.renderFit = function() {
+    // Chama implementação actual para fazer o render base
+    _origRenderFitPeriodo.apply(this, arguments);
+
+    // Após render, filtra as linhas da tabela pelo período
+    if (fitPeriodoFiltro === 'todos') return;
+
+    const turma = state.turma;
+    const allFits = (state.fit[turma] || []);
+    const filtered = allFits.filter(f => String(f.periodo || state.periodo || '1') === fitPeriodoFiltro);
+
+    // Re-render stats com dados filtrados
+    const statsEl = document.getElementById('fitStats');
+    const cardsEl = document.getElementById('fitCards');
+    const bodyEl  = document.getElementById('fitBody');
+    if (!bodyEl) return;
+
+    // Se não há dados filtrados, mostra mensagem
+    if (!filtered.length) {
+      if (bodyEl) bodyEl.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">
+        Sem avaliações no ${fitPeriodoFiltro}º Período.</td></tr>`;
+      if (statsEl) statsEl.innerHTML = `
+        <div class="stat-card"><div class="stat-label">Avaliados</div><div class="stat-value">0</div></div>
+        <div class="stat-card"><div class="stat-label">Média FIT</div><div class="stat-value">—</div></div>`;
+      if (cardsEl) cardsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--text3);font-size:13px;padding:8px">Sem dados neste período.</div>';
+      return;
+    }
+
+    // Substitui temporariamente state.fit para que o render base use só os filtrados
+    const backup = state.fit[turma];
+    state.fit[turma] = filtered;
+    _origRenderFitPeriodo.apply(this, arguments);
+    state.fit[turma] = backup;
+  };
+
+  // Hook em showPage para injectar o selector quando a página FITescola abre
+  const _origShowPageFit = window.showPage;
+  window.showPage = function(id, btn) {
+    if (typeof _origShowPageFit === 'function') _origShowPageFit(id, btn);
+    if (id === 'fitescola') {
+      setTimeout(() => {
+        injectFitPeriodoSelector();
+        // Repõe o select no valor actual
+        const sel = document.getElementById('fitPeriodoSelect');
+        if (sel) sel.value = fitPeriodoFiltro;
+      }, 80);
+    }
+  };
+
+  // Injeta também ao carregar caso já esteja na página
+  setTimeout(injectFitPeriodoSelector, 800);
+
+  console.log('✅ FITescola selector de período carregado');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — ATIVIDADE ESCOLAR CONTA COMO AULA DADA
+// aulasSuspensas de tipo 'atividade' somam-se às aulas dadas em todos os
+// locais: renderFaltas, turmaStats, dashboard, comparar turmas.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Helper: atividades escolares duma turma/período
+function atividadesByPeriodo(turma, periodo) {
+  return (state.aulasSuspensas || []).filter(n =>
+    n.turma === turma &&
+    n.tipo === 'atividade' &&
+    String(n.periodo || '') === String(periodo)
+  );
+}
+
+// 1. Sobrescreve aulasByPeriodo — inclui atividades na contagem
+const _origAulasByPeriodo = window.aulasByPeriodo;
+window.aulasByPeriodo = function(turma, periodo) {
+  const aulas = _origAulasByPeriodo(turma, periodo);
+  const atividades = atividadesByPeriodo(turma, periodo)
+    .map(a => ({...a, _kind:'atividade'}));
+  return [...aulas, ...atividades];
+};
+
+// 2. Sobrescreve turmaStats — inclui atividades no nAulas
+const _origTurmaStats = window.turmaStats;
+window.turmaStats = function(t, periodo) {
+  const result = _origTurmaStats(t, periodo);
+  const extra = atividadesByPeriodo(t, periodo).length;
+  result.nAulas = result.nAulas + extra;
+  return result;
+};
+
+// 3. Patch renderFaltas modo "total" — corrige o badge "Total aulas"
+//    (o patch de aulasByPeriodo cobre o modo por período;
+//     o modo total calcula directamente sem aulasByPeriodo)
+const _origRenderFaltasModoTotal = window.renderFaltas;
+window.renderFaltas = function() {
+  _origRenderFaltasModoTotal.apply(this, arguments);
+  // Verificar se estamos no modo total
+  const badge = document.getElementById('faltasPeriodoBadge');
+  if (!badge || badge.textContent.trim() !== 'Todos os períodos') return;
+  const turma = typeof getAulasTurma === 'function' ? getAulasTurma() : state.turma;
+  const totalExtra = ['1','2','3'].reduce((s, p) =>
+    s + atividadesByPeriodo(turma, p).length, 0);
+  if (!totalExtra) return;
+  const statsEl = document.getElementById('faltasStats');
+  if (!statsEl) return;
+  statsEl.querySelectorAll('.stat-card').forEach(card => {
+    const lbl = card.querySelector('.stat-label');
+    if (lbl && lbl.textContent.trim() === 'Total aulas') {
+      const val = card.querySelector('.stat-value');
+      if (val) val.textContent = (parseInt(val.textContent) || 0) + totalExtra;
+    }
+  });
+};
+
+console.log('✅ Atividade escolar conta como aula dada');
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — ALUNOS TRANSFERIDOS PARA ESTA ESCOLA (entrada) SÓ APARECEM
+//         NAS AULAS/FALTAS APÓS A DATA DE ENTRADA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Helper: dado um aluno e uma data ISO (YYYY-MM-DD), estava activo nessa data?
+function alunoActivoNaData(aluno, dataIso) {
+  const s = aluno.status || 'ativo';
+  if (s === 'ativo' || s === 'troca') return true;
+  if (!aluno.statusData) return true;
+
+  // Parse DD/MM/YYYY → YYYY-MM-DD
+  let dataEfeito = aluno.statusData;
+  const parts = String(aluno.statusData).split('/');
+  if (parts.length === 3) {
+    dataEfeito = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+  }
+
+  if (s === 'entrada')                    return dataEfeito <= dataIso; // só após chegada
+  if (s === 'transferido' || s === 'anulado') return dataEfeito >= dataIso; // só antes de sair
+  return true;
+}
+
+// Patch renderAulas: sobrescreve a função final para recalcular presentes/faltas
+// por aula considerando apenas os alunos activos nessa data
+const _origRenderAulasEntrada = window.renderAulas;
+window.renderAulas = function() {
+  _origRenderAulasEntrada.apply(this, arguments);
+
+  // Após o render+flatten, percorrer cada .aula-card e corrigir o contador presentes/faltas
+  // Precisamos dos dados — lemos do state
+  setTimeout(() => {
+    const turma = typeof getAulasTurma === 'function' ? getAulasTurma() : state.turma;
+    const todosAlunos = state.alunos[turma] || [];
+
+    // Verificar se há algum aluno com status 'entrada' — só então corremos a lógica
+    const temEntrada = todosAlunos.some(a => a.status === 'entrada' && a.statusData);
+    if (!temEntrada) return;
+
+    // Percorrer todas as aulas para recalcular
+    const todasAulas = state.aulas[turma] || [];
+    todasAulas.forEach(aula => {
+      if (!aula.data || !aula.id) return;
+      const dataIso = aula.data; // já em YYYY-MM-DD
+
+      // Alunos activos nesta data
+      const alunosActivos = todosAlunos.filter(a => alunoActivoNaData(a, dataIso));
+      const nActivos = alunosActivos.length;
+
+      // Faltas apenas dos alunos activos
+      const faltasNomes = (aula.faltas || []).filter(nome => {
+        // Tentar encontrar o aluno pelo nome
+        const al = todosAlunos.find(a => a.name === nome || (aula.faltasDetail||[]).some(fd => fd.alunoId === a.id && a.name === nome));
+        if (!al) return true; // não encontrado → manter
+        return alunoActivoNaData(al, dataIso);
+      });
+
+      // Também filtrar por faltasDetail (estrutura mais fiável)
+      const faltasDetail = (aula.faltasDetail || []).filter(fd => {
+        const al = todosAlunos.find(a => a.id === fd.alunoId);
+        if (!al) return false;
+        return alunoActivoNaData(al, dataIso);
+      });
+
+      const nFaltas = faltasDetail.length || faltasNomes.length;
+      const nPresentes = Math.max(0, nActivos - nFaltas);
+
+      // Encontrar o card DOM correspondente e actualizar o texto presentes/faltas
+      const container = document.getElementById('aulasList');
+      if (!container) return;
+      container.querySelectorAll('.aula-card').forEach(card => {
+        // Identificar o card pela função de editar que tem o id da aula
+        const editBtn = card.querySelector(`button[onclick*="editAula('${aula.id}'"]`);
+        if (!editBtn) return;
+        const metaDiv = card.querySelector('.aula-meta');
+        if (!metaDiv) return;
+        // O segundo div dentro de .aula-meta tem "X✓ Y✗"
+        const divs = metaDiv.querySelectorAll('div');
+        divs.forEach(div => {
+          if (div.textContent.includes('✓') && div.textContent.includes('✗')) {
+            div.textContent = `${nPresentes}✓ ${nFaltas}✗`;
+          }
+        });
+        // Actualizar também os chips de faltas (badges de nome)
+        const chips = card.querySelector('.aula-chips');
+        if (chips && faltasDetail.length) {
+          const nomesActivos = faltasDetail.map(fd => {
+            const al = todosAlunos.find(a => a.id === fd.alunoId);
+            return al ? al.name.split(' ')[0] : null;
+          }).filter(Boolean);
+          chips.innerHTML = nomesActivos.map(n =>
+            `<span class="badge badge-red" style="font-size:10px">${n}</span>`
+          ).join('');
+          if (!nomesActivos.length) chips.remove();
+        }
+      });
+    });
+  }, 50); // após o flattenAulasList (que corre em setTimeout 0)
+};
+
+// Patch faltasByPeriodo — já existe patch para 'entrada', mas reforçar:
+// garantir que aulas ANTES da data de entrada não contam para o total de faltas
+// (o patch existente em linha ~8082 já faz isto, este é redundante por segurança)
+
+console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada');
 </script>
