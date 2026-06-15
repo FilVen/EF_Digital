@@ -144,7 +144,7 @@ tr:hover td { background: #FAFBFA; }
 .nota-5 { background: var(--green-light); color: #1B5E3C; }
 .nota-4 { background: var(--blue-light); color: var(--blue); }
 .nota-3 { background: var(--amber-light); color: var(--amber); }
-.nota-2, .nota-1 { background: var(--red-light); color: var(--red); }
+.nota-0, .nota-2, .nota-1 { background: var(--red-light); color: var(--red); }
 
 /* ═══ ALUNOS GRID ═══ */
 .students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
@@ -1001,6 +1001,7 @@ tr:hover td { background: #FAFBFA; }
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Nome completo *</label><input class="form-input" id="aNome" placeholder="Nome completo do aluno"></div>
       <div class="form-group"><label class="form-label">Nº de aluno *</label><input class="form-input" id="aNum" placeholder="Ex: 2301"></div>
+      <div class="form-group"><label class="form-label">Nº de ordem na turma</label><input class="form-input" type="number" id="aOrdem" placeholder="Ex: 12" min="1" max="99"></div>
       <div class="form-group"><label class="form-label">Data de nascimento</label><input class="form-input" type="text" id="aNasc" placeholder="DD/MM/AAAA" maxlength="10"></div>
       <div class="form-group"><label class="form-label">Género</label>
         <select class="form-select" id="aGenre"><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
@@ -1100,6 +1101,14 @@ tr:hover td { background: #FAFBFA; }
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Aluno *</label>
         <select class="form-select" id="fitAluno" onchange="updateFitRef()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Período *</label>
+        <select class="form-select" id="fitModalPeriodo">
+          <option value="1">1º Período</option>
+          <option value="2">2º Período</option>
+          <option value="3">3º Período</option>
+        </select>
       </div>
       <div class="form-group" style="display:flex;align-items:flex-end">
         <div id="fitRefBox" style="font-size:11px;color:var(--text3);padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);width:100%;line-height:1.6"></div>
@@ -1964,6 +1973,9 @@ function updateTopbarSub() {
 
 function setTurma(t) {
   state.turma = t;
+  // Sincronizar turma do FIT e Faltas com a turma principal
+  if (typeof fitTurma !== 'undefined')    fitTurma    = t;
+  if (typeof faltasTurma !== 'undefined') faltasTurma = t;
   document.querySelectorAll('.turma-pill').forEach(p => p.classList.toggle('active', p.dataset.t === t));
   refreshPage(state.currentPage);
 }
@@ -2221,7 +2233,7 @@ function renderFit() {
       ${cell(f.abd,'abd','abd',f.nrAbd)}
       ${cell(f.bracos,'bracos','bracos',f.nrBracos)}
       ${cell(f.imp,'imp','imp',f.nrImp)}
-      <td>${cl!==null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px">${cl}</span>`:''}</td>
+      <td>${cl!=null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px">${cl}</span>`:''}</td>
       <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">
@@ -2343,7 +2355,7 @@ function openModal(id, isNew=false) {
     ['auObj','auObs','auLocal'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderPresencaGrid();
   }
-  if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
+  if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[typeof getFitTurma==='function'?getFitTurma():state.turma]||[]); setTimeout(updateFitRef, 50); }
   if (id === 'mgturmas') { renderTurmasListEdit(); setTimeout(()=>document.getElementById('novaTurmaInput')?.focus(),100); }
   if (id === 'modalHorario') {
     updateTurmaSels();
@@ -2391,6 +2403,8 @@ function saveAluno() {
   const status = document.getElementById('aStatus')?.value||'ativo';
   const statusObs = document.getElementById('aStatusObs')?.value.trim()||'';
 
+  const nOrdem = (() => { const v = document.getElementById('aOrdem')?.value?.trim(); return v ? parseInt(v) : null; })();
+
   if (editingAlunoId) {
     let found = false;
     getTURMAS().forEach(t => {
@@ -2399,10 +2413,10 @@ function saveAluno() {
         if (t !== turma) {
           state.alunos[t] = state.alunos[t].filter(x=>x.id!==editingAlunoId);
           if (!state.alunos[turma]) state.alunos[turma]=[];
-          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs;
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem;
           state.alunos[turma].push(a);
         } else {
-          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs;
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem;
         }
         found = true;
       }
@@ -2410,11 +2424,11 @@ function saveAluno() {
     editingAlunoId = null;
     if (found) { toast('Aluno atualizado'); }
     else {
-      state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, status, statusObs, faltas:{1:0,2:0,3:0} });
+      state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, nOrdem, status, statusObs, faltas:{1:0,2:0,3:0} });
       toast('Aluno adicionado');
     }
   } else {
-    state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, status, statusObs, faltas:{1:0,2:0,3:0} });
+    state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, nOrdem, status, statusObs, faltas:{1:0,2:0,3:0} });
     toast('Aluno adicionado');
   }
   saveState(); closeModal('modalAluno');
@@ -4443,7 +4457,7 @@ function renderFit() {
       ${cell(f.abd,'abd',f.nrAbd)}
       ${cell(f.bracos,'bracos',f.nrBracos)}
       ${cell(f.imp,'imp',f.nrImp)}
-      <td>${cl!==null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px" title="${{5:'Nota 5',4:'Nota 4',3:'Nota 3',2:'Nota 2',1:'Nota 1'}[cl]}">${cl}</span>`:''}</td>
+      <td>${cl!=null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px" title="${{5:'Nota 5',4:'Nota 4',3:'Nota 3',2:'Nota 2',1:'Nota 1'}[cl]}">${cl}</span>`:''}</td>
       <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
     </tr>`;
   }).join('');
@@ -4694,7 +4708,7 @@ function renderFit() {
       ${cell(f.bracos,'bracos', f.nrBracos)}
       ${cell(f.imp,'imp', f.nrImp)}
       <td>
-        ${cl!==null
+        ${cl!=null
           ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
                <span style="width:30px;height:30px;border-radius:50%;background:${notaCor[cl]};color:${notaFg[cl]};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">${cl}</span>
                <span style="font-size:9px;color:var(--text3);text-align:center;max-width:80px;line-height:1.2">${zonaLabel[cl]}</span>
@@ -4835,7 +4849,7 @@ console.log('✅ FIT_REF oficial carregado (docs FITescola)');
         2: {txt:'⚠ A Melhorar',        bg:'#FEF3E7', fg:'#B7770D'},
         1: {txt:'❌ Abaixo',           bg:'#FADBD8', fg:'#922B21'},
       };
-      const zl = cl !== null ? zonaLabels[cl] : null;
+      const zl = cl != null ? zonaLabels[cl] : null;
 
       function cell(val, refKey, nrFlag) {
         if (nrFlag) return `<td style="text-align:center"><span style="font-size:11px;font-weight:600;color:#B7770D;background:#FEF3E7;padding:2px 8px;border-radius:4px" title="Não realizou esta prova">NR</span></td>`;
@@ -4864,7 +4878,7 @@ console.log('✅ FIT_REF oficial carregado (docs FITescola)');
         ${cell(f.bracos,'bracos',f.nrBracos)}
         ${cell(f.imp,'imp',f.nrImp)}
         <td style="text-align:center">
-          ${cl!==null?`
+          ${cl!=null?`
             <span class="nota nota-${cl}" style="width:30px;height:30px;font-size:15px;margin-bottom:3px">${cl}</span>
             ${zl?`<div style="font-size:10px;font-weight:600;color:${zl.fg};background:${zl.bg};padding:2px 6px;border-radius:10px;margin-top:3px;white-space:nowrap">${zl.txt}</div>`:''}
           `:'<span style="color:var(--text3)">—</span>'}
@@ -5138,7 +5152,7 @@ function editFit(alunoId) {
   if (delBtn) delBtn.style.display = '';
 
   // Populate select
-  populateSelect('fitAluno', state.alunos[state.turma] || []);
+  populateSelect('fitAluno', state.alunos[typeof getFitTurma==='function'?getFitTurma():state.turma] || []);
   const sel = document.getElementById('fitAluno');
   if (sel) sel.value = alunoId;
 
@@ -5162,11 +5176,12 @@ function editFit(alunoId) {
 
 function deleteFit() {
   if (!editingFitAlunoId) return;
-  const aluno = getAluno(state.turma, editingFitAlunoId);
+  const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+  const aluno = getAluno(turmaReal, editingFitAlunoId);
   const name  = aluno ? aluno.name : editingFitAlunoId;
   if (!confirm('Apagar os resultados FITescola de ' + name + '?')) return;
 
-  state.fit[state.turma] = (state.fit[state.turma] || []).filter(f => f.alunoId !== editingFitAlunoId);
+  state.fit[turmaReal] = (state.fit[turmaReal] || []).filter(f => f.alunoId !== editingFitAlunoId);
   editingFitAlunoId = null;
 
   saveState();
@@ -5181,6 +5196,11 @@ window.saveFit = function() {
   const alunoId = document.getElementById('fitAluno').value;
   if (!alunoId) { toast('Seleciona um aluno', 'ti-alert-circle'); return; }
 
+  const nrVaivem = document.getElementById('fitNRVaivem')?.checked || false;
+  const nrAbd    = document.getElementById('fitNRAbd')?.checked    || false;
+  const nrBracos = document.getElementById('fitNRBracos')?.checked || false;
+  const nrImp    = document.getElementById('fitNRImp')?.checked    || false;
+
   const v1 = parseFloat(document.getElementById('fitImp1')?.value) || 0;
   const v2 = parseFloat(document.getElementById('fitImp2')?.value) || 0;
   const v3 = parseFloat(document.getElementById('fitImp3')?.value) || 0;
@@ -5188,29 +5208,42 @@ window.saveFit = function() {
 
   const entry = {
     alunoId,
-    vaivem: parseInt(document.getElementById('fitVaivem')?.value)  || null,
-    abd:    parseInt(document.getElementById('fitAbd')?.value)     || null,
-    bracos: parseInt(document.getElementById('fitBracos')?.value)  || null,
-    imp: bestImp, imp1: v1||null, imp2: v2||null, imp3: v3||null,
+    vaivem: nrVaivem ? null : (parseInt(document.getElementById('fitVaivem')?.value)  || null),
+    abd:    nrAbd    ? null : (parseInt(document.getElementById('fitAbd')?.value)     || null),
+    bracos: nrBracos ? null : (parseInt(document.getElementById('fitBracos')?.value)  || null),
+    imp:    nrImp    ? null : bestImp,
+    imp1: nrImp ? null : (v1||null), imp2: nrImp ? null : (v2||null), imp3: nrImp ? null : (v3||null),
     data: document.getElementById('fitData')?.value || '',
+    nrVaivem, nrAbd, nrBracos, nrImp,
+    dataVaivem: document.getElementById('fitDataVaivem')?.value || '',
+    dataAbd:    document.getElementById('fitDataAbd')?.value    || '',
+    dataBracos: document.getElementById('fitDataBracos')?.value || '',
+    dataImp:    document.getElementById('fitDataImp')?.value    || '',
+    periodo:    document.getElementById('fitModalPeriodo')?.value || '1',
   };
 
-  if (!state.fit[state.turma]) state.fit[state.turma] = [];
-  const ei = state.fit[state.turma].findIndex(f => f.alunoId === alunoId);
-  if (ei >= 0) state.fit[state.turma][ei] = { ...state.fit[state.turma][ei], ...entry };
-  else         state.fit[state.turma].push(entry);
+  const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+  if (!state.fit[turmaReal]) state.fit[turmaReal] = [];
+  const ei = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId);
+  if (ei >= 0) state.fit[turmaReal][ei] = { ...state.fit[turmaReal][ei], ...entry };
+  else         state.fit[turmaReal].push(entry);
 
-  // Reset modal
+  // Reset modal UI
   editingFitAlunoId = null;
   const title  = document.getElementById('modalFitTitle');
   const delBtn = document.getElementById('btnDeleteFit');
   if (title)  title.textContent    = 'Registar FITescola';
   if (delBtn) delBtn.style.display = 'none';
 
-  // Clear fields
-  ['fitVaivem','fitAbd','fitBracos','fitImp1','fitImp2','fitImp3'].forEach(id => {
+  ['fitVaivem','fitAbd','fitBracos','fitImp1','fitImp2','fitImp3',
+   'fitDataVaivem','fitDataAbd','fitDataBracos','fitDataImp'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  ['fitNRVaivem','fitNRAbd','fitNRBracos','fitNRImp'].forEach(id => {
+    const cb = document.getElementById(id); if (cb) cb.checked = false;
+  });
+  if (typeof fitToggleNR === 'function') ['vaivem','abd','bracos','imp'].forEach(p => fitToggleNR(p, false));
+
   const bv = document.getElementById('fitImpBest');
   if (bv) bv.innerHTML = '<span style="font-size:22px;font-weight:700;color:var(--green)">—</span>';
   const zb = document.getElementById('fitZonaBox');
@@ -5220,7 +5253,7 @@ window.saveFit = function() {
   closeModal('modalFit');
   renderFit();
 
-  const cl = alunoFitClassificacao(entry, getAluno(state.turma, alunoId));
+  const cl = alunoFitClassificacao(entry, getAluno(turmaReal, alunoId));
   toast('FITescola guardado' + (cl ? ' — Classificação ' + cl : ''));
 };
 
@@ -5266,7 +5299,7 @@ window.renderFit = function() {
     const a   = getAluno(state.turma, f.alunoId) || {name:'?',genre:'F',nasc:''};
     const age = getAge(a.nasc), g = a.genre;
     const cl  = alunoFitClassificacao(f, a);
-    const zl  = cl !== null ? zonaLabels[cl] : null;
+    const zl  = cl != null ? zonaLabels[cl] : null;
 
     return `<tr data-aluno-id="${f.alunoId}">
       <td><strong>${a.name}</strong></td>
@@ -5277,7 +5310,7 @@ window.renderFit = function() {
       ${cell(f.bracos,'bracos',g,age,f.nrBracos)}
       ${cell(f.imp,   'imp',   g,age,f.nrImp)}
       <td style="text-align:center">
-        ${cl!==null?`
+        ${cl!=null?`
           <span class="nota nota-${cl}" style="width:30px;height:30px;font-size:15px;margin-bottom:3px">${cl}</span>
           ${zl?`<div style="font-size:10px;font-weight:600;color:${zl.fg};background:${zl.bg};padding:2px 6px;border-radius:10px;margin-top:3px;white-space:nowrap">${zl.txt}</div>`:''}
         `:'<span style="color:var(--text3)">—</span>'}
@@ -8820,6 +8853,8 @@ function savePeriodosDatas() {
   saveState();
   renderPeriodosDatas();
   toast('Datas dos períodos guardadas');
+  // Re-migrar registos FIT após datas actualizadas
+  if (typeof migrarFitPeriodos === 'function') setTimeout(migrarFitPeriodos, 100);
 }
 
 function buildFeriasList() {
@@ -9556,7 +9591,7 @@ console.log('✅ Fix fbAuth null carregado');
 // Adiciona select "Período" na página FITescola e filtra renderFit por período
 // ═══════════════════════════════════════════════════════════════════════════════
 (function() {
-  let fitPeriodoFiltro = 'todos'; // 'todos' | '1' | '2' | '3'
+  let fitPeriodoFiltro = '1'; // '1' | '2' | '3'
 
   // Injecta o selector de período na página FITescola
   function injectFitPeriodoSelector() {
@@ -9574,7 +9609,6 @@ console.log('✅ Fix fbAuth null carregado');
         style="padding:6px 11px;border:1px solid var(--border2);border-radius:var(--radius-sm);
                font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text);cursor:pointer"
         onchange="window._fitPeriodoChange(this.value)">
-        <option value="todos">Todos</option>
         <option value="1">1º Período</option>
         <option value="2">2º Período</option>
         <option value="3">3º Período</option>
@@ -9589,41 +9623,13 @@ console.log('✅ Fix fbAuth null carregado');
   };
 
   // Patch renderFit para filtrar por período
-  // O período do registo FIT está em f.periodo; se não existir usa state.periodo
   const _origRenderFitPeriodo = window.renderFit;
   window.renderFit = function() {
     // Chama implementação actual para fazer o render base
     _origRenderFitPeriodo.apply(this, arguments);
 
-    // Após render, filtra as linhas da tabela pelo período
-    if (fitPeriodoFiltro === 'todos') return;
-
-    const turma = state.turma;
-    const allFits = (state.fit[turma] || []);
-    const filtered = allFits.filter(f => String(f.periodo || state.periodo || '1') === fitPeriodoFiltro);
-
-    // Re-render stats com dados filtrados
-    const statsEl = document.getElementById('fitStats');
-    const cardsEl = document.getElementById('fitCards');
-    const bodyEl  = document.getElementById('fitBody');
-    if (!bodyEl) return;
-
-    // Se não há dados filtrados, mostra mensagem
-    if (!filtered.length) {
-      if (bodyEl) bodyEl.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">
-        Sem avaliações no ${fitPeriodoFiltro}º Período.</td></tr>`;
-      if (statsEl) statsEl.innerHTML = `
-        <div class="stat-card"><div class="stat-label">Avaliados</div><div class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">Média FIT</div><div class="stat-value">—</div></div>`;
-      if (cardsEl) cardsEl.innerHTML = '<div style="grid-column:1/-1;color:var(--text3);font-size:13px;padding:8px">Sem dados neste período.</div>';
-      return;
-    }
-
-    // Substitui temporariamente state.fit para que o render base use só os filtrados
-    const backup = state.fit[turma];
-    state.fit[turma] = filtered;
-    _origRenderFitPeriodo.apply(this, arguments);
-    state.fit[turma] = backup;
+    // Este patch foi substituído pelo patch de período mais recente (linha ~10318)
+    // que filtra correctamente antes do render. Não fazer nada aqui.
   };
 
   // Hook em showPage para injectar o selector quando a página FITescola abre
@@ -9922,26 +9928,8 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
     return p.length === 3 ? `${p[2]}/${p[1]}` : d;
   }
 
-  // 1. Sobrescreve saveFit para incluir datas individuais
-  const _origSaveFitDatas = window.saveFit;
-  window.saveFit = function() {
-    // Chamar o original para guardar os campos base
-    _origSaveFitDatas.apply(this, arguments);
-    // Após guardar, actualizar a entrada com as datas por prova
-    const alunoId = document.getElementById('fitAluno')?.value;
-    if (!alunoId || !state.fit[state.turma]) return;
-    const idx = state.fit[state.turma].findIndex(f => f.alunoId === alunoId);
-    if (idx < 0) return;
-    state.fit[state.turma][idx].dataVaivem = document.getElementById('fitDataVaivem')?.value || '';
-    state.fit[state.turma][idx].dataAbd    = document.getElementById('fitDataAbd')?.value    || '';
-    state.fit[state.turma][idx].dataBracos = document.getElementById('fitDataBracos')?.value || '';
-    state.fit[state.turma][idx].dataImp    = document.getElementById('fitDataImp')?.value    || '';
-    if (typeof saveState === 'function') saveState();
-    // Limpar campos de data
-    ['fitDataVaivem','fitDataAbd','fitDataBracos','fitDataImp'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
-  };
+  // 1. Datas por prova já são guardadas directamente no saveFit principal (patch linha 5191)
+  //    Este patch foi neutralizado para não apagar as datas depois de guardadas.
 
   // 2. Sobrescreve editFit para preencher datas individuais
   const _origEditFitDatas = window.editFit;
@@ -9949,7 +9937,8 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
     _origEditFitDatas.apply(this, arguments);
     // Após o original abrir o modal, preencher datas
     setTimeout(() => {
-      const fit = (state.fit[state.turma] || []).find(f => f.alunoId === alunoId);
+      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const fit = (state.fit[turmaReal] || []).find(f => f.alunoId === alunoId);
       if (!fit) return;
       const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value = val||''; };
       setVal('fitDataVaivem', fit.dataVaivem || '');
@@ -10018,28 +10007,12 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
     if (id === 'modalFit') setTimeout(resetNR, 30);
   };
 
-  // Patch saveFit: guardar nrVaivem, nrAbd, nrBracos, nrImp
+  // Patch saveFit: NR já é guardado directamente no saveFit principal (patch linha 5191)
+  // e no _topSaveFit. Este patch foi neutralizado para evitar conflitos.
   const _origSaveFitNR = window.saveFit;
   window.saveFit = function() {
     _origSaveFitNR.apply(this, arguments);
-    // Após o save base, actualizar com flags NR
-    const alunoId = document.getElementById('fitAluno')?.value;
-    if (!alunoId || !state.fit[state.turma]) return;
-    const idx = state.fit[state.turma].findIndex(f => f.alunoId === alunoId);
-    if (idx < 0) return;
-    const f = state.fit[state.turma][idx];
-    f.nrVaivem = document.getElementById('fitNRVaivem')?.checked  || false;
-    f.nrAbd    = document.getElementById('fitNRAbd')?.checked     || false;
-    f.nrBracos = document.getElementById('fitNRBracos')?.checked  || false;
-    f.nrImp    = document.getElementById('fitNRImp')?.checked     || false;
-    // Se NR, garantir que o valor é null
-    if (f.nrVaivem) f.vaivem = null;
-    if (f.nrAbd)    f.abd    = null;
-    if (f.nrBracos) f.bracos = null;
-    if (f.nrImp)  { f.imp = f.imp1 = f.imp2 = f.imp3 = null; }
-    if (typeof saveState === 'function') saveState();
-    // Limpar NR ao fechar
-    resetNR();
+    // NR e datas já foram guardados pela cadeia principal — não fazer nada aqui
   };
 
   // Patch editFit: preencher checkboxes NR e desabilitar inputs se NR
@@ -10069,16 +10042,17 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
   window.renderFit = function() {
     _origRenderFitNR.apply(this, arguments);
     setTimeout(() => {
-      const fits   = state.fit[state.turma] || [];
+      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const fits   = state.fit[turmaReal] || [];
       const bodyEl = document.getElementById('fitBody');
       if (!bodyEl) return;
-      const rows = bodyEl.querySelectorAll('tr');
-      rows.forEach((row, i) => {
-        const f = fits[i];
+      const rows = bodyEl.querySelectorAll('tr[data-aluno-id]');
+      rows.forEach(row => {
+        const alunoId = row.getAttribute('data-aluno-id');
+        const f = fits.find(x => x.alunoId === alunoId);
         if (!f) return;
         const cols = row.querySelectorAll('td');
         if (cols.length < 7) return;
-        // col 3=vaivem, 4=abd, 5=bracos, 6=imp
         const nrMap = [
           { col: 3, nr: f.nrVaivem },
           { col: 4, nr: f.nrAbd    },
@@ -10170,5 +10144,340 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
   };
 
   console.log('✅ Fix NR não apagado ao registar nova prova');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — FITescola: alunos sempre por ordem alfabética
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const _origRenderFitAlpha = window.renderFit;
+  window.renderFit = function() {
+    // Ordenar state.fit da turma por nome do aluno antes de qualquer render
+    const turma = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    if (state.fit[turma] && state.fit[turma].length > 1) {
+      state.fit[turma].sort((a, b) => {
+        const nA = (getAluno(turma, a.alunoId) || {}).name || '';
+        const nB = (getAluno(turma, b.alunoId) || {}).name || '';
+        return nA.localeCompare(nB, 'pt', { sensitivity: 'base' });
+      });
+    }
+    _origRenderFitAlpha.apply(this, arguments);
+  };
+  console.log('✅ FITescola ordem alfabética');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Nº de ordem na turma nos alunos
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Patch saveAluno: incluir nOrdem no objecto aluno
+  const _origSaveAluno = window.saveAluno;
+  window.saveAluno = function() {
+    // Ler nOrdem antes do save base fechar o modal
+    const ordemVal = document.getElementById('aOrdem')?.value?.trim();
+    const nOrdem   = ordemVal ? parseInt(ordemVal) : null;
+    const editId   = window.editingAlunoId;
+
+    _origSaveAluno.apply(this, arguments);
+
+    // Após save, escrever nOrdem no registo (o merge de estado já está corrigido)
+    const turma = document.getElementById('aTurma')?.value || state.turma;
+    const alunos = state.alunos[turma] || [];
+    // Se foi edição, encontrar pelo id; se foi criação, é o último inserido
+    const target = editId
+      ? alunos.find(a => a.id === editId)
+      : alunos[alunos.length - 1];
+    if (target) {
+      target.nOrdem = nOrdem;
+      if (typeof saveState === 'function') saveState();
+    }
+  };
+
+  // Patch editAluno: preencher o campo nOrdem no modal
+  const _origEditAluno = window.editAluno;
+  window.editAluno = function(id) {
+    _origEditAluno.apply(this, arguments);
+    setTimeout(() => {
+      const a = getTURMAS().map(t => (state.alunos[t]||[]).find(x=>x.id===id)).find(Boolean);
+      const el = document.getElementById('aOrdem');
+      if (el) el.value = (a && a.nOrdem != null) ? a.nOrdem : '';
+    }, 50);
+  };
+
+  // Limpar campo ao abrir modal para novo aluno
+  const _origOpenModalOrdem = window.openModal;
+  window.openModal = function(id, isNew, ...rest) {
+    if (typeof _origOpenModalOrdem === 'function') _origOpenModalOrdem(id, isNew, ...rest);
+    if (id === 'modalAluno' && isNew) {
+      setTimeout(() => { const el = document.getElementById('aOrdem'); if (el) el.value = ''; }, 30);
+    }
+  };
+
+  // Mostrar nOrdem no card do aluno
+  const _origRenderAlunos = window.renderAlunos;
+  window.renderAlunos = function() {
+    _origRenderAlunos.apply(this, arguments);
+    // Após render, injectar badge de nOrdem em cada student-card
+    setTimeout(() => {
+      const turma  = state.turma;
+      const alunos = state.alunos[turma] || [];
+      document.querySelectorAll('.student-card').forEach(card => {
+        const onclick = card.getAttribute('onclick') || '';
+        const match   = onclick.match(/editAluno\('([^']+)'\)/);
+        if (!match) return;
+        const a = alunos.find(x => x.id === match[1]);
+        if (!a || a.nOrdem == null) return;
+        if (card.querySelector('.ordem-badge')) return; // já tem
+        const badge = document.createElement('div');
+        badge.className = 'ordem-badge';
+        badge.title = 'Nº de ordem na turma';
+        badge.style.cssText = 'position:absolute;top:6px;right:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text3);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;line-height:1.6';
+        badge.textContent = a.nOrdem + 'º';
+        card.style.position = 'relative';
+        card.appendChild(badge);
+      });
+    }, 30);
+  };
+
+  console.log('✅ Nº de ordem na turma');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — FITescola: período por registo (guardar + filtrar correctamente)
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // 1. Patch saveFit: incluir periodo no entry
+  //    Intercepta a versão activa (a última da cadeia) ANTES de correr
+  const _origSaveFitPeriodo = window.saveFit;
+  window.saveFit = function() {
+    // Ler período antes de qualquer alteração
+    const periodo = document.getElementById('fitModalPeriodo')?.value || '1';
+    const alunoId = document.getElementById('fitAluno')?.value;
+    const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+
+    _origSaveFitPeriodo.apply(this, arguments);
+
+    // Escrever periodo no registo após save
+    if (!alunoId || !state.fit[turmaReal]) return;
+    const idx = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId);
+    if (idx >= 0) {
+      state.fit[turmaReal][idx].periodo = periodo;
+      if (typeof saveState === 'function') saveState();
+      if (typeof renderFit === 'function') renderFit();
+    }
+  };
+
+  // 2. Patch editFit: preencher selector de período
+  const _origEditFitPeriodo = window.editFit;
+  window.editFit = function(alunoId) {
+    _origEditFitPeriodo.apply(this, arguments);
+    setTimeout(() => {
+      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const fit = (state.fit[turmaReal] || []).find(f => f.alunoId === alunoId);
+      const sel = document.getElementById('fitModalPeriodo');
+      if (sel && fit) sel.value = String(fit.periodo || '1');
+    }, 80);
+  };
+
+  // 3. Corrigir filtro de período — usar f.periodo directamente (agora está guardado)
+  //    e usar turmaReal em vez de state.turma
+  const _origRenderFitPeriodoFix = window.renderFit;
+  window.renderFit = function() {
+    const fitPeriodoSelect = document.getElementById('fitPeriodoSelect');
+    // Usar o valor do select se existir, senão usar fitPeriodoFiltro (nunca 'todos')
+    const filtro = (fitPeriodoSelect ? fitPeriodoSelect.value : null) || fitPeriodoFiltro || '1';
+
+    const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    const backup    = state.fit[turmaReal];
+    const filtered  = (backup || []).filter(f => !f.periodo || String(f.periodo) === filtro);
+
+    state.fit[turmaReal] = filtered;
+    _origRenderFitPeriodoFix.apply(this, arguments);
+    state.fit[turmaReal] = backup;
+  };
+
+  // 4. Ao abrir modal limpo, definir período activo no selector
+  const _origOpenModalFitPer = window.openModal;
+  window.openModal = function(id, isNew, ...rest) {
+    if (typeof _origOpenModalFitPer === 'function') _origOpenModalFitPer(id, isNew, ...rest);
+    if (id === 'modalFit' && isNew !== false) {
+      setTimeout(() => {
+        const sel = document.getElementById('fitModalPeriodo');
+        if (sel) sel.value = String(state.periodo || '1');
+      }, 40);
+    }
+  };
+
+  console.log('✅ FITescola período por registo corrigido');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Migrar registos FIT antigos: inferir período pelas datas das provas
+// Registos sem `periodo` definido são actualizados usando state.periodosDatas
+// e as datas dataVaivem/dataAbd/dataBracos/dataImp guardadas.
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Devolve '1'|'2'|'3'|null para uma data ISO, usando periodosDatas
+  function inferirPeriodo(dataIso) {
+    if (!dataIso || !state.periodosDatas) return null;
+    for (const p of ['1','2','3']) {
+      const pd = state.periodosDatas[p];
+      if (pd?.inicio && pd?.fim && dataIso >= pd.inicio && dataIso <= pd.fim) return p;
+    }
+    return null;
+  }
+
+  // Normaliza DD/MM/YYYY → YYYY-MM-DD se necessário
+  function toIso(d) {
+    if (!d) return null;
+    const parts = String(d).split('/');
+    if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    return d; // já ISO
+  }
+
+  window.migrarFitPeriodos = function() {
+    if (!state.periodosDatas) return;
+    // Verificar se algum período tem datas definidas
+    const temDatas = ['1','2','3'].some(p => state.periodosDatas[p]?.inicio && state.periodosDatas[p]?.fim);
+    if (!temDatas) return;
+
+    let changed = false;
+    Object.keys(state.fit || {}).forEach(turma => {
+      (state.fit[turma] || []).forEach(f => {
+        // Reinfere sempre (não só quando periodo está vazio) para corrigir registos mal migrados
+        const datas = [f.dataVaivem, f.dataAbd, f.dataBracos, f.dataImp]
+          .map(toIso).filter(Boolean);
+        if (!datas.length) return;
+        const votos = {};
+        datas.forEach(d => {
+          const p = inferirPeriodo(d);
+          if (p) votos[p] = (votos[p] || 0) + 1;
+        });
+        const melhor = Object.entries(votos).sort((a,b) => b[1]-a[1])[0];
+        if (melhor && melhor[0] !== f.periodo) {
+          f.periodo = melhor[0];
+          changed = true;
+        }
+      });
+    });
+    if (changed) {
+      saveState();
+      if (typeof renderFit === 'function') renderFit();
+    }
+  };
+
+  // Correr após estado estar carregado
+  setTimeout(window.migrarFitPeriodos, 1200);
+
+  // Correr quando página FITescola abre
+  const _origShowPageMig = window.showPage;
+  window.showPage = function(id, btn) {
+    if (typeof _origShowPageMig === 'function') _origShowPageMig(id, btn);
+    if (id === 'fitescola') setTimeout(window.migrarFitPeriodos, 300);
+  };
+
+  console.log('✅ Migração períodos FIT carregado');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH FINAL — editFit consolidado: datas + NR + período + turma correcta
+// Substitui todos os patches anteriores de editFit que conflituavam entre si.
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  const _baseEditFit = window.editFit;
+  window.editFit = function(alunoId) {
+    // Chamar a cadeia base (abre modal, preenche vaivem/abd/bracos/imp)
+    _baseEditFit.apply(this, arguments);
+
+    // Único setTimeout para preencher TODOS os campos extras
+    setTimeout(() => {
+      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const fit = (state.fit[turmaReal] || []).find(f => f.alunoId === alunoId);
+      if (!fit) return;
+
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+
+      // Datas por prova
+      set('fitDataVaivem', fit.dataVaivem || '');
+      set('fitDataAbd',    fit.dataAbd    || '');
+      set('fitDataBracos', fit.dataBracos || '');
+      set('fitDataImp',    fit.dataImp    || '');
+
+      // Período
+      const selPer = document.getElementById('fitModalPeriodo');
+      if (selPer) selPer.value = String(fit.periodo || '1');
+
+      // NR checkboxes
+      const nrMap = { vaivem: fit.nrVaivem, abd: fit.nrAbd, bracos: fit.nrBracos, imp: fit.nrImp };
+      Object.entries(nrMap).forEach(([prova, nr]) => {
+        const cbId = 'fitNR' + prova.charAt(0).toUpperCase() + prova.slice(1);
+        const cb = document.getElementById(cbId);
+        if (cb) cb.checked = !!nr;
+        if (typeof fitToggleNR === 'function') fitToggleNR(prova, !!nr);
+      });
+    }, 120);
+  };
+
+  console.log('✅ editFit consolidado');
+})();
+</script>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Classificação FIT: 4 provas fixas, NR/não registado = 0 (abaixo)
+// Nota = nº de provas na zona saudável (0-4 → nota 1-5)
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Sobrescreve alunoFitClassificacao
+  // NR = conta como 0 (abaixo); não registado = não conta (excluído)
+  window.alunoFitClassificacao = function(f, aluno) {
+    if (!aluno) return null;
+    const age = getAge(aluno.nasc), g = aluno.genre;
+    if (!age) return null;
+
+    const provas = [
+      { v: f.vaivem,  nr: f.nrVaivem,  s: getRef(FIT_REF.vaivem,  g, age) },
+      { v: f.abd,     nr: f.nrAbd,     s: getRef(FIT_REF.abd,     g, age) },
+      { v: f.bracos,  nr: f.nrBracos,  s: getRef(FIT_REF.bracos,  g, age) },
+      { v: f.imp,     nr: f.nrImp,     s: getRef(FIT_REF.imp,     g, age) },
+    ];
+
+    // NR conta como prova feita mas abaixo da zona (0)
+    // Não registado (null/vazio e sem NR) é excluído do cálculo
+    const provasContam = provas.filter(p =>
+      p.nr || (p.v !== null && p.v !== undefined && p.v !== '')
+    );
+
+    if (!provasContam.length) return null;
+
+    const nSaudavel = provasContam.filter(p =>
+      !p.nr && p.s && parseFloat(p.v) >= parseFloat(p.s)
+    ).length;
+
+    // Se todas as provas que contam são NR (nenhuma registada), nota = 0
+    const todasNR = provasContam.every(p => p.nr);
+    if (todasNR) return 0;
+
+    const total = provasContam.length;
+    return Math.round((nSaudavel / total) * 4) + 1;
+  };
+
+  console.log('✅ alunoFitClassificacao: NR/não registado conta como 0');
 })();
 </script>
