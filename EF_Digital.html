@@ -685,7 +685,17 @@ tr:hover td { background: #FAFBFA; }
         <div class="card-header">
           <span class="card-title" id="fitTableTitle">Resultados por aluno</span>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-secondary btn-sm" onclick="openModal('modalFit')"><i class="ti ti-plus"></i>Registar</button>
+            <button class="btn btn-secondary btn-sm" onclick="
+              if(!fitTurma) fitTurma=state.turma;
+              document.getElementById('modalFit').classList.add('open');
+              setTimeout(function(){
+                var sel=document.getElementById('fitModalPeriodo');
+                if(sel) sel.value=String(state.periodo||'1');
+                var d=document.getElementById('fitAtividadeData');
+                if(d) d.value='';
+                fitBuildGrid();
+              },80);
+            "><i class="ti ti-plus"></i>Registar</button>
             <button class="btn btn-secondary btn-sm" onclick="exportFit()"><i class="ti ti-download"></i>Exportar</button>
           </div>
         </div>
@@ -790,6 +800,24 @@ tr:hover td { background: #FAFBFA; }
     <div class="page" id="page-turmas-dashboard">
       <div class="stats-grid" id="dash-global-stats"></div>
       <div class="dash-grid" id="dash-turmas-grid"></div>
+
+      <!-- Dashboard FIT evolução -->
+      <div class="card" style="margin-top:12px">
+        <div class="card-header">
+          <span class="card-title">📈 FITescola — Evolução por aluno</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label style="font-size:12px;color:var(--text3)">Turma:</label>
+            <select id="dashFitTurma" onchange="dashFitUpdate()"
+              style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text)">
+            </select>
+            <label style="font-size:12px;color:var(--text3)">Aluno:</label>
+            <select id="dashFitAluno" onchange="renderFitEvolucaoDash()"
+              style="padding:5px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text)">
+            </select>
+          </div>
+        </div>
+        <div id="dashFitEvolucao" style="padding:8px 0"></div>
+      </div>
     </div>
 
     <!-- ═══ COMPARAR getTURMAS() ═══ -->
@@ -1093,105 +1121,74 @@ tr:hover td { background: #FAFBFA; }
 
 <!-- ═══ MODAL FITESCOLA ═══ -->
 <div class="overlay" id="modalFit" onclick="if(event.target===this)closeModal('modalFit')">
-  <div class="modal" style="max-width:580px">
+  <div class="modal" style="max-width:760px">
     <div class="modal-header">
-      <span class="modal-title" id="modalFitTitle">Registar FITescola</span>
-      <button class="modal-close" onclick="closeModal('modalFit')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="form-grid">
-      <div class="form-group full"><label class="form-label">Aluno *</label>
-        <select class="form-select" id="fitAluno" onchange="updateFitRef()"></select>
+      <span class="modal-title" id="modalFitTitle">Registar FITescola — por atividade</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary btn-sm" onclick="fitSaveGrid()"><i class="ti ti-check"></i>Guardar</button>
+        <button class="modal-close" onclick="closeModal('modalFit')"><i class="ti ti-x"></i></button>
       </div>
-      <div class="form-group">
+    </div>
+
+    <!-- Cabeçalho: prova + período + data -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 0 12px">
+      <div>
+        <label class="form-label">Atividade *</label>
+        <select class="form-select" id="fitAtividade" onchange="fitBuildGrid()">
+          <option value="vaivem">🏃 Vaivém</option>
+          <option value="abd">🤸 Abdominais</option>
+          <option value="bracos">💪 Flexões de Braços</option>
+          <option value="imp">⬆️ Impulsão Horizontal</option>
+        </select>
+      </div>
+      <div>
         <label class="form-label">Período *</label>
-        <select class="form-select" id="fitModalPeriodo">
+        <select class="form-select" id="fitModalPeriodo" onchange="fitBuildGrid()">
           <option value="1">1º Período</option>
           <option value="2">2º Período</option>
           <option value="3">3º Período</option>
         </select>
       </div>
-      <div class="form-group" style="display:flex;align-items:flex-end">
-        <div id="fitRefBox" style="font-size:11px;color:var(--text3);padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);width:100%;line-height:1.6"></div>
+      <div>
+        <label class="form-label">Data da atividade</label>
+        <input class="form-input" type="date" id="fitAtividadeData">
       </div>
     </div>
 
-    <div style="border-top:1px solid var(--border);margin:12px 0 10px;padding-top:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">APTIDÃO AERÓBIA</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">🏃 Vaivém — percursos <span id="fitVaivemRef" style="color:var(--green);font-size:10px"></span></label>
-          <input class="form-input" type="number" id="fitVaivem" placeholder="Nº de percursos" min="0" max="120" oninput="updateFitZona()">
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="color:var(--text3)">📅 Data do Vaivém</label>
-          <input class="form-input" type="date" id="fitDataVaivem">
-        </div>
-        <div class="form-group full">
-          <label id="fitNRVaivemWrap" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3);user-select:none">
-            <input type="checkbox" id="fitNRVaivem" onchange="fitToggleNR('vaivem',this.checked)" style="accent-color:#B7770D;width:14px;height:14px">
-            Não realizou esta prova
-          </label>
-        </div>
-      </div>
+    <!-- Grid de alunos -->
+    <div id="fitGrid" style="max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--surface2);position:sticky;top:0;z-index:1">
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--text2)">Aluno</th>
+            <th style="padding:8px 12px;text-align:center;font-weight:600;color:var(--text2)" id="fitGridColLabel">Resultado</th>
+            <th style="padding:8px 12px;text-align:center;font-weight:600;color:var(--text2)">Não realizou</th>
+          </tr>
+        </thead>
+        <tbody id="fitGridBody">
+          <tr><td colspan="3" style="padding:20px;text-align:center;color:var(--text3)">
+            <button class="btn btn-secondary" onclick="fitBuildGrid()" style="font-size:12px">
+              <i class="ti ti-refresh"></i> Carregar alunos
+            </button>
+          </td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <div style="border-top:1px solid var(--border);margin:4px 0 10px;padding-top:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">APTIDÃO NEUROMUSCULAR</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">🤸 Abdominais — reps <span id="fitAbdRef" style="color:var(--green);font-size:10px"></span></label>
-          <input class="form-input" type="number" id="fitAbd" placeholder="Nº repetições" min="0" max="75" oninput="updateFitZona()">
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="color:var(--text3)">📅 Data dos Abdominais</label>
-          <input class="form-input" type="date" id="fitDataAbd">
-        </div>
-        <div class="form-group full">
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3);user-select:none">
-            <input type="checkbox" id="fitNRAbd" onchange="fitToggleNR('abd',this.checked)" style="accent-color:#B7770D;width:14px;height:14px">
-            Não realizou esta prova
-          </label>
-        </div>
-        <div class="form-group">
-          <label class="form-label">💪 Flexões de Braços — reps <span id="fitBracosRef" style="color:var(--green);font-size:10px"></span></label>
-          <input class="form-input" type="number" id="fitBracos" placeholder="Nº repetições" min="0" oninput="updateFitZona()">
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="color:var(--text3)">📅 Data das Flexões</label>
-          <input class="form-input" type="date" id="fitDataBracos">
-        </div>
-        <div class="form-group full">
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3);user-select:none">
-            <input type="checkbox" id="fitNRBracos" onchange="fitToggleNR('bracos',this.checked)" style="accent-color:#B7770D;width:14px;height:14px">
-            Não realizou esta prova
-          </label>
-        </div>
-        <div class="form-group full">
-          <label class="form-label">⬆️ Impulsão Horizontal — 3 tentativas (cm) <span id="fitImpRef" style="color:var(--green);font-size:10px"></span></label>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center">
-            <input class="form-input" type="number" id="fitImp1" placeholder="1ª tentativa" min="0" max="400" oninput="updateBestImp()">
-            <input class="form-input" type="number" id="fitImp2" placeholder="2ª tentativa" min="0" max="400" oninput="updateBestImp()">
-            <input class="form-input" type="number" id="fitImp3" placeholder="3ª tentativa" min="0" max="400" oninput="updateBestImp()">
-            <div id="fitImpBest" style="text-align:center;min-width:56px">
-              <div style="font-size:10px;color:var(--text3)">Melhor</div>
-              <div style="font-size:18px;font-weight:700;color:var(--green)" id="fitImpBestVal">—</div>
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="color:var(--text3)">📅 Data da Impulsão</label>
-          <input class="form-input" type="date" id="fitDataImp">
-        </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text3);user-select:none">
-            <input type="checkbox" id="fitNRImp" onchange="fitToggleNR('imp',this.checked)" style="accent-color:#B7770D;width:14px;height:14px">
-            Não realizou esta prova
-          </label>
-          <div id="fitZonaBox" style="flex:1;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-align:center;background:var(--surface2);color:var(--text3)">
-            Preenche os campos para ver a zona
-          </div>
-        </div>
-      </div>
+    <!-- Campos ocultos para compatibilidade com saveFit existente -->
+    <div style="display:none">
+      <input id="fitAluno" value="">
+      <input id="fitVaivem"><input id="fitAbd"><input id="fitBracos">
+      <input id="fitImp1"><input id="fitImp2"><input id="fitImp3">
+      <input id="fitDataVaivem"><input id="fitDataAbd"><input id="fitDataBracos"><input id="fitDataImp">
+      <input type="checkbox" id="fitNRVaivem"><input type="checkbox" id="fitNRAbd">
+      <input type="checkbox" id="fitNRBracos"><input type="checkbox" id="fitNRImp">
+      <div id="fitImpBestVal"></div><div id="fitZonaBox"></div><div id="fitRefBox"></div>
+      <div id="fitVaivemRef"></div><div id="fitAbdRef"></div><div id="fitBracosRef"></div><div id="fitImpRef"></div>
+    </div>
+
+  </div>
+</div>
     </div>
 
     <div class="modal-footer">
@@ -2146,7 +2143,8 @@ function saveFit() {
   };
 
   if (!state.fit[state.turma]) state.fit[state.turma] = [];
-  const ei = state.fit[state.turma].findIndex(f => f.alunoId === alunoId);
+  const _periodo2149 = entry.periodo || document.getElementById('fitModalPeriodo')?.value || '1';
+  const ei = state.fit[state.turma].findIndex(f => f.alunoId === alunoId && String(f.periodo||'1') === String(_periodo2149));
   if (ei >= 0) state.fit[state.turma][ei] = { ...state.fit[state.turma][ei], ...entry };
   else         state.fit[state.turma].push(entry);
 
@@ -2355,7 +2353,7 @@ function openModal(id, isNew=false) {
     ['auObj','auObs','auLocal'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderPresencaGrid();
   }
-  if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[typeof getFitTurma==='function'?getFitTurma():state.turma]||[]); setTimeout(updateFitRef, 50); }
+  if (id === 'modalFit') { /* grid-based modal — handled by fitBuildGrid patch */ }
   if (id === 'mgturmas') { renderTurmasListEdit(); setTimeout(()=>document.getElementById('novaTurmaInput')?.focus(),100); }
   if (id === 'modalHorario') {
     updateTurmaSels();
@@ -5141,37 +5139,18 @@ console.log('✅ Planificação = Horário por turma patch carregado');
 let editingFitAlunoId = null;
 
 function editFit(alunoId) {
-  const fit = (state.fit[state.turma] || []).find(f => f.alunoId === alunoId);
-  if (!fit) return;
-  editingFitAlunoId = alunoId;
-
-  // Set modal title and show delete button
-  const title = document.getElementById('modalFitTitle');
-  const delBtn = document.getElementById('btnDeleteFit');
-  if (title)  title.textContent  = 'Editar FITescola';
-  if (delBtn) delBtn.style.display = '';
-
-  // Populate select
-  populateSelect('fitAluno', state.alunos[typeof getFitTurma==='function'?getFitTurma():state.turma] || []);
-  const sel = document.getElementById('fitAluno');
-  if (sel) sel.value = alunoId;
-
-  // Fill fields
-  const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value = val||''; };
-  setVal('fitData',   fit.data   || '');
-  setVal('fitVaivem', fit.vaivem || '');
-  setVal('fitAbd',    fit.abd    || '');
-  setVal('fitBracos', fit.bracos || '');
-  setVal('fitImp1',   fit.imp1   || '');
-  setVal('fitImp2',   fit.imp2   || '');
-  setVal('fitImp3',   fit.imp3   || '');
-
-  // Update best imp display
-  if (typeof updateBestImp === 'function') updateBestImp();
-  // Update ref display
-  if (typeof updateFitRef === 'function') setTimeout(updateFitRef, 50);
-
-  document.getElementById('modalFit').classList.add('open');
+  // No novo sistema o "editar" abre o quadro da atividade no período correcto
+  // O utilizador escolhe a atividade e edita directamente no quadro
+  const periodoSel = document.getElementById('fitPeriodoSelect')?.value || '1';
+  openModal('modalFit');
+  setTimeout(() => {
+    const sel = document.getElementById('fitModalPeriodo');
+    if (sel) { sel.value = periodoSel; }
+    fitBuildGrid();
+    // Scroll para o aluno em questão
+    const row = document.getElementById('fitrow_' + alunoId);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 80);
 }
 
 function deleteFit() {
@@ -5190,141 +5169,38 @@ function deleteFit() {
   toast('Resultados apagados');
 }
 
-// Patch saveFit to handle edit mode
+// Patch saveFit — neutralizado: o save é agora feito por fitSaveGrid()
 const _origSaveFit = window.saveFit;
 window.saveFit = function() {
-  const alunoId = document.getElementById('fitAluno').value;
-  if (!alunoId) { toast('Seleciona um aluno', 'ti-alert-circle'); return; }
-
-  const nrVaivem = document.getElementById('fitNRVaivem')?.checked || false;
-  const nrAbd    = document.getElementById('fitNRAbd')?.checked    || false;
-  const nrBracos = document.getElementById('fitNRBracos')?.checked || false;
-  const nrImp    = document.getElementById('fitNRImp')?.checked    || false;
-
-  const v1 = parseFloat(document.getElementById('fitImp1')?.value) || 0;
-  const v2 = parseFloat(document.getElementById('fitImp2')?.value) || 0;
-  const v3 = parseFloat(document.getElementById('fitImp3')?.value) || 0;
-  const bestImp = Math.max(v1, v2, v3) || null;
-
-  const entry = {
-    alunoId,
-    vaivem: nrVaivem ? null : (parseInt(document.getElementById('fitVaivem')?.value)  || null),
-    abd:    nrAbd    ? null : (parseInt(document.getElementById('fitAbd')?.value)     || null),
-    bracos: nrBracos ? null : (parseInt(document.getElementById('fitBracos')?.value)  || null),
-    imp:    nrImp    ? null : bestImp,
-    imp1: nrImp ? null : (v1||null), imp2: nrImp ? null : (v2||null), imp3: nrImp ? null : (v3||null),
-    data: document.getElementById('fitData')?.value || '',
-    nrVaivem, nrAbd, nrBracos, nrImp,
-    dataVaivem: document.getElementById('fitDataVaivem')?.value || '',
-    dataAbd:    document.getElementById('fitDataAbd')?.value    || '',
-    dataBracos: document.getElementById('fitDataBracos')?.value || '',
-    dataImp:    document.getElementById('fitDataImp')?.value    || '',
-    periodo:    document.getElementById('fitModalPeriodo')?.value || '1',
-  };
-
-  const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
-  if (!state.fit[turmaReal]) state.fit[turmaReal] = [];
-  const ei = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId);
-  if (ei >= 0) state.fit[turmaReal][ei] = { ...state.fit[turmaReal][ei], ...entry };
-  else         state.fit[turmaReal].push(entry);
-
-  // Reset modal UI
-  editingFitAlunoId = null;
-  const title  = document.getElementById('modalFitTitle');
-  const delBtn = document.getElementById('btnDeleteFit');
-  if (title)  title.textContent    = 'Registar FITescola';
-  if (delBtn) delBtn.style.display = 'none';
-
-  ['fitVaivem','fitAbd','fitBracos','fitImp1','fitImp2','fitImp3',
-   'fitDataVaivem','fitDataAbd','fitDataBracos','fitDataImp'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  ['fitNRVaivem','fitNRAbd','fitNRBracos','fitNRImp'].forEach(id => {
-    const cb = document.getElementById(id); if (cb) cb.checked = false;
-  });
-  if (typeof fitToggleNR === 'function') ['vaivem','abd','bracos','imp'].forEach(p => fitToggleNR(p, false));
-
-  const bv = document.getElementById('fitImpBest');
-  if (bv) bv.innerHTML = '<span style="font-size:22px;font-weight:700;color:var(--green)">—</span>';
-  const zb = document.getElementById('fitZonaBox');
-  if (zb) { zb.style.background='var(--surface2)'; zb.style.color='var(--text3)'; zb.textContent='Preenche os campos para ver a classificação'; }
-
-  saveState();
-  closeModal('modalFit');
-  renderFit();
-
-  const cl = alunoFitClassificacao(entry, getAluno(turmaReal, alunoId));
-  toast('FITescola guardado' + (cl ? ' — Classificação ' + cl : ''));
+  // O modal agora usa fitSaveGrid() directamente — este patch não faz nada
+  if (typeof fitSaveGrid === 'function') fitSaveGrid();
 };
 
-// Patch renderFit to add edit button in table rows
+// Patch renderFit — só adiciona botões de editar, sem re-renderizar a tabela
 const _prevRenderFit = window.renderFit;
 window.renderFit = function() {
   if (typeof _prevRenderFit === 'function') _prevRenderFit();
 
-  // After render, add edit buttons to each row
-  const bodyEl = document.getElementById('fitBody');
-  if (!bodyEl) return;
-  const fits = state.fit[state.turma] || [];
-  if (!fits.length) return;
+  // Apenas adicionar botões de editar às linhas existentes
+  setTimeout(() => {
+    const bodyEl = document.getElementById('fitBody');
+    if (!bodyEl) return;
+    bodyEl.querySelectorAll('tr[data-aluno-id]').forEach(row => {
+      if (row.querySelector('.fit-edit-btn')) return;
+      const alunoId = row.getAttribute('data-aluno-id');
+      const td = document.createElement('td');
+      td.innerHTML = '<button class="fit-edit-btn" onclick="editFit(\'' + alunoId + '\')" title="Editar" style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;color:var(--text3);font-size:12px"><i class="ti ti-pencil"></i></button>';
+      row.appendChild(td);
+    });
+    const thead = document.querySelector('#page-fitescola table thead tr');
+    if (thead && !thead.querySelector('th[data-edit]')) {
+      const th = document.createElement('th'); th.setAttribute('data-edit','1'); th.style.width='44px';
+      thead.appendChild(th);
+    }
+  }, 10);
 
-  // Re-render table with edit button column
-  const alunos = state.alunos[state.turma] || [];
-
-  function cell(val, refKey, g, age, nrFlag) {
-    if (nrFlag) return `<td style="text-align:center"><span style="font-size:11px;font-weight:600;color:#B7770D;background:#FEF3E7;padding:2px 8px;border-radius:4px" title="Não realizou esta prova">NR</span></td>`;
-    if (!val && val !== 0) return '<td style="color:var(--text3);text-align:center">—</td>';
-    const ref  = age ? getRef(FIT_REF[refKey],            g, age) : null;
-    const refA = age ? getRef(FIT_REF[refKey+'Atletico'],  g, age) : null;
-    const z    = fitZona(val, ref, refA);
-    const col  = z==='atletico'?'#1A5C3A':z==='saudavel'?'#1B4F72':z==='abaixo'?'#B7770D':'var(--text)';
-    const bg   = z==='atletico'?'#D5F5E3':z==='saudavel'?'#EBF3FB':z==='abaixo'?'#FEF6EE':'';
-    const icon = z==='atletico'?'🏆':z==='saudavel'?'✅':z==='abaixo'?'⚠':'';
-    const tip  = ref ? `Zona S.≥${ref}${refA?' | Atlético≥'+refA:''}` : '';
-    return `<td title="${tip}" style="text-align:center">
-      <span style="font-family:var(--mono);font-weight:700;color:${col};background:${bg};padding:2px 7px;border-radius:5px">${icon} ${val}</span>
-      ${ref?`<div style="font-size:9px;color:var(--text3);margin-top:1px">ref≥${ref}</div>`:''}
-    </td>`;
-  }
-
-  const zonaLabels = {
-    5:{txt:'✅ Zona Saudável',bg:'#D5F5E3',fg:'#1A5C3A'},
-    4:{txt:'⭐ Zona Saudável',bg:'#D5F5E3',fg:'#1A5C3A'},
-    3:{txt:'⚠ A Melhorar',   bg:'#FEF3E7',fg:'#B7770D'},
-    2:{txt:'⚠ A Melhorar',   bg:'#FEF3E7',fg:'#B7770D'},
-    1:{txt:'❌ Abaixo',      bg:'#FADBD8',fg:'#922B21'},
-  };
-
-  bodyEl.innerHTML = fits.map(f => {
-    const a   = getAluno(state.turma, f.alunoId) || {name:'?',genre:'F',nasc:''};
-    const age = getAge(a.nasc), g = a.genre;
-    const cl  = alunoFitClassificacao(f, a);
-    const zl  = cl != null ? zonaLabels[cl] : null;
-
-    return `<tr data-aluno-id="${f.alunoId}">
-      <td><strong>${a.name}</strong></td>
-      <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
-      <td style="font-family:var(--mono);color:var(--text3);text-align:center">${age||'—'}</td>
-      ${cell(f.vaivem,'vaivem',g,age,f.nrVaivem)}
-      ${cell(f.abd,   'abd',   g,age,f.nrAbd)}
-      ${cell(f.bracos,'bracos',g,age,f.nrBracos)}
-      ${cell(f.imp,   'imp',   g,age,f.nrImp)}
-      <td style="text-align:center">
-        ${cl!=null?`
-          <span class="nota nota-${cl}" style="width:30px;height:30px;font-size:15px;margin-bottom:3px">${cl}</span>
-          ${zl?`<div style="font-size:10px;font-weight:600;color:${zl.fg};background:${zl.bg};padding:2px 6px;border-radius:10px;margin-top:3px;white-space:nowrap">${zl.txt}</div>`:''}
-        `:'<span style="color:var(--text3)">—</span>'}
-      </td>
-      <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
-      <td>
-        <button onclick="editFit('${f.alunoId}')" title="Editar"
-          style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;color:var(--text3);font-size:12px">
-          <i class="ti ti-pencil"></i>
-        </button>
-      </td>
-    </tr>`;
-  }).join('');
 };
+
 
 // Add extra column header for edit button
 const _addFitEditHeader = () => {
@@ -10086,6 +9962,7 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
     // 1. Ler tudo ANTES de qualquer outro patch correr
     const alunoId   = document.getElementById('fitAluno')?.value;
     const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    const periodo   = document.getElementById('fitModalPeriodo')?.value || '1';
     const nrVaivem  = document.getElementById('fitNRVaivem')?.checked  || false;
     const nrAbd     = document.getElementById('fitNRAbd')?.checked     || false;
     const nrBracos  = document.getElementById('fitNRBracos')?.checked  || false;
@@ -10101,7 +9978,7 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
     // 3. Escrever NR e datas na turma correcta (não state.turma que pode ter sido restaurado)
     if (!alunoId) return;
     if (!state.fit[turmaReal]) return;
-    const idx = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId);
+    const idx = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId && String(f.periodo||'1') === String(periodo));
     if (idx < 0) return;
     const f = state.fit[turmaReal][idx];
 
@@ -10267,7 +10144,7 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
 
     // Escrever periodo no registo após save
     if (!alunoId || !state.fit[turmaReal]) return;
-    const idx = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId);
+    const idx = state.fit[turmaReal].findIndex(f => f.alunoId === alunoId && String(f.periodo||'1') === String(periodo));
     if (idx >= 0) {
       state.fit[turmaReal][idx].periodo = periodo;
       if (typeof saveState === 'function') saveState();
@@ -10405,8 +10282,13 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
 
     // Único setTimeout para preencher TODOS os campos extras
     setTimeout(() => {
-      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
-      const fit = (state.fit[turmaReal] || []).find(f => f.alunoId === alunoId);
+      const turmaReal  = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const periodoSel = document.getElementById('fitPeriodoSelect')?.value || '1';
+
+      // Encontrar o registo pelo par alunoId + período seleccionado
+      const fit = (state.fit[turmaReal] || []).find(f =>
+        f.alunoId === alunoId && String(f.periodo || '1') === String(periodoSel)
+      ) || (state.fit[turmaReal] || []).find(f => f.alunoId === alunoId);
       if (!fit) return;
 
       const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
@@ -10479,5 +10361,616 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
   };
 
   console.log('✅ alunoFitClassificacao: NR/não registado conta como 0');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — FITescola: inserção por atividade em quadro (reescrito)
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  const ATIV_CONFIG = {
+    vaivem: { label: 'Percursos', dataField: 'dataVaivem', nrField: 'nrVaivem' },
+    abd:    { label: 'Reps',      dataField: 'dataAbd',    nrField: 'nrAbd' },
+    bracos: { label: 'Reps',      dataField: 'dataBracos', nrField: 'nrBracos' },
+    imp:    { label: 'cm',        dataField: 'dataImp',    nrField: 'nrImp', tentativas: true },
+  };
+
+  window.fitBuildGrid = function() {
+    const ativ    = document.getElementById('fitAtividade')?.value || 'vaivem';
+    const periodo = document.getElementById('fitModalPeriodo')?.value || '1';
+    const cfg     = ATIV_CONFIG[ativ];
+
+    // Garantir turma válida
+    if (!fitTurma) fitTurma = state.turma;
+    const turma = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+
+    const alunos  = (state.alunos[turma] || [])
+      .filter(a => !a.status || ['ativo','entrada','troca'].includes(a.status))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt', {sensitivity:'base'}));
+
+    const colLabel = document.getElementById('fitGridColLabel');
+    if (colLabel) colLabel.textContent = cfg.label;
+
+    // Preencher data da atividade se já existir no state
+    const dataEl = document.getElementById('fitAtividadeData');
+    if (dataEl && !dataEl.value) {
+      const anyReg = (state.fit[turma] || []).find(f =>
+        String(f.periodo||'1') === String(periodo) && f[cfg.dataField]
+      );
+      if (anyReg) dataEl.value = anyReg[cfg.dataField] || '';
+    }
+
+    const body = document.getElementById('fitGridBody');
+    if (!body) {
+      console.warn('fitGridBody não encontrado — modal ainda não abriu?');
+      setTimeout(window.fitBuildGrid, 150);
+      return;
+    }
+
+    if (!alunos.length) {
+      body.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:var(--text3)">
+        Sem alunos na turma <strong>${turma}</strong></td></tr>`;
+      return;
+    }
+
+    const S = 'width:100%;padding:5px 8px;border:1px solid var(--border2);border-radius:4px;font-size:13px;font-family:var(--mono);text-align:center;background:var(--surface);color:var(--text)';
+
+    body.innerHTML = alunos.map(aluno => {
+      const reg = (state.fit[turma] || []).find(f =>
+        f.alunoId === aluno.id && String(f.periodo||'1') === String(periodo)
+      );
+      const nr = reg ? !!reg[cfg.nrField] : false;
+      const dis = nr ? 'disabled style="' + S + ';opacity:0.35"' : 'style="' + S + '"';
+
+      let inputCell;
+      if (cfg.tentativas) {
+        const v = reg && !nr ? [reg.imp1||'', reg.imp2||'', reg.imp3||''] : ['','',''];
+        const best = reg && reg.imp ? reg.imp + 'cm' : '—';
+        inputCell = `<div style="display:flex;gap:4px;align-items:center">
+          <input type="number" id="fit_${aluno.id}_1" value="${v[0]}" placeholder="1ª" min="0" max="400" ${dis} oninput="fitGridBestImp('${aluno.id}')">
+          <input type="number" id="fit_${aluno.id}_2" value="${v[1]}" placeholder="2ª" min="0" max="400" ${dis} oninput="fitGridBestImp('${aluno.id}')">
+          <input type="number" id="fit_${aluno.id}_3" value="${v[2]}" placeholder="3ª" min="0" max="400" ${dis} oninput="fitGridBestImp('${aluno.id}')">
+          <span id="fit_${aluno.id}_best" style="font-size:11px;color:var(--text3);min-width:36px;text-align:center">${best}</span>
+        </div>`;
+      } else {
+        const v = reg && !nr ? (reg[ativ] != null ? reg[ativ] : '') : '';
+        inputCell = `<input type="number" id="fit_${aluno.id}_val" value="${v}" placeholder="—" min="0" ${dis}>`;
+      }
+
+      return `<tr id="fitrow_${aluno.id}" style="border-top:1px solid var(--border);${nr?'opacity:0.5':''}">
+        <td style="padding:6px 12px;font-weight:500">${aluno.name}</td>
+        <td style="padding:6px 12px">${inputCell}</td>
+        <td style="padding:6px 12px;text-align:center">
+          <input type="checkbox" id="fit_${aluno.id}_nr" ${nr?'checked':''}
+            style="accent-color:#B7770D;width:15px;height:15px"
+            onchange="fitGridToggleNR('${aluno.id}',this.checked)">
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  window.fitGridBestImp = function(id) {
+    const v = [1,2,3].map(i => parseFloat(document.getElementById('fit_'+id+'_'+i)?.value)||0);
+    const best = Math.max(...v);
+    const el = document.getElementById('fit_'+id+'_best');
+    if (el) el.textContent = best > 0 ? best + 'cm' : '—';
+  };
+
+  window.fitGridToggleNR = function(id, checked) {
+    const row = document.getElementById('fitrow_'+id);
+    if (row) row.style.opacity = checked ? '0.5' : '';
+    ['val','1','2','3'].forEach(s => {
+      const el = document.getElementById('fit_'+id+'_'+s);
+      if (!el) return;
+      el.disabled = checked;
+      el.style.opacity = checked ? '0.35' : '';
+      if (checked) el.value = '';
+    });
+  };
+
+  window.fitSaveGrid = function() {
+    const ativ    = document.getElementById('fitAtividade')?.value || 'vaivem';
+    const periodo = document.getElementById('fitModalPeriodo')?.value || '1';
+    const data    = document.getElementById('fitAtividadeData')?.value || '';
+    const cfg     = ATIV_CONFIG[ativ];
+    const turma   = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    const alunos  = (state.alunos[turma] || [])
+      .filter(a => !a.status || ['ativo','entrada','troca'].includes(a.status));
+
+    if (!state.fit[turma]) state.fit[turma] = [];
+
+    alunos.forEach(aluno => {
+      const nr = document.getElementById('fit_'+aluno.id+'_nr')?.checked || false;
+      let val = null, imp1 = null, imp2 = null, imp3 = null, temValor = false;
+
+      if (!nr) {
+        if (cfg.tentativas) {
+          imp1 = parseFloat(document.getElementById('fit_'+aluno.id+'_1')?.value) || null;
+          imp2 = parseFloat(document.getElementById('fit_'+aluno.id+'_2')?.value) || null;
+          imp3 = parseFloat(document.getElementById('fit_'+aluno.id+'_3')?.value) || null;
+          val  = imp1||imp2||imp3 ? Math.max(imp1||0,imp2||0,imp3||0) : null;
+          temValor = !!(imp1||imp2||imp3);
+        } else {
+          const raw = document.getElementById('fit_'+aluno.id+'_val')?.value;
+          if (raw !== '' && raw != null) { val = parseFloat(raw)||null; temValor = val !== null; }
+        }
+      }
+
+      // Só guardar se NR marcado OU valor preenchido
+      if (!nr && !temValor) return;
+
+      const idx = state.fit[turma].findIndex(f =>
+        f.alunoId === aluno.id && String(f.periodo||'1') === String(periodo)
+      );
+
+      const patch = {
+        alunoId: aluno.id, periodo,
+        [cfg.nrField]: nr,
+        [cfg.dataField]: data,
+        ...(cfg.tentativas
+          ? { imp: nr?null:val, imp1: nr?null:imp1, imp2: nr?null:imp2, imp3: nr?null:imp3 }
+          : { [ativ]: nr?null:val }),
+      };
+
+      if (idx >= 0) {
+        state.fit[turma][idx] = { ...state.fit[turma][idx], ...patch };
+      } else {
+        state.fit[turma].push({
+          vaivem:null, abd:null, bracos:null, imp:null,
+          imp1:null, imp2:null, imp3:null, data:'',
+          nrVaivem:false, nrAbd:false, nrBracos:false, nrImp:false,
+          dataVaivem:'', dataAbd:'', dataBracos:'', dataImp:'',
+          ...patch
+        });
+      }
+    });
+
+    if (typeof saveState === 'function') saveState();
+    closeModal('modalFit');
+    if (typeof renderFit === 'function') renderFit();
+    if (typeof migrarFitPeriodos === 'function') migrarFitPeriodos();
+    toast('FITescola guardado');
+  };
+
+  // Abrir modal: pré-seleccionar período e construir grid
+  const _origOpenModalFitGrid = window.openModal;
+  window.openModal = function(id, ...args) {
+    if (typeof _origOpenModalFitGrid === 'function') _origOpenModalFitGrid(id, ...args);
+    if (id === 'modalFit') {
+      setTimeout(() => {
+        // Garantir turma válida
+        if (!fitTurma) fitTurma = state.turma;
+        const sel = document.getElementById('fitModalPeriodo');
+        if (sel) sel.value = String(state.periodo || '1');
+        // Limpar data ao abrir de novo
+        const dataEl = document.getElementById('fitAtividadeData');
+        if (dataEl) dataEl.value = '';
+        if (typeof fitBuildGrid === 'function') fitBuildGrid();
+      }, 100);
+    }
+  };
+
+  console.log('✅ FITescola: inserção por atividade em quadro');
+})();
+</script>
+
+<script>
+// PATCH — Fix NR no render: o patch NR (setTimeout 100ms) corre DEPOIS do patch
+// de período ter restaurado state.fit[turmaReal]. Mas o patch NR usa finds por índice
+// em vez de data-aluno-id, podendo associar a linha errada ao registo errado.
+// Solução: neutralizar o patch NR por setTimeout e deixar o render base (que já
+// inclui nrFlag no cell()) tratar o NR correctamente.
+(function() {
+  // O patch NR na linha ~9900 sobrescreve células com setTimeout(100ms).
+  // Como o render base já passa f.nrAbd directamente ao cell(), este patch
+  // é redundante e pode sobrescrever valores correctos com NR errado.
+  // Neutralizamos sobrescrevendo window.renderFit para ignorar o setTimeout NR.
+
+  const _origRenderFitNRFix = window.renderFit;
+  window.renderFit = function() {
+    _origRenderFitNRFix.apply(this, arguments);
+    // Após render, corrigir qualquer NR indevido: se o registo tem valor
+    // e nrXxx=false mas a célula mostra NR, substituir pelo valor correcto.
+    setTimeout(() => {
+      const turmaReal = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+      const periodoSel = document.getElementById('fitPeriodoSelect')?.value ||
+                         (typeof fitPeriodoFiltro !== 'undefined' ? fitPeriodoFiltro : '1');
+      const fits = (state.fit[turmaReal] || []).filter(f =>
+        !f.periodo || String(f.periodo) === String(periodoSel)
+      );
+      const bodyEl = document.getElementById('fitBody');
+      if (!bodyEl) return;
+
+      bodyEl.querySelectorAll('tr[data-aluno-id]').forEach(row => {
+        const alunoId = row.getAttribute('data-aluno-id');
+        const f = fits.find(x => x.alunoId === alunoId);
+        if (!f) return;
+
+        // Mapa col → campo NR e valor
+        const map = [
+          { col: 3, nr: f.nrVaivem, val: f.vaivem,  ref: 'vaivem' },
+          { col: 4, nr: f.nrAbd,    val: f.abd,      ref: 'abd' },
+          { col: 5, nr: f.nrBracos, val: f.bracos,   ref: 'bracos' },
+          { col: 6, nr: f.nrImp,    val: f.imp,      ref: 'imp' },
+        ];
+        const cols = row.querySelectorAll('td');
+        const a = (state.alunos[turmaReal] || []).find(x => x.id === alunoId) || {};
+        const age = typeof getAge === 'function' ? getAge(a.nasc) : null;
+        const g = a.genre || 'F';
+
+        map.forEach(({ col, nr, val, ref }) => {
+          if (!cols[col]) return;
+          const cellHasNR = cols[col].querySelector('span')?.textContent?.trim() === 'NR';
+
+          if (cellHasNR && !nr && val != null) {
+            // Célula mostra NR mas não devia — re-renderizar com valor
+            const refVal  = age ? (typeof getRef === 'function' ? getRef(FIT_REF[ref], g, age) : null) : null;
+            const refA    = age ? (typeof getRef === 'function' ? getRef(FIT_REF[ref+'Atletico'], g, age) : null) : null;
+            const z       = typeof fitZona === 'function' ? fitZona(val, refVal, refA) : null;
+            const col_css = z==='atletico'?'#1A5C3A':z==='saudavel'?'#1B4F72':z==='abaixo'?'#B7770D':'var(--text)';
+            const bg_css  = z==='atletico'?'#D5F5E3':z==='saudavel'?'#EBF3FB':z==='abaixo'?'#FEF6EE':'';
+            const icon    = z==='atletico'?'🏆':z==='saudavel'?'✅':z==='abaixo'?'⚠':'';
+            cols[col].innerHTML = `<span style="font-family:var(--mono);font-weight:700;color:${col_css};background:${bg_css};padding:2px 7px;border-radius:5px">${icon} ${val}</span>`;
+          } else if (!cellHasNR && nr) {
+            // Célula não mostra NR mas devia
+            cols[col].innerHTML = `<span style="font-size:11px;font-weight:600;color:#B7770D;background:#FEF3E7;padding:2px 8px;border-radius:4px">NR</span>`;
+          }
+        });
+      });
+    }, 150);
+  };
+
+  console.log('✅ Fix NR render correcto');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — FITescola: Dashboard de evolução por aluno
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  const ATIV = [
+    { key: 'vaivem', label: '🏃 Vaivém',    unit: 'perc.', nr: 'nrVaivem', cor: '#2E86AB' },
+    { key: 'abd',    label: '🤸 Abdominais', unit: 'reps',  nr: 'nrAbd',    cor: '#A23B72' },
+    { key: 'bracos', label: '💪 Flexões',    unit: 'reps',  nr: 'nrBracos', cor: '#F18F01' },
+    { key: 'imp',    label: '⬆️ Impulsão',   unit: 'cm',    nr: 'nrImp',    cor: '#1B998B' },
+  ];
+
+  const PERIODOS = ['1º P', '2º P', '3º P'];
+
+  function getRef(refKey, g, age) {
+    if (!window.FIT_REF || !window.getRef) return null;
+    return window.getRef(window.FIT_REF[refKey], g, age);
+  }
+
+  // Preenche o select de alunos para evolução
+  function populateFitEvolAluno() {
+    const turma  = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    const alunos = (state.alunos[turma] || [])
+      .filter(a => !a.status || ['ativo','entrada','troca'].includes(a.status))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt', {sensitivity:'base'}));
+    const sel = document.getElementById('fitEvolAluno');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = alunos.map(a =>
+      `<option value="${a.id}">${a.name}</option>`
+    ).join('');
+    if (prev && alunos.find(a => a.id === prev)) sel.value = prev;
+  }
+
+  // Renderiza o dashboard de evolução
+  window.renderFitEvolucao = function() {
+    const turma   = (typeof getFitTurma === 'function' ? getFitTurma() : null) || state.turma;
+    const alunoId = document.getElementById('fitEvolAluno')?.value;
+    const container = document.getElementById('fitEvolucao');
+    if (!container || !alunoId) return;
+
+    const aluno = (state.alunos[turma] || []).find(a => a.id === alunoId);
+    if (!aluno) return;
+
+    const age = typeof getAge === 'function' ? getAge(aluno.nasc) : null;
+    const g   = aluno.genre || 'F';
+
+    // Recolher dados dos 3 períodos
+    const regs = ['1','2','3'].map(p =>
+      (state.fit[turma] || []).find(f => f.alunoId === alunoId && String(f.periodo||'1') === p) || null
+    );
+
+    // Gerar um mini-gráfico SVG por atividade
+    const graficos = ATIV.map(ativ => {
+      const vals = regs.map(r => {
+        if (!r) return null;
+        if (r[ativ.nr]) return 'NR';
+        return r[ativ.key] != null ? Number(r[ativ.key]) : null;
+      });
+
+      const numVals = vals.filter(v => typeof v === 'number');
+      const hasData = numVals.length > 0;
+      const maxVal  = hasData ? Math.max(...numVals) * 1.2 : 100;
+      const minVal  = 0;
+      const refVal  = age ? getRef(ativ.key, g, age) : null;
+
+      const W = 200, H = 100, PAD = 20;
+      const xStep = (W - PAD*2) / 2;
+
+      // Pontos do gráfico
+      const points = vals.map((v, i) => {
+        if (v === null) return null;
+        if (v === 'NR') return { x: PAD + i * xStep, y: H - PAD, nr: true };
+        const y = H - PAD - ((v - minVal) / (maxVal - minVal)) * (H - PAD*2);
+        return { x: PAD + i * xStep, y, val: v };
+      });
+
+      // Linha conectando pontos com valores
+      const linePoints = points.filter(p => p && !p.nr);
+      const polyline = linePoints.length >= 2
+        ? linePoints.map(p => `${p.x},${p.y}`).join(' ')
+        : '';
+
+      // Linha de referência
+      const refY = refVal
+        ? H - PAD - ((refVal - minVal) / (maxVal - minVal)) * (H - PAD*2)
+        : null;
+
+      const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:90px;overflow:visible">
+        <!-- Fundo -->
+        <rect width="${W}" height="${H}" rx="6" fill="var(--surface2)" opacity="0.5"/>
+
+        <!-- Linha de referência zona saudável -->
+        ${refY != null ? `
+          <line x1="${PAD}" y1="${refY}" x2="${W-PAD}" y2="${refY}"
+            stroke="${ativ.cor}" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="${W-PAD+3}" y="${refY+4}" font-size="8" fill="${ativ.cor}" opacity="0.7">ref${refVal}</text>
+        ` : ''}
+
+        <!-- Linha de evolução -->
+        ${polyline ? `<polyline points="${polyline}" fill="none" stroke="${ativ.cor}" stroke-width="2" stroke-linejoin="round"/>` : ''}
+
+        <!-- Pontos e labels -->
+        ${points.map((p, i) => {
+          if (!p) return `
+            <text x="${PAD + i*xStep}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">—</text>
+            <text x="${PAD + i*xStep}" y="${H-PAD-4}" font-size="8" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+          if (p.nr) return `
+            <rect x="${PAD + i*xStep - 10}" y="${H-PAD-10}" width="20" height="12" rx="3" fill="#FEF3E7"/>
+            <text x="${PAD + i*xStep}" y="${H-PAD}" font-size="8" text-anchor="middle" fill="#B7770D" font-weight="600">NR</text>
+            <text x="${PAD + i*xStep}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+          const zona = refVal ? (p.val >= refVal ? 'saudavel' : 'abaixo') : null;
+          const dotCol = zona === 'saudavel' ? '#1B998B' : zona === 'abaixo' ? '#E07B39' : ativ.cor;
+          return `
+            <circle cx="${p.x}" cy="${p.y}" r="4" fill="${dotCol}" stroke="white" stroke-width="1.5"/>
+            <text x="${p.x}" y="${p.y - 7}" font-size="9" text-anchor="middle" fill="${dotCol}" font-weight="700">${p.val}</text>
+            <text x="${p.x}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+        }).join('')}
+
+        <!-- Eixo base -->
+        <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="var(--border)" stroke-width="1"/>
+      </svg>`;
+
+      // Tendência
+      const nums = vals.filter(v => typeof v === 'number');
+      let tendencia = '';
+      if (nums.length >= 2) {
+        const diff = nums[nums.length-1] - nums[0];
+        tendencia = diff > 0
+          ? `<span style="color:#1B998B;font-size:11px">▲ +${diff} ${ativ.unit}</span>`
+          : diff < 0
+          ? `<span style="color:#E07B39;font-size:11px">▼ ${diff} ${ativ.unit}</span>`
+          : `<span style="color:var(--text3);font-size:11px">= Sem alteração</span>`;
+      }
+
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:600;color:${ativ.cor}">${ativ.label}</span>
+          ${tendencia}
+        </div>
+        ${svg}
+      </div>`;
+    }).join('');
+
+    // Nota de evolução
+    const notas = regs.map((r, i) => {
+      if (!r) return null;
+      const cl = typeof alunoFitClassificacao === 'function' ? alunoFitClassificacao(r, aluno) : null;
+      return cl != null ? { p: i+1, cl } : null;
+    }).filter(Boolean);
+
+    const notaBar = notas.length ? `
+      <div style="display:flex;gap:12px;align-items:center;padding:10px 0 4px">
+        <span style="font-size:12px;font-weight:600;color:var(--text2)">Classificação:</span>
+        ${notas.map(n => `
+          <span style="font-size:12px;color:var(--text3)">${n.p}º P:</span>
+          <span class="nota nota-${n.cl}" style="width:26px;height:26px;font-size:13px">${n.cl}</span>
+        `).join('')}
+      </div>` : '';
+
+    container.innerHTML = `
+      ${notaBar}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px">
+        ${graficos}
+      </div>`;
+  };
+
+  // Hook no renderFit para actualizar o dashboard
+  const _origRenderFitEvol = window.renderFit;
+  window.renderFit = function() {
+    _origRenderFitEvol.apply(this, arguments);
+    setTimeout(() => {
+      populateFitEvolAluno();
+      renderFitEvolucao();
+    }, 200);
+  };
+
+  // Hook no fitTurmaChange para actualizar alunos
+  const _origFitTurmaChangeEvol = window.fitTurmaChange;
+  window.fitTurmaChange = function() {
+    if (typeof _origFitTurmaChangeEvol === 'function') _origFitTurmaChangeEvol();
+    setTimeout(() => { populateFitEvolAluno(); renderFitEvolucao(); }, 100);
+  };
+
+  console.log('✅ FITescola: dashboard de evolução');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Dashboard Turmas: FIT evolução por aluno
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Preenche selects de turma e aluno no dashboard
+  window.dashFitInit = function() {
+    const turmas = typeof getTURMAS === 'function' ? getTURMAS() : Object.keys(state.alunos || {});
+    const selT = document.getElementById('dashFitTurma');
+    if (!selT) return;
+    const prev = selT.value;
+    selT.innerHTML = turmas.map(t => `<option value="${t}">${t}</option>`).join('');
+    if (prev && turmas.includes(prev)) selT.value = prev;
+    dashFitUpdate();
+  };
+
+  window.dashFitUpdate = function() {
+    const turma  = document.getElementById('dashFitTurma')?.value || state.turma;
+    const alunos = (state.alunos[turma] || [])
+      .filter(a => !a.status || ['ativo','entrada','troca'].includes(a.status))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt', {sensitivity:'base'}));
+    const selA = document.getElementById('dashFitAluno');
+    if (!selA) return;
+    const prev = selA.value;
+    selA.innerHTML = alunos.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    if (prev && alunos.find(a => a.id === prev)) selA.value = prev;
+    renderFitEvolucaoDash();
+  };
+
+  // Reutiliza a lógica de renderFitEvolucao mas para o dashboard de turmas
+  window.renderFitEvolucaoDash = function() {
+    const turma   = document.getElementById('dashFitTurma')?.value || state.turma;
+    const alunoId = document.getElementById('dashFitAluno')?.value;
+    const container = document.getElementById('dashFitEvolucao');
+    if (!container || !alunoId) return;
+
+    const aluno = (state.alunos[turma] || []).find(a => a.id === alunoId);
+    if (!aluno) { container.innerHTML = '<p style="color:var(--text3);padding:12px">Sem dados.</p>'; return; }
+
+    // Guardar turma temporariamente e reutilizar renderFitEvolucao
+    const prevTurma = state.turma;
+    state.turma = turma;
+    if (typeof fitTurma !== 'undefined') window._dashPrevFitTurma = fitTurma;
+    if (typeof fitTurma !== 'undefined') fitTurma = turma;
+
+    // Copiar select de aluno para o elemento fitEvolAluno (usado por renderFitEvolucao)
+    const fitEvolAluno = document.getElementById('fitEvolAluno');
+    const fitEvolContainer = document.getElementById('fitEvolucao');
+    const prevFitAluno = fitEvolAluno?.value;
+    const prevFitHTML  = fitEvolContainer?.innerHTML || '';
+
+    if (fitEvolAluno) fitEvolAluno.value = alunoId;
+
+    if (typeof renderFitEvolucao === 'function') {
+      // Render directo no container do dashboard
+      const ATIV = [
+        { key: 'vaivem', label: '🏃 Vaivém',    unit: 'perc.', nr: 'nrVaivem', cor: '#2E86AB' },
+        { key: 'abd',    label: '🤸 Abdominais', unit: 'reps',  nr: 'nrAbd',    cor: '#A23B72' },
+        { key: 'bracos', label: '💪 Flexões',    unit: 'reps',  nr: 'nrBracos', cor: '#F18F01' },
+        { key: 'imp',    label: '⬆️ Impulsão',   unit: 'cm',    nr: 'nrImp',    cor: '#1B998B' },
+      ];
+      const PERIODOS = ['1º P', '2º P', '3º P'];
+      const age = typeof getAge === 'function' ? getAge(aluno.nasc) : null;
+      const g   = aluno.genre || 'F';
+      const regs = ['1','2','3'].map(p =>
+        (state.fit[turma] || []).find(f => f.alunoId === alunoId && String(f.periodo||'1') === p) || null
+      );
+
+      const graficos = ATIV.map(ativ => {
+        const vals = regs.map(r => {
+          if (!r) return null;
+          if (r[ativ.nr]) return 'NR';
+          return r[ativ.key] != null ? Number(r[ativ.key]) : null;
+        });
+        const numVals = vals.filter(v => typeof v === 'number');
+        const hasData = numVals.length > 0;
+        const maxVal  = hasData ? Math.max(...numVals) * 1.2 : 100;
+        const refVal  = age && window.FIT_REF && window.getRef
+          ? window.getRef(window.FIT_REF[ativ.key], g, age) : null;
+        const W = 200, H = 100, PAD = 20;
+        const xStep = (W - PAD*2) / 2;
+        const points = vals.map((v, i) => {
+          if (v === null) return null;
+          if (v === 'NR') return { x: PAD + i*xStep, y: H-PAD, nr: true };
+          const y = H - PAD - ((v - 0) / (maxVal||1)) * (H - PAD*2);
+          return { x: PAD + i*xStep, y, val: v };
+        });
+        const linePoints = points.filter(p => p && !p.nr);
+        const polyline = linePoints.length >= 2 ? linePoints.map(p => `${p.x},${p.y}`).join(' ') : '';
+        const refY = refVal ? H - PAD - ((refVal / (maxVal||1)) * (H - PAD*2)) : null;
+
+        const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:90px;overflow:visible">
+          <rect width="${W}" height="${H}" rx="6" fill="var(--surface2)" opacity="0.5"/>
+          ${refY!=null?`<line x1="${PAD}" y1="${refY}" x2="${W-PAD}" y2="${refY}" stroke="${ativ.cor}" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="${W-PAD+3}" y="${refY+4}" font-size="8" fill="${ativ.cor}" opacity="0.7">ref${refVal}</text>`:''}
+          ${polyline?`<polyline points="${polyline}" fill="none" stroke="${ativ.cor}" stroke-width="2" stroke-linejoin="round"/>`:''}
+          ${points.map((p,i) => {
+            if (!p) return `<text x="${PAD+i*xStep}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">—</text>
+              <text x="${PAD+i*xStep}" y="${H-PAD-4}" font-size="8" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+            if (p.nr) return `<rect x="${PAD+i*xStep-10}" y="${H-PAD-10}" width="20" height="12" rx="3" fill="#FEF3E7"/>
+              <text x="${PAD+i*xStep}" y="${H-PAD}" font-size="8" text-anchor="middle" fill="#B7770D" font-weight="600">NR</text>
+              <text x="${PAD+i*xStep}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+            const zona = refVal ? (p.val>=refVal?'saudavel':'abaixo') : null;
+            const dc = zona==='saudavel'?'#1B998B':zona==='abaixo'?'#E07B39':ativ.cor;
+            return `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${dc}" stroke="white" stroke-width="1.5"/>
+              <text x="${p.x}" y="${p.y-7}" font-size="9" text-anchor="middle" fill="${dc}" font-weight="700">${p.val}</text>
+              <text x="${p.x}" y="${H-6}" font-size="9" text-anchor="middle" fill="var(--text3)">${PERIODOS[i]}</text>`;
+          }).join('')}
+          <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="var(--border)" stroke-width="1"/>
+        </svg>`;
+
+        const nums = vals.filter(v => typeof v === 'number');
+        let tend = '';
+        if (nums.length >= 2) {
+          const diff = nums[nums.length-1] - nums[0];
+          tend = diff > 0 ? `<span style="color:#1B998B;font-size:11px">▲ +${diff} ${ativ.unit}</span>`
+               : diff < 0 ? `<span style="color:#E07B39;font-size:11px">▼ ${diff} ${ativ.unit}</span>`
+               : `<span style="color:var(--text3);font-size:11px">= Sem alteração</span>`;
+        }
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:600;color:${ativ.cor}">${ativ.label}</span>${tend}
+          </div>${svg}</div>`;
+      }).join('');
+
+      const notas = regs.map((r,i) => {
+        if (!r) return null;
+        const cl = typeof alunoFitClassificacao === 'function' ? alunoFitClassificacao(r, aluno) : null;
+        return cl != null ? { p: i+1, cl } : null;
+      }).filter(Boolean);
+
+      container.innerHTML = `
+        ${notas.length ? `<div style="display:flex;gap:12px;align-items:center;padding:8px 0 12px">
+          <span style="font-size:12px;font-weight:600;color:var(--text2)">Classificação:</span>
+          ${notas.map(n=>`<span style="font-size:12px;color:var(--text3)">${n.p}º P:</span>
+            <span class="nota nota-${n.cl}" style="width:26px;height:26px;font-size:13px">${n.cl}</span>`).join('')}
+        </div>` : ''}
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${graficos}</div>`;
+    }
+
+    // Restaurar
+    state.turma = prevTurma;
+    if (typeof fitTurma !== 'undefined' && window._dashPrevFitTurma !== undefined)
+      fitTurma = window._dashPrevFitTurma;
+    if (fitEvolAluno && prevFitAluno) fitEvolAluno.value = prevFitAluno;
+    if (fitEvolContainer) fitEvolContainer.innerHTML = prevFitHTML;
+  };
+
+  // Hook em renderTurmasDashboard
+  const _origRenderTurmasDash = window.renderTurmasDashboard;
+  window.renderTurmasDashboard = function() {
+    if (typeof _origRenderTurmasDash === 'function') _origRenderTurmasDash.apply(this, arguments);
+    setTimeout(dashFitInit, 150);
+  };
+
+  console.log('✅ Dashboard turmas: FIT evolução');
 })();
 </script>
