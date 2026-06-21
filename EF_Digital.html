@@ -700,7 +700,7 @@ tr:hover td { background: #FAFBFA; }
           </div>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Aluno</th><th>G</th><th>Idade</th><th>Vaivém<br><span style="font-weight:400;color:var(--text3)">perc.</span></th><th>Abdominais<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Flex. Braços<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Imp. Horiz.<br><span style="font-weight:400;color:var(--text3)">cm</span></th><th>Classif.</th><th>Data</th></tr></thead>
+          <thead><tr><th>Aluno</th><th>G</th><th>Idade</th><th>Peso<br><span style="font-weight:400;color:var(--text3)">kg</span></th><th>Altura<br><span style="font-weight:400;color:var(--text3)">cm</span></th><th>IMC</th><th>Vaivém<br><span style="font-weight:400;color:var(--text3)">perc.</span></th><th>Abdominais<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Flex. Braços<br><span style="font-weight:400;color:var(--text3)">reps</span></th><th>Imp. Horiz.<br><span style="font-weight:400;color:var(--text3)">cm</span></th><th>Classif.</th></tr></thead>
           <tbody id="fitBody"></tbody>
         </table></div>
       </div>
@@ -966,51 +966,83 @@ tr:hover td { background: #FAFBFA; }
     <!-- ═══ EXPORTAR ═══ -->
     <div class="page" id="page-exportar">
       <div class="data-actions">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modalAnoLetivo')" style="gap:6px"><i class="ti ti-calendar-event"></i>Gerir anos letivos</button>
         <button class="btn btn-secondary btn-sm" onclick="exportarBackup()"><i class="ti ti-database-export"></i>Backup completo (JSON)</button>
         <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')"><i class="ti ti-database-import"></i>Restaurar backup</button>
       </div>
+
+      <!-- Selector de turma para exportação -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">
+        <i class="ti ti-filter" style="color:var(--primary);font-size:16px"></i>
+        <label style="font-size:13px;font-weight:600;color:var(--text2)">Exportar para a turma:</label>
+        <select id="exportTurmaSelect" style="padding:6px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text);min-width:120px">
+        </select>
+        <span style="font-size:12px;color:var(--text3)">ou <button onclick="exportSetTurma('todas')" class="btn btn-sm" style="font-size:11px;padding:3px 10px;background:var(--surface);border:1px solid var(--border)">Todas as turmas</button></span>
+      </div>
+
       <div class="export-grid">
-        <div class="export-card" onclick="exportAlunos()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-users"></i></div>
           <div class="export-title">Lista de alunos</div>
-          <div class="export-desc">Nome, número, turma, género e observações de saúde de todos os alunos</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span><span class="export-fmt">CSV</span></div>
+          <div class="export-desc">Nome, número, género, peso, altura e observações de saúde</div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportAlunosPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAlunos(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportFaltas()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-calendar-x"></i></div>
           <div class="export-title">Registo de faltas</div>
           <div class="export-desc">Faltas por aluno e por período letivo com percentagem de presença</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportFaltasPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportFaltas(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportAulas()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-clipboard-list"></i></div>
           <div class="export-title">Registo de aulas</div>
           <div class="export-desc">Data, modalidade, objetivos, presenças e observações de cada aula</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportAulasPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAulas(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportFit()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-heart-rate-monitor"></i></div>
           <div class="export-title">FITescola</div>
           <div class="export-desc">Resultados de cada prova por aluno e indicação da zona saudável</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportFitPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportFit(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportModalidades()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-ball-football"></i></div>
           <div class="export-title">Notas de modalidades</div>
           <div class="export-desc">Notas de habilidades, regras/cultura e atitudes por modalidade</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportModalidadesPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportModalidades(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportPauta()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-file-spreadsheet"></i></div>
           <div class="export-title">Pauta de avaliação</div>
           <div class="export-desc">Notas finais dos 3 períodos, menções e evolução de cada aluno</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportPautaPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportPauta(getExportTurma())" style="font-size:11px"><i class="ti ti-file-spreadsheet"></i>XLSX</button>
+          </div>
         </div>
-        <div class="export-card" onclick="exportTudoXlsx()">
+        <div class="export-card">
           <div class="export-icon"><i class="ti ti-table-export"></i></div>
           <div class="export-title">Relatório completo</div>
-          <div class="export-desc">Todos os dados da turma num único ficheiro Excel com múltiplas folhas</div>
-          <div class="export-fmts"><span class="export-fmt">XLSX</span></div>
+          <div class="export-desc">Todos os dados num único ficheiro com múltiplas secções</div>
+          <div class="export-fmts" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportRelatorioPDF(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-pdf"></i>PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportTudoXlsx(getExportTurma())" style="font-size:11px"><i class="ti ti-file-type-csv"></i>XLSX</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1031,6 +1063,8 @@ tr:hover td { background: #FAFBFA; }
       <div class="form-group"><label class="form-label">Nº de aluno *</label><input class="form-input" id="aNum" placeholder="Ex: 2301"></div>
       <div class="form-group"><label class="form-label">Nº de ordem na turma</label><input class="form-input" type="number" id="aOrdem" placeholder="Ex: 12" min="1" max="99"></div>
       <div class="form-group"><label class="form-label">Data de nascimento</label><input class="form-input" type="text" id="aNasc" placeholder="DD/MM/AAAA" maxlength="10"></div>
+      <div class="form-group"><label class="form-label">Peso (kg)</label><input class="form-input" type="number" id="aPeso" placeholder="Ex: 52.5" min="20" max="150" step="0.1"></div>
+      <div class="form-group"><label class="form-label">Altura (cm)</label><input class="form-input" type="number" id="aAltura" placeholder="Ex: 165" min="100" max="220"></div>
       <div class="form-group"><label class="form-label">Género</label>
         <select class="form-select" id="aGenre"><option value="M">Masculino</option><option value="F">Feminino</option><option value="O">Outro</option></select>
       </div>
@@ -2227,12 +2261,16 @@ function renderFit() {
       <td><strong>${a.name}</strong></td>
       <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
       <td style="font-family:var(--mono);color:var(--text3)">${age||'—'}</td>
+
+      ${_paiCell(a,'peso')}
+      ${_paiCell(a,'altura')}
+      ${_imcCell(a)}
       ${cell(f.vaivem,'vaivem','vaivem',f.nrVaivem)}
       ${cell(f.abd,'abd','abd',f.nrAbd)}
       ${cell(f.bracos,'bracos','bracos',f.nrBracos)}
       ${cell(f.imp,'imp','imp',f.nrImp)}
       <td>${cl!=null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px">${cl}</span>`:''}</td>
-      <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
+
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">
     Sem avaliações. Clica em Registar para adicionar.
@@ -2337,7 +2375,7 @@ function openModal(id, isNew=false) {
     // Reset to "new aluno" mode — only when explicitly adding new
     editingAlunoId = null;
     document.getElementById('modalAlunoTitle').textContent = 'Novo aluno';
-    ['aNome','aNum','aNasc','aFoto','aStatusObs'].forEach(f => { const el=document.getElementById(f); if(el) el.value=''; });
+    ['aNome','aNum','aNasc','aFoto','aStatusObs','aPeso','aAltura'].forEach(f => { const el=document.getElementById(f); if(el) el.value=''; });
     const ss=document.getElementById('aStatus');if(ss)ss.value='ativo';
     const sg=document.getElementById('aStatusObsGroup');if(sg)sg.style.display='none';
     const obs = document.getElementById('aObs'); if(obs) obs.value='';
@@ -2402,6 +2440,8 @@ function saveAluno() {
   const statusObs = document.getElementById('aStatusObs')?.value.trim()||'';
 
   const nOrdem = (() => { const v = document.getElementById('aOrdem')?.value?.trim(); return v ? parseInt(v) : null; })();
+  const peso   = parseFloat(document.getElementById('aPeso')?.value)              || null;
+  const altura = parseFloat(document.getElementById('aAltura')?.value?.replace(',','.')) || null;
 
   if (editingAlunoId) {
     let found = false;
@@ -2411,10 +2451,10 @@ function saveAluno() {
         if (t !== turma) {
           state.alunos[t] = state.alunos[t].filter(x=>x.id!==editingAlunoId);
           if (!state.alunos[turma]) state.alunos[turma]=[];
-          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem;
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem; a.peso=peso; a.altura=altura;
           state.alunos[turma].push(a);
         } else {
-          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem;
+          a.name=nome; a.num=num; a.genre=genre; a.nasc=nasc; a.foto=foto; a.obs=obs; a.nOrdem=nOrdem; a.peso=peso; a.altura=altura;
         }
         found = true;
       }
@@ -2422,7 +2462,7 @@ function saveAluno() {
     editingAlunoId = null;
     if (found) { toast('Aluno atualizado'); }
     else {
-      state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, nOrdem, status, statusObs, faltas:{1:0,2:0,3:0} });
+      state.alunos[turma].push({ id:uid(), name:nome, num, genre, nasc, foto, obs, nOrdem, peso, altura, status, statusObs, faltas:{1:0,2:0,3:0} });
       toast('Aluno adicionado');
     }
   } else {
@@ -2445,6 +2485,8 @@ function editAluno(id) {
   document.getElementById('aNum').value = a.num;
   document.getElementById('aGenre').value = a.genre;
   document.getElementById('aNasc').value = a.nasc || '';
+  document.getElementById('aPeso') && (document.getElementById('aPeso').value = a.peso || '');
+  document.getElementById('aAltura') && (document.getElementById('aAltura').value = a.altura || '');
   document.getElementById('aFoto').value = a.foto || '';
   document.getElementById('aObs').value = a.obs || '';
   document.getElementById('aTurma').value = state.turma;
@@ -4451,12 +4493,16 @@ function renderFit() {
       <td><strong>${a.name}</strong></td>
       <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
       <td style="font-family:var(--mono);color:var(--text3)">${age||'—'}</td>
+
+      ${_paiCell(a,'peso')}
+      ${_paiCell(a,'altura')}
+      ${_imcCell(a)}
       ${cell(f.vaivem,'vaivem',f.nrVaivem)}
       ${cell(f.abd,'abd',f.nrAbd)}
       ${cell(f.bracos,'bracos',f.nrBracos)}
       ${cell(f.imp,'imp',f.nrImp)}
       <td>${cl!=null?`<span class="nota nota-${cl}" style="width:28px;height:28px;font-size:14px" title="${{5:'Nota 5',4:'Nota 4',3:'Nota 3',2:'Nota 2',1:'Nota 1'}[cl]}">${cl}</span>`:''}</td>
-      <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
+
     </tr>`;
   }).join('');
 }
@@ -4701,6 +4747,10 @@ function renderFit() {
       <td><strong>${a.name}</strong></td>
       <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
       <td style="font-family:var(--mono);color:var(--text3)">${age||'—'}</td>
+
+      ${_paiCell(a,'peso')}
+      ${_paiCell(a,'altura')}
+      ${_imcCell(a)}
       ${cell(f.vaivem,'vaivem', f.nrVaivem)}
       ${cell(f.abd,'abd', f.nrAbd)}
       ${cell(f.bracos,'bracos', f.nrBracos)}
@@ -4713,7 +4763,7 @@ function renderFit() {
              </div>`
           : '<span style="color:var(--text3)">—</span>'}
       </td>
-      <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
+
     </tr>`;
   }).join('');
 }
@@ -4871,6 +4921,10 @@ console.log('✅ FIT_REF oficial carregado (docs FITescola)');
         <td><strong>${a.name}</strong></td>
         <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
         <td style="font-family:var(--mono);color:var(--text3);text-align:center">${age||'—'}</td>
+
+      ${_paiCell(a,'peso')}
+      ${_paiCell(a,'altura')}
+      ${_imcCell(a)}
         ${cell(f.vaivem,'vaivem',f.nrVaivem)}
         ${cell(f.abd,'abd',f.nrAbd)}
         ${cell(f.bracos,'bracos',f.nrBracos)}
@@ -4881,7 +4935,7 @@ console.log('✅ FIT_REF oficial carregado (docs FITescola)');
             ${zl?`<div style="font-size:10px;font-weight:600;color:${zl.fg};background:${zl.bg};padding:2px 6px;border-radius:10px;margin-top:3px;white-space:nowrap">${zl.txt}</div>`:''}
           `:'<span style="color:var(--text3)">—</span>'}
         </td>
-        <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
+  
       </tr>`;
     }).join('');
   };
@@ -9930,10 +9984,10 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
         const cols = row.querySelectorAll('td');
         if (cols.length < 7) return;
         const nrMap = [
-          { col: 3, nr: f.nrVaivem },
-          { col: 4, nr: f.nrAbd    },
-          { col: 5, nr: f.nrBracos },
-          { col: 6, nr: f.nrImp    },
+          { col: 6, nr: f.nrVaivem },
+          { col: 7, nr: f.nrAbd    },
+          { col: 8, nr: f.nrBracos },
+          { col: 9, nr: f.nrImp    },
         ];
         nrMap.forEach(({ col, nr }) => {
           if (!nr || !cols[col]) return;
@@ -10590,10 +10644,10 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
 
         // Mapa col → campo NR e valor
         const map = [
-          { col: 3, nr: f.nrVaivem, val: f.vaivem,  ref: 'vaivem' },
-          { col: 4, nr: f.nrAbd,    val: f.abd,      ref: 'abd' },
-          { col: 5, nr: f.nrBracos, val: f.bracos,   ref: 'bracos' },
-          { col: 6, nr: f.nrImp,    val: f.imp,      ref: 'imp' },
+          { col: 6, nr: f.nrVaivem, val: f.vaivem,  ref: 'vaivem' },
+          { col: 7, nr: f.nrAbd,    val: f.abd,      ref: 'abd' },
+          { col: 8, nr: f.nrBracos, val: f.bracos,   ref: 'bracos' },
+          { col: 9, nr: f.nrImp,    val: f.imp,      ref: 'imp' },
         ];
         const cols = row.querySelectorAll('td');
         const a = (state.alunos[turmaReal] || []).find(x => x.id === alunoId) || {};
@@ -10972,5 +11026,1031 @@ console.log('✅ Alunos transferidos IN: aulas/faltas só após data de entrada'
   };
 
   console.log('✅ Dashboard turmas: FIT evolução');
+})();
+</script>
+
+<script>
+// ═══ Helpers peso/altura/IMC para renderFit ═══
+function _paiCell(a, field) {
+  var val = a ? a[field] : null;
+  if (!val) return '<td style="color:var(--text3);text-align:center;font-size:12px">—</td>';
+  return '<td style="text-align:center;font-family:var(--mono);font-size:12px">' + val + '</td>';
+}
+function _imcCell(a) {
+  var peso = a && a.peso, altura = a && a.altura;
+  if (!peso || !altura) return '<td style="color:var(--text3);text-align:center;font-size:12px">—</td>';
+  var imc = Math.round(peso / Math.pow(altura/100,2) * 10) / 10;
+  var cor="var(--text)",bg="",lbl="";
+  if(imc<18.5){cor="#B7770D";bg="#FEF3E7";lbl="Baixo peso";}
+  else if(imc<25){cor="#1A5C3A";bg="#D5F5E3";lbl="Normal";}
+  else if(imc<30){cor="#B7770D";bg="#FEF3E7";lbl="Excesso";}
+  else{cor="#922B21";bg="#FADBD8";lbl="Obesidade";}
+  return '<td title="'+lbl+'" style="text-align:center"><span style="font-family:var(--mono);font-weight:600;font-size:12px;color:'+cor+';background:'+bg+';padding:1px 5px;border-radius:4px">'+imc+'</span></td>';
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Exports XLSX (SheetJS)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function _xlsxDownload(wb, filename) {
+  if (typeof XLSX === 'undefined') { toast('SheetJS não carregado', 'ti-alert-circle'); return; }
+  XLSX.writeFile(wb, filename);
+}
+
+function _xlsxWb(sheets) {
+  // sheets: [{name, rows}]
+  const wb = XLSX.utils.book_new();
+  sheets.forEach(s => {
+    const ws = XLSX.utils.json_to_sheet(s.rows);
+    // Auto column widths
+    const cols = s.rows.length ? Object.keys(s.rows[0]).map(k => ({wch: Math.max(k.length, 12)})) : [];
+    ws['!cols'] = cols;
+    XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0,31));
+  });
+  return wb;
+}
+
+// ── XLSX Alunos ───────────────────────────────────────────────────────────────
+function exportAlunos() {
+  const sheets = getTURMAS().map(t => {
+    const rows = (state.alunos[t]||[]).sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999)).map(a => ({
+      'Nº Ordem': a.nOrdem||'', 'Nº Aluno': a.num||'', Nome: a.name,
+      Género: a.genre==='M'?'Masculino':'Feminino', Nascimento: a.nasc||'',
+      Peso: a.peso||'', Altura: a.altura||'', Status: a.status||'ativo', Observações: a.obs||'',
+    }));
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem alunos', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'alunos.xlsx');
+  toast('Lista de alunos exportada');
+}
+
+// ── XLSX Faltas ───────────────────────────────────────────────────────────────
+function exportFaltas() {
+  const sheets = getTURMAS().map(t => {
+    const alunos = (state.alunos[t]||[]).sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+    const rows = [];
+    alunos.forEach(a => {
+      ['1','2','3'].forEach(p => {
+        const aulasP = (state.aulas[t]||[]).filter(au=>String(au.periodo)===p);
+        const nAulas = aulasP.length;
+        const nFaltas = aulasP.filter(au=>
+          (au.faltasDetail||[]).some(fd=>fd.alunoId===a.id)||(au.faltas||[]).includes(a.name)
+        ).length;
+        rows.push({
+          Nome: a.name, Período: p+'º',
+          'Aulas dadas': nAulas, Faltas: nFaltas, Presenças: nAulas-nFaltas,
+          '% Presença': nAulas?Math.round((nAulas-nFaltas)/nAulas*100)+'%':'—',
+        });
+      });
+    });
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem faltas', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'faltas.xlsx');
+  toast('Registo de faltas exportado');
+}
+
+// ── XLSX Aulas ────────────────────────────────────────────────────────────────
+function exportAulas() {
+  const sheets = getTURMAS().map(t => {
+    const nAlunos = (state.alunos[t]||[]).length;
+    const rows = (state.aulas[t]||[]).sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(au => {
+      const nF = (au.faltasDetail?.length)||(au.faltas?.length)||0;
+      return {
+        Data: au.data||'', Período: (au.periodo||'')+'º', Modalidade: au.modalidade||'',
+        Objetivos: au.objetivos||'', Presenças: nAlunos-nF, Faltas: nF,
+        '% Presença': nAlunos?Math.round((nAlunos-nF)/nAlunos*100)+'%':'—',
+        Observações: au.obs||'',
+      };
+    });
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem aulas', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'aulas.xlsx');
+  toast('Registo de aulas exportado');
+}
+
+// ── XLSX FITescola ────────────────────────────────────────────────────────────
+function exportFit() {
+  const sheets = getTURMAS().map(t => {
+    const rows = (state.fit[t]||[]).map(f => {
+      const a = (state.alunos[t]||[]).find(x=>x.id===f.alunoId);
+      const age = typeof getAge==='function'?getAge(a?.nasc):'';
+      const cl  = typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null;
+      return {
+        Nome: a?.name||'', Género: a?.genre||'', Idade: age||'',
+        Peso: a?.peso||'', Altura: a?.altura||'', Período: (f.periodo||'1')+'º',
+        Vaivém: f.nrVaivem?'NR':(f.vaivem??''), 'Data Vaivém': f.dataVaivem||'',
+        Abdominais: f.nrAbd?'NR':(f.abd??''), 'Data Abdominais': f.dataAbd||'',
+        Flexões: f.nrBracos?'NR':(f.bracos??''), 'Data Flexões': f.dataBracos||'',
+        Impulsão: f.nrImp?'NR':(f.imp??''), 'Data Impulsão': f.dataImp||'',
+        Classificação: cl??'',
+      };
+    });
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem dados FIT', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'fitescola.xlsx');
+  toast('FITescola exportado');
+}
+
+// ── XLSX Modalidades ──────────────────────────────────────────────────────────
+function exportModalidades() {
+  const sheets = getTURMAS().map(t => {
+    const rows = (state.modalidades[t]||[]).map(m => {
+      const a = (state.alunos[t]||[]).find(x=>x.id===m.alunoId);
+      return {
+        Nome: a?.name||'', Modalidade: m.modal||'',
+        Habilidades: m.hab??'', 'Regras/Cultura': m.reg??'',
+        Atitudes: m.atit??'', 'Nota Final': m.final??'', Observações: m.obs||'',
+      };
+    });
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem notas de modalidades', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'modalidades.xlsx');
+  toast('Notas de modalidades exportadas');
+}
+
+// ── XLSX Pauta ────────────────────────────────────────────────────────────────
+function exportPauta() {
+  const mencao = n => {
+    if (!n) return '';
+    if (n>=5) return 'Muito Bom'; if (n>=4) return 'Bom';
+    if (n>=3) return 'Satisfatório'; if (n>=2) return 'Não Satisfatório';
+    return 'Insuficiente';
+  };
+  const sheets = getTURMAS().map(t => {
+    const alunos = (state.alunos[t]||[]).sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999)||a.name.localeCompare(b.name,'pt'));
+    const rows = alunos.map(a => {
+      const avs = ['1','2','3'].map(p=>(state.avaliacoes[t]||[]).find(x=>x.alunoId===a.id&&x.periodo===p)?.final||null);
+      const validos = avs.filter(n=>n!=null);
+      const media = validos.length?(validos.reduce((s,n)=>s+n,0)/validos.length).toFixed(1):'';
+      return {
+        'Nº Ordem': a.nOrdem||'', Nome: a.name,
+        'Nota 1P': avs[0]??'', 'Menção 1P': mencao(avs[0]),
+        'Nota 2P': avs[1]??'', 'Menção 2P': mencao(avs[1]),
+        'Nota 3P': avs[2]??'', 'Menção 3P': mencao(avs[2]),
+        'Evolução 1→2': avs[0]&&avs[1]?avs[1]-avs[0]:'',
+        'Evolução 2→3': avs[1]&&avs[2]?avs[2]-avs[1]:'',
+        'Média': media,
+      };
+    });
+    return { name: t, rows };
+  }).filter(s => s.rows.length);
+  if (!sheets.length) { toast('Sem avaliações', 'ti-alert-circle'); return; }
+  _xlsxDownload(_xlsxWb(sheets), 'pauta_avaliacao.xlsx');
+  toast('Pauta de avaliação exportada');
+}
+
+console.log('✅ Exports XLSX implementados');
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// Relatórios PDF tipo dashboard
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function _abrirRelatorioPDF(htmlContent, titulo) {
+  const win = window.open('', '_blank');
+  if (!win) { toast('Activa os popups para gerar PDF', 'ti-alert-circle'); return; }
+  win.document.write('<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><title>' + titulo + '</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;background:#fff}@page{size:A4 landscape;margin:12mm}@media print{.no-print{display:none!important}body{font-size:10px}}.no-print{text-align:center;padding:16px;background:#f0f4ff;border-bottom:1px solid #dde}.no-print button{background:#3B4FD4;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:14px;cursor:pointer;margin-right:8px}.no-print button:last-child{background:#6c757d}h1{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:4px}.subtitle{font-size:12px;color:#666;margin-bottom:16px}.dash-header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #3B4FD4;padding-bottom:10px;margin-bottom:16px}.logo{font-size:22px;font-weight:800;color:#3B4FD4;letter-spacing:-.5px}.stat-row{display:grid;gap:10px;margin-bottom:14px}.stat-row-4{grid-template-columns:repeat(4,1fr)}.stat-row-3{grid-template-columns:repeat(3,1fr)}.stat-row-2{grid-template-columns:repeat(2,1fr)}.stat-box{background:#f7f8fc;border:1px solid #e0e4ef;border-radius:8px;padding:12px 16px;text-align:center}.stat-box .num{font-size:28px;font-weight:800;color:#3B4FD4;line-height:1}.stat-box .lbl{font-size:10px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:.05em}.stat-box.green .num{color:#1A5C3A}.stat-box.green{border-color:#b2dfcc;background:#f0faf5}.stat-box.red .num{color:#922B21}.stat-box.red{border-color:#f5b7b1;background:#fdf3f2}.stat-box.amber .num{color:#7D4E00}.stat-box.amber{border-color:#fad7a0;background:#fef9f0}.section{margin-bottom:16px}.section-title{font-size:13px;font-weight:700;color:#3B4FD4;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e0e4ef}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#3B4FD4;color:#fff;padding:5px 8px;text-align:left;font-weight:600}td{padding:4px 8px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#f7f8fc}.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}.badge-m{background:#dbeafe;color:#1e40af}.badge-f{background:#fce7f3;color:#9d174d}.badge-ok{background:#d1fae5;color:#065f46}.badge-nok{background:#fee2e2;color:#991b1b}.badge-nr{background:#fef3c7;color:#92400e}.bar-wrap{background:#eee;border-radius:4px;height:8px;width:100%;min-width:60px}.bar-fill{height:8px;border-radius:4px;background:#3B4FD4}.bar-fill.green{background:#1A5C3A}.bar-fill.red{background:#922B21}.nota-circle{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-weight:800;font-size:12px}.nota-5,.nota-4{background:#d1fae5;color:#065f46}.nota-3{background:#dbeafe;color:#1e40af}.nota-2,.nota-1,.nota-0{background:#fee2e2;color:#991b1b}</style></head><body><div class="no-print"><button onclick="window.print()">Imprimir / Guardar PDF</button><button onclick="window.close()">Fechar</button></div>' + htmlContent + '</body></html>');
+  win.document.close();
+  setTimeout(function(){ win.focus(); }, 300);
+}
+
+function exportAlunosPDF() {
+  var turmas = getTURMAS(), date = new Date().toLocaleDateString('pt-PT');
+  var todos = turmas.reduce(function(a,t){ return a.concat((state.alunos[t]||[]).map(function(al){ return Object.assign({},al,{turma:t}); })); },[]);
+  var total=todos.length, nM=todos.filter(function(a){ return a.genre==='M'; }).length, nF=total-nM, comObs=todos.filter(function(a){ return a.obs; }).length;
+  var turmasHTML = turmas.map(function(t){
+    var alunos=(state.alunos[t]||[]).slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt'); });
+    if(!alunos.length) return '';
+    var rows=alunos.map(function(a){ return '<tr><td>'+(a.nOrdem||'—')+'</td><td><strong>'+a.name+'</strong></td><td><span class="badge badge-'+(a.genre==='M'?'m':'f')+'">'+(a.genre||'F')+'</span></td><td>'+(a.nasc||'—')+'</td><td>'+(a.peso?a.peso+' kg':'—')+'</td><td>'+(a.altura?a.altura+' cm':'—')+'</td><td>'+(a.status||'ativo')+'</td><td style="color:#666">'+(a.obs||'')+'</td></tr>'; }).join('');
+    return '<div class="section"><div class="section-title">'+t+' — '+alunos.length+' alunos</div><table><thead><tr><th>Nº Ord.</th><th>Nome</th><th>G</th><th>Nascimento</th><th>Peso</th><th>Altura</th><th>Status</th><th>Observações</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+  var html='<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Relatório de Alunos</h1><div class="subtitle">Gerado em '+date+'</div></div></div><div class="stat-row stat-row-4"><div class="stat-box"><div class="num">'+total+'</div><div class="lbl">Total alunos</div></div><div class="stat-box"><div class="num">'+nM+'</div><div class="lbl">Masculino</div></div><div class="stat-box"><div class="num">'+nF+'</div><div class="lbl">Feminino</div></div><div class="stat-box amber"><div class="num">'+comObs+'</div><div class="lbl">Com obs. saúde</div></div></div>'+turmasHTML+'</div>';
+  _abrirRelatorioPDF(html, 'Relatório Alunos');
+}
+
+function exportFaltasPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var turmasHTML=turmas.map(function(t){
+    var alunos=(state.alunos[t]||[]).slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt'); });
+    if(!alunos.length) return '';
+    var todasAulas=state.aulas[t]||[];
+
+    var rows=alunos.map(function(a){
+      var totalFaltas=0, totalAulas=0;
+      var cols=['1','2','3'].map(function(p){
+        var aulasP=todasAulas.filter(function(au){ return String(au.periodo)===p; });
+        var nAulas=aulasP.length;
+        var nF=aulasP.filter(function(au){ return (au.faltasDetail||[]).some(function(fd){ return fd.alunoId===a.id; })||(au.faltas||[]).includes(a.name); }).length;
+        totalFaltas+=nF; totalAulas+=nAulas;
+        var pct=nAulas?Math.round((nAulas-nF)/nAulas*100):null;
+        var cor=pct===null?'':pct>=90?'ok':pct<75?'nok':'';
+        return '<td style="text-align:center;font-size:10px">'+(nAulas?nF:'—')+'</td>'
+             + '<td style="text-align:center;font-size:10px">'+(nAulas?nAulas-nF:'—')+'</td>'
+             + '<td style="text-align:center">'+(pct!=null?'<span class="badge badge-'+cor+'">'+pct+'%</span>':'—')+'</td>';
+      }).join('');
+      // Total
+      var pctTotal=totalAulas?Math.round((totalAulas-totalFaltas)/totalAulas*100):null;
+      var corTotal=pctTotal===null?'':pctTotal>=90?'ok':pctTotal<75?'nok':'';
+      var totalCol='<td style="text-align:center;font-weight:700;background:#f0f4ff">'+(totalAulas?totalFaltas:'—')+'</td>'
+                  +'<td style="text-align:center;font-weight:700;background:#f0f4ff">'+(totalAulas?totalAulas-totalFaltas:'—')+'</td>'
+                  +'<td style="text-align:center;background:#f0f4ff">'+(pctTotal!=null?'<span class="badge badge-'+corTotal+'" style="font-size:10px;font-weight:800">'+pctTotal+'%</span>':'—')+'</td>';
+      return '<tr><td><strong>'+a.name+'</strong></td>'+cols+totalCol+'</tr>';
+    }).join('');
+
+    // Estatísticas por período
+    var statsRow='<div class="stat-row stat-row-4" style="margin-bottom:10px">'
+      +['1','2','3'].map(function(p){
+        var aulasP=todasAulas.filter(function(au){ return String(au.periodo)===p; });
+        return '<div class="stat-box"><div class="num">'+aulasP.length+'</div><div class="lbl">Aulas '+p+'º P</div></div>';
+      }).join('')
+      +'<div class="stat-box"><div class="num">'+todasAulas.length+'</div><div class="lbl">Total aulas</div></div>'
+      +'</div>';
+
+    return '<div class="section">'
+      +'<div class="section-title">'+t+'</div>'
+      +statsRow
+      +'<table><thead>'
+      +'<tr>'
+        +'<th rowspan="2">Aluno</th>'
+        +'<th colspan="3" style="text-align:center">1º Período</th>'
+        +'<th colspan="3" style="text-align:center;background:#6b21a8">2º Período</th>'
+        +'<th colspan="3" style="text-align:center;background:#065f46">3º Período</th>'
+        +'<th colspan="3" style="text-align:center;background:#1e3a5f">Total</th>'
+      +'</tr>'
+      +'<tr>'
+        +['','style="background:#6b21a8"','style="background:#065f46"','style="background:#1e3a5f"'].map(function(s){
+          return '<th '+s+' style="text-align:center;font-size:9px">Faltas</th>'
+               + '<th '+s+' style="text-align:center;font-size:9px">Pres.</th>'
+               + '<th '+s+' style="text-align:center;font-size:9px">%</th>';
+        }).join('')
+      +'</tr>'
+      +'</thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+
+  _abrirRelatorioPDF('<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Relatório de Faltas</h1><div class="subtitle">Gerado em '+date+'</div></div></div>'+turmasHTML+'</div>','Relatório Faltas');
+}
+
+function exportAulasPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var turmasHTML=turmas.map(function(t){
+    var aulas=(state.aulas[t]||[]).slice().sort(function(a,b){ return (a.data||'').localeCompare(b.data||''); });
+    if(!aulas.length) return '';
+    var nAlunos=(state.alunos[t]||[]).length;
+    var rows=aulas.map(function(au){
+      var nF=(au.faltasDetail?au.faltasDetail.length:0)||(au.faltas?au.faltas.length:0);
+      var pct=nAlunos?Math.round((nAlunos-nF)/nAlunos*100):0;
+      return '<tr><td>'+(au.data||'—')+'</td><td style="text-align:center">'+(au.periodo||'')+'º</td><td>'+(au.modalidade||'—')+'</td><td style="color:#555;font-size:9px">'+((au.objetivos||'').slice(0,60))+'</td><td style="text-align:center">'+(nAlunos-nF)+'</td><td style="text-align:center">'+nF+'</td><td style="text-align:center"><div class="bar-wrap"><div class="bar-fill '+(pct>=90?'green':pct<75?'red':'')+'" style="width:'+pct+'%"></div></div><span style="font-size:9px">'+pct+'%</span></td></tr>';
+    }).join('');
+    var mediaP=aulas.length?Math.round(aulas.reduce(function(s,au){ var nF=(au.faltasDetail?au.faltasDetail.length:0)||(au.faltas?au.faltas.length:0); return s+(nAlunos?(nAlunos-nF)/nAlunos*100:100); },0)/aulas.length):0;
+    return '<div class="section"><div class="section-title">'+t+'</div><div class="stat-row stat-row-3" style="margin-bottom:10px"><div class="stat-box"><div class="num">'+aulas.length+'</div><div class="lbl">Aulas</div></div><div class="stat-box"><div class="num">'+nAlunos+'</div><div class="lbl">Alunos</div></div><div class="stat-box '+(mediaP>=90?'green':mediaP<75?'red':'amber')+'"><div class="num">'+mediaP+'%</div><div class="lbl">Média presença</div></div></div><table><thead><tr><th>Data</th><th>P.</th><th>Modalidade</th><th>Objetivos</th><th style="text-align:center">Pres.</th><th style="text-align:center">Faltas</th><th style="text-align:center">%</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+  _abrirRelatorioPDF('<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Relatório de Aulas</h1><div class="subtitle">Gerado em '+date+'</div></div></div>'+turmasHTML+'</div>','Relatório Aulas');
+}
+
+function exportFitPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var turmasHTML=turmas.map(function(t){
+    var alunos=(state.alunos[t]||[]).slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt'); });
+    var fits=state.fit[t]||[];
+    if(!alunos.length||!fits.length) return '';
+    var nAv=alunos.filter(function(a){ return fits.some(function(f){ return f.alunoId===a.id; }); }).length;
+    var notas=fits.map(function(f){ var a=(state.alunos[t]||[]).find(function(x){ return x.id===f.alunoId; }); return typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null; }).filter(function(n){ return n!=null; });
+    var media=notas.length?(notas.reduce(function(s,n){ return s+n; },0)/notas.length).toFixed(1):'—';
+    var rows=alunos.map(function(a){
+      var age=typeof getAge==='function'?getAge(a.nasc):'';
+      var regs=['1','2','3'].map(function(p){ return fits.find(function(f){ return f.alunoId===a.id&&String(f.periodo||'1')===p; })||null; });
+      var fmt=function(val,nr){ return nr?'<span class="badge badge-nr">NR</span>':(val!=null?val:'—'); };
+      var pCols=regs.map(function(r){
+        if(!r) return '<td colspan="5" style="text-align:center;color:#ccc">—</td>';
+        var cl=typeof alunoFitClassificacao==='function'?alunoFitClassificacao(r,a):null;
+        return '<td style="text-align:center">'+fmt(r.vaivem,r.nrVaivem)+'</td><td style="text-align:center">'+fmt(r.abd,r.nrAbd)+'</td><td style="text-align:center">'+fmt(r.bracos,r.nrBracos)+'</td><td style="text-align:center">'+fmt(r.imp,r.nrImp)+'</td><td style="text-align:center">'+(cl!=null?'<span class="nota-circle nota-'+cl+'">'+cl+'</span>':'—')+'</td>';
+      }).join('');
+      return '<tr><td><strong>'+a.name+'</strong></td><td style="text-align:center"><span class="badge badge-'+(a.genre==='M'?'m':'f')+'">'+(a.genre||'F')+'</span></td><td style="text-align:center">'+(age||'—')+'</td><td style="text-align:center">'+(a.peso?a.peso+' kg':'—')+'</td><td style="text-align:center">'+(a.altura?a.altura+' cm':'—')+'</td>'+pCols+'</tr>';
+    }).join('');
+    return '<div class="section"><div class="section-title">'+t+'</div><div class="stat-row stat-row-3" style="margin-bottom:10px"><div class="stat-box"><div class="num">'+alunos.length+'</div><div class="lbl">Alunos</div></div><div class="stat-box green"><div class="num">'+nAv+'</div><div class="lbl">Avaliados</div></div><div class="stat-box"><div class="num">'+media+'</div><div class="lbl">Média classif.</div></div></div><table><thead><tr><th rowspan="2">Aluno</th><th rowspan="2">G</th><th rowspan="2">Idade</th><th rowspan="2">Peso</th><th rowspan="2">Altura</th><th colspan="5" style="text-align:center;background:#2a3a9e">1º Período</th><th colspan="5" style="text-align:center;background:#6b21a8">2º Período</th><th colspan="5" style="text-align:center;background:#065f46">3º Período</th></tr><tr>'+'<th style="text-align:center">Vai.</th><th style="text-align:center">Abd.</th><th style="text-align:center">Flex.</th><th style="text-align:center">Imp.</th><th style="text-align:center">Cl.</th>'.repeat(3)+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+  _abrirRelatorioPDF('<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Relatório FITescola</h1><div class="subtitle">Gerado em '+date+'</div></div></div>'+turmasHTML+'</div>','Relatório FITescola');
+}
+
+function exportModalidadesPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var turmasHTML=turmas.map(function(t){
+    var alunos=(state.alunos[t]||[]).slice().sort(function(a,b){ return a.name.localeCompare(b.name,'pt'); });
+    var mods=state.modalidades[t]||[];
+    if(!alunos.length||!mods.length) return '';
+    var modalsList=[...new Set(mods.map(function(m){ return m.modal; }))].sort();
+    var modHeaders=modalsList.map(function(mod){ return '<th colspan="4" style="text-align:center;background:#2a3a9e">'+mod+'</th>'; }).join('');
+    var subHeaders=modalsList.map(function(){ return '<th style="text-align:center;font-size:9px">Hab.</th><th style="text-align:center;font-size:9px">Reg.</th><th style="text-align:center;font-size:9px">Atit.</th><th style="text-align:center;font-size:9px">Final</th>'; }).join('');
+    var rows=alunos.map(function(a){
+      var cells=modalsList.map(function(mod){
+        var m=mods.find(function(x){ return x.alunoId===a.id&&x.modal===mod; });
+        if(!m) return '<td colspan="4" style="text-align:center;color:#ccc">—</td>';
+        var nc=m.final>=4?'ok':m.final<=2?'nok':'';
+        return '<td style="text-align:center">'+(m.hab||'—')+'</td><td style="text-align:center">'+(m.reg||'—')+'</td><td style="text-align:center">'+(m.atit||'—')+'</td><td style="text-align:center"><span class="badge badge-'+nc+'">'+(m.final||'—')+'</span></td>';
+      }).join('');
+      return '<tr><td><strong>'+a.name+'</strong></td>'+cells+'</tr>';
+    }).join('');
+    return '<div class="section"><div class="section-title">'+t+' — '+modalsList.length+' modalidades</div><table><thead><tr><th rowspan="2">Aluno</th>'+modHeaders+'</tr><tr>'+subHeaders+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('')||'<p style="color:#999;padding:20px">Sem notas de modalidades.</p>';
+  _abrirRelatorioPDF('<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Notas de Modalidades</h1><div class="subtitle">Gerado em '+date+'</div></div></div>'+turmasHTML+'</div>','Notas de Modalidades');
+}
+
+function exportPautaPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var mencao=function(n){ if(!n) return '—'; if(n>=5) return 'Muito Bom'; if(n>=4) return 'Bom'; if(n>=3) return 'Satisfatório'; if(n>=2) return 'Não Satisfatório'; return 'Insuficiente'; };
+  var menCor=function(n){ return !n?'':n>=4?'ok':n<3?'nok':''; };
+  var turmasHTML=turmas.map(function(t){
+    var alunos=(state.alunos[t]||[]).slice().sort(function(a,b){ return ((a.nOrdem||999)-(b.nOrdem||999))||a.name.localeCompare(b.name,'pt'); });
+    if(!alunos.length) return '';
+    var notas=(state.avaliacoes[t]||[]).map(function(a){ return a.final; }).filter(Boolean);
+    var mediaG=notas.length?(notas.reduce(function(s,n){ return s+n; },0)/notas.length).toFixed(1):'—';
+    var nBom=notas.filter(function(n){ return n>=4; }).length, nNS=notas.filter(function(n){ return n<3; }).length;
+    var rows=alunos.map(function(a,i){
+      var avs=['1','2','3'].map(function(p){ var av=(state.avaliacoes[t]||[]).find(function(x){ return x.alunoId===a.id&&x.periodo===p; }); return av?av.final:null; });
+      var evo12=avs[0]&&avs[1]?avs[1]-avs[0]:null, evo23=avs[1]&&avs[2]?avs[2]-avs[1]:null;
+      var pCols=avs.map(function(n){ return n!=null?'<td style="text-align:center"><strong>'+n+'</strong></td><td style="text-align:center;font-size:9px"><span class="badge badge-'+menCor(n)+'">'+mencao(n)+'</span></td>':'<td colspan="2" style="text-align:center;color:#ccc">—</td>'; }).join('');
+      var ev=function(d){ return d!=null?(d>0?'<span style="color:#065f46">+'+d+'</span>':d<0?'<span style="color:#991b1b">'+d+'</span>':'='):'—'; };
+      return '<tr><td style="text-align:center;color:#888">'+(a.nOrdem||i+1)+'</td><td><strong>'+a.name+'</strong></td>'+pCols+'<td style="text-align:center">'+ev(evo12)+'</td><td style="text-align:center">'+ev(evo23)+'</td></tr>';
+    }).join('');
+    return '<div class="section"><div class="section-title">'+t+'</div><div class="stat-row stat-row-4" style="margin-bottom:10px"><div class="stat-box"><div class="num">'+alunos.length+'</div><div class="lbl">Alunos</div></div><div class="stat-box '+(parseFloat(mediaG)>=3.5?'green':'amber')+'"><div class="num">'+mediaG+'</div><div class="lbl">Média geral</div></div><div class="stat-box green"><div class="num">'+nBom+'</div><div class="lbl">Bom / MB</div></div><div class="stat-box red"><div class="num">'+nNS+'</div><div class="lbl">Não Satis.</div></div></div><table><thead><tr><th rowspan="2">Nº</th><th rowspan="2">Aluno</th><th colspan="2" style="text-align:center">1º Período</th><th colspan="2" style="text-align:center;background:#6b21a8">2º Período</th><th colspan="2" style="text-align:center;background:#065f46">3º Período</th><th rowspan="2" style="text-align:center">1→2</th><th rowspan="2" style="text-align:center">2→3</th></tr><tr><th style="text-align:center">Nota</th><th style="text-align:center">Menção</th><th style="text-align:center;background:#6b21a8">Nota</th><th style="text-align:center;background:#6b21a8">Menção</th><th style="text-align:center;background:#065f46">Nota</th><th style="text-align:center;background:#065f46">Menção</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+  _abrirRelatorioPDF('<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Pauta de Avaliação</h1><div class="subtitle">Gerado em '+date+'</div></div></div>'+turmasHTML+'</div>','Pauta de Avaliação');
+}
+
+function exportRelatorioPDF() {
+  var date=new Date().toLocaleDateString('pt-PT'), turmas=getTURMAS();
+  var totalA=turmas.reduce(function(s,t){ return s+(state.alunos[t]||[]).length; },0);
+  var totalAu=turmas.reduce(function(s,t){ return s+(state.aulas[t]||[]).length; },0);
+  var todasN=turmas.reduce(function(a,t){ return a.concat((state.avaliacoes[t]||[]).map(function(x){ return x.final; }).filter(Boolean)); },[]);
+  var mediaG=todasN.length?(todasN.reduce(function(s,n){ return s+n; },0)/todasN.length).toFixed(1):'—';
+  var sumRows=turmas.map(function(t){
+    var alunos=state.alunos[t]||[], aulas=state.aulas[t]||[], notas=(state.avaliacoes[t]||[]).map(function(a){ return a.final; }).filter(Boolean);
+    var media=notas.length?(notas.reduce(function(s,n){ return s+n; },0)/notas.length).toFixed(1):'—';
+    var nBom=notas.filter(function(n){ return n>=4; }).length, pctBom=notas.length?Math.round(nBom/notas.length*100):0;
+    var presArr=aulas.map(function(au){ var nF=(au.faltasDetail?au.faltasDetail.length:0)||(au.faltas?au.faltas.length:0); return alunos.length?(alunos.length-nF)/alunos.length*100:100; });
+    var pres=presArr.length?Math.round(presArr.reduce(function(s,p){ return s+p; },0)/presArr.length):0;
+    var fits=state.fit[t]||[], fitN=fits.map(function(f){ var a=alunos.find(function(x){ return x.id===f.alunoId; }); return typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null; }).filter(function(n){ return n!=null; });
+    var fitM=fitN.length?(fitN.reduce(function(s,n){ return s+n; },0)/fitN.length).toFixed(1):'—';
+    return '<tr><td><strong>'+t+'</strong></td><td style="text-align:center">'+alunos.length+'</td><td style="text-align:center">'+aulas.length+'</td><td style="text-align:center"><span class="badge badge-'+(pres>=90?'ok':pres<75?'nok':'')+'">'+pres+'%</span></td><td style="text-align:center">'+media+'</td><td style="text-align:center"><span class="badge badge-'+(pctBom>=50?'ok':pctBom<30?'nok':'')+'">'+pctBom+'%</span></td><td style="text-align:center">'+fits.length+'</td><td style="text-align:center">'+fitM+'</td></tr>';
+  }).join('');
+  var html='<div style="padding:4px 0"><div class="dash-header"><div><div class="logo">EF Digital</div><h1>Relatório Completo</h1><div class="subtitle">Gerado em '+date+'</div></div></div><div class="stat-row stat-row-4" style="margin-bottom:16px"><div class="stat-box"><div class="num">'+turmas.length+'</div><div class="lbl">Turmas</div></div><div class="stat-box"><div class="num">'+totalA+'</div><div class="lbl">Total alunos</div></div><div class="stat-box"><div class="num">'+totalAu+'</div><div class="lbl">Aulas registadas</div></div><div class="stat-box '+(parseFloat(mediaG)>=3.5?'green':'amber')+'"><div class="num">'+mediaG+'</div><div class="lbl">Média geral</div></div></div><div class="section"><div class="section-title">Resumo por turma</div><table><thead><tr><th>Turma</th><th style="text-align:center">Alunos</th><th style="text-align:center">Aulas</th><th style="text-align:center">Presença</th><th style="text-align:center">Média</th><th style="text-align:center">% Bom+</th><th style="text-align:center">FIT aval.</th><th style="text-align:center">Média FIT</th></tr></thead><tbody>'+sumRows+'</tbody></table></div></div>';
+  _abrirRelatorioPDF(html,'Relatório Completo EF Digital');
+}
+
+console.log('Relatórios PDF carregados');
+</script>
+
+<script>
+// ── XLSX Relatório Completo (todas as folhas num só ficheiro) ─────────────────
+function exportTudoXlsx() {
+  if (typeof XLSX === 'undefined') { toast('SheetJS não carregado', 'ti-alert-circle'); return; }
+  try {
+    const wb = XLSX.utils.book_new();
+    const mencao = n => { if(!n) return ''; if(n>=5) return 'Muito Bom'; if(n>=4) return 'Bom'; if(n>=3) return 'Satisfatório'; if(n>=2) return 'Não Satisfatório'; return 'Insuficiente'; };
+
+    getTURMAS().forEach(t => {
+      const alunos  = (state.alunos[t]||[]).slice().sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999)||a.name.localeCompare(b.name,'pt'));
+      const aulas   = (state.aulas[t]||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+      const fits    = state.fit[t]||[];
+      const mods    = state.modalidades[t]||[];
+      const avals   = state.avaliacoes[t]||[];
+      const nAlunos = alunos.length;
+
+      // Folha 1 — Alunos
+      const rowsAlunos = alunos.map(a => ({
+        'Nº Ordem': a.nOrdem||'', 'Nº Aluno': a.num||'', Nome: a.name,
+        Género: a.genre==='M'?'Masculino':'Feminino', Nascimento: a.nasc||'',
+        Peso: a.peso||'', Altura: a.altura||'', Status: a.status||'ativo', Observações: a.obs||'',
+      }));
+      if (rowsAlunos.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsAlunos);
+        ws['!cols'] = Object.keys(rowsAlunos[0]).map(k=>({wch:Math.max(k.length,14)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' Alunos').slice(0,31));
+      }
+
+      // Folha 2 — Faltas
+      const rowsFaltas = [];
+      alunos.forEach(a => {
+        ['1','2','3'].forEach(p => {
+          const aulasP = aulas.filter(au=>String(au.periodo)===p);
+          const nAulas = aulasP.length;
+          const nF = aulasP.filter(au=>(au.faltasDetail||[]).some(fd=>fd.alunoId===a.id)||(au.faltas||[]).includes(a.name)).length;
+          rowsFaltas.push({ Nome: a.name, Período: p+'º', 'Aulas dadas': nAulas, Faltas: nF, Presenças: nAulas-nF, '% Presença': nAulas?Math.round((nAulas-nF)/nAulas*100)+'%':'—' });
+        });
+      });
+      if (rowsFaltas.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsFaltas);
+        ws['!cols'] = Object.keys(rowsFaltas[0]).map(k=>({wch:Math.max(k.length,12)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' Faltas').slice(0,31));
+      }
+
+      // Folha 3 — Aulas
+      const rowsAulas = aulas.map(au => {
+        const nF = (au.faltasDetail?.length)||(au.faltas?.length)||0;
+        return { Data: au.data||'', Período: (au.periodo||'')+'º', Modalidade: au.modalidade||'', Objetivos: au.objetivos||'', Presenças: nAlunos-nF, Faltas: nF, '% Presença': nAlunos?Math.round((nAlunos-nF)/nAlunos*100)+'%':'—', Observações: au.obs||'' };
+      });
+      if (rowsAulas.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsAulas);
+        ws['!cols'] = Object.keys(rowsAulas[0]).map(k=>({wch:Math.max(k.length,14)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' Aulas').slice(0,31));
+      }
+
+      // Folha 4 — FITescola
+      const rowsFit = fits.map(f => {
+        const a = alunos.find(x=>x.id===f.alunoId);
+        const age = typeof getAge==='function'?getAge(a?.nasc):'';
+        const cl  = typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null;
+        return { Nome: a?.name||'', Género: a?.genre||'', Idade: age||'', Peso: a?.peso||'', Altura: a?.altura||'', Período: (f.periodo||'1')+'º',
+          Vaivém: f.nrVaivem?'NR':(f.vaivem??''), 'Data Vaivém': f.dataVaivem||'',
+          Abdominais: f.nrAbd?'NR':(f.abd??''), 'Data Abd.': f.dataAbd||'',
+          Flexões: f.nrBracos?'NR':(f.bracos??''), 'Data Flex.': f.dataBracos||'',
+          Impulsão: f.nrImp?'NR':(f.imp??''), 'Data Imp.': f.dataImp||'', Classificação: cl??'' };
+      });
+      if (rowsFit.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsFit);
+        ws['!cols'] = Object.keys(rowsFit[0]).map(k=>({wch:Math.max(k.length,12)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' FIT').slice(0,31));
+      }
+
+      // Folha 5 — Modalidades
+      const rowsMods = mods.map(m => {
+        const a = alunos.find(x=>x.id===m.alunoId);
+        return { Nome: a?.name||'', Modalidade: m.modal||'', Habilidades: m.hab??'', 'Regras/Cultura': m.reg??'', Atitudes: m.atit??'', 'Nota Final': m.final??'', Observações: m.obs||'' };
+      });
+      if (rowsMods.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsMods);
+        ws['!cols'] = Object.keys(rowsMods[0]).map(k=>({wch:Math.max(k.length,14)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' Modalidades').slice(0,31));
+      }
+
+      // Folha 6 — Pauta
+      const rowsPauta = alunos.map(a => {
+        const avs = ['1','2','3'].map(p=>avals.find(x=>x.alunoId===a.id&&x.periodo===p)?.final||null);
+        const validos = avs.filter(n=>n!=null);
+        const media = validos.length?(validos.reduce((s,n)=>s+n,0)/validos.length).toFixed(1):'';
+        return { 'Nº Ordem': a.nOrdem||'', Nome: a.name,
+          'Nota 1P': avs[0]??'', 'Menção 1P': mencao(avs[0]),
+          'Nota 2P': avs[1]??'', 'Menção 2P': mencao(avs[1]),
+          'Nota 3P': avs[2]??'', 'Menção 3P': mencao(avs[2]),
+          'Evol. 1→2': avs[0]&&avs[1]?avs[1]-avs[0]:'', 'Evol. 2→3': avs[1]&&avs[2]?avs[2]-avs[1]:'', Média: media };
+      });
+      if (rowsPauta.length) {
+        const ws = XLSX.utils.json_to_sheet(rowsPauta);
+        ws['!cols'] = Object.keys(rowsPauta[0]).map(k=>({wch:Math.max(k.length,12)}));
+        XLSX.utils.book_append_sheet(wb, ws, (t+' Pauta').slice(0,31));
+      }
+    });
+
+    if (wb.SheetNames.length === 0) { toast('Sem dados para exportar', 'ti-alert-circle'); return; }
+    const date = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, 'EF_Digital_completo_'+date+'.xlsx');
+    toast('Relatório completo exportado — '+wb.SheetNames.length+' folhas');
+  } catch(e) { toast('Erro: '+e.message, 'ti-alert-circle'); }
+}
+console.log('✅ exportTudoXlsx implementado');
+</script>
+
+<!-- ═══ MODAL ANOS LETIVOS ═══ -->
+<div class="overlay" id="modalAnoLetivo" onclick="if(event.target===this)closeModal('modalAnoLetivo')">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <span class="modal-title">📅 Gerir Anos Letivos</span>
+      <button class="modal-close" onclick="closeModal('modalAnoLetivo')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <!-- Ano activo -->
+    <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ano letivo activo</div>
+      <div id="anoLetivoActivo" style="font-size:18px;font-weight:700;color:var(--primary)">—</div>
+    </div>
+
+    <!-- Criar novo ano -->
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">➕ Novo ano letivo</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Ano letivo</label>
+          <input class="form-input" id="novoAnoLabel" placeholder="Ex: 2025-2026">
+        </div>
+        <div>
+          <label class="form-label">Nº de turmas</label>
+          <input class="form-input" type="number" id="novoAnoNTurmas" value="4" min="1" max="20">
+        </div>
+        <div>
+          <label class="form-label">Prefixo das turmas</label>
+          <input class="form-input" id="novoAnoPrefixo" placeholder="Ex: 5ºA, 5ºB, 6ºA, 6ºB">
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">Separa com vírgulas ou deixa vazio para gerar automaticamente</div>
+        </div>
+        <div>
+          <label class="form-label">Escola / Descrição</label>
+          <input class="form-input" id="novoAnoEscola" placeholder="Ex: EB 2,3 de Cascais">
+        </div>
+      </div>
+      <div style="background:#FEF3E7;border:1px solid #fad7a0;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#7D4E00">
+        ⚠️ Criar um novo ano letivo <strong>arquiva o ano actual</strong> e começa do zero. Os dados actuais ficam guardados e podem ser restaurados.
+      </div>
+      <button class="btn btn-primary" onclick="criarNovoAnoLetivo()"><i class="ti ti-calendar-plus"></i>Criar novo ano letivo</button>
+    </div>
+
+    <!-- Anos arquivados -->
+    <div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">🗂️ Anos arquivados</div>
+      <div id="anosArquivadosList" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--text3);font-size:13px">A carregar...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Gestão de Anos Letivos
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  const ANO_INDEX_KEY = 'efdigital_anos_index';
+  const ANO_DATA_PREFIX = 'efdigital_ano_';
+  const ACTIVE_KEY = 'efdigital_v2';
+
+  // Lê o índice de anos
+  function getIndex() {
+    try { return JSON.parse(localStorage.getItem(ANO_INDEX_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveIndex(idx) {
+    localStorage.setItem(ANO_INDEX_KEY, JSON.stringify(idx));
+  }
+
+  // Inicializa o índice se necessário (regista o ano actual se ainda não tem label)
+  function ensureIndex() {
+    const idx = getIndex();
+    if (!state.anoLetivo) {
+      // Tentar inferir o ano letivo pelo ano corrente
+      const now = new Date();
+      const ano = now.getMonth() >= 8
+        ? now.getFullYear() + '-' + (now.getFullYear()+1)
+        : (now.getFullYear()-1) + '-' + now.getFullYear();
+      state.anoLetivo = ano;
+      saveState();
+    }
+    return idx;
+  }
+
+  // Renderiza o modal
+  window.renderAnosLetivos = function() {
+    ensureIndex();
+    const idx = getIndex();
+    const activeEl = document.getElementById('anoLetivoActivo');
+    if (activeEl) activeEl.textContent = state.anoLetivo || '—';
+
+    // Preencher sugestão do novo ano
+    const labelEl = document.getElementById('novoAnoLabel');
+    if (labelEl && !labelEl.value) {
+      const parts = (state.anoLetivo||'').split('-');
+      if (parts.length === 2) {
+        const y = parseInt(parts[1]);
+        if (!isNaN(y)) labelEl.value = y+'-'+(y+1);
+      }
+    }
+
+    const listEl = document.getElementById('anosArquivadosList');
+    if (!listEl) return;
+
+    if (!idx.length) {
+      listEl.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px">Sem anos arquivados.</div>';
+      return;
+    }
+
+    listEl.innerHTML = idx.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px">${a.label}</div>
+          <div style="font-size:11px;color:var(--text3)">${a.escola||''} · Arquivado em ${new Date(a.arquivadoEm).toLocaleDateString('pt-PT')} · ${a.nTurmas||0} turma(s)</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="restaurarAnoLetivo('${a.key}')" style="font-size:12px"><i class="ti ti-refresh"></i>Restaurar</button>
+        <button class="btn btn-sm" onclick="downloadAnoLetivo('${a.key}')" style="font-size:12px;background:var(--surface);border:1px solid var(--border)"><i class="ti ti-download"></i>JSON</button>
+        <button class="btn btn-sm" onclick="apagarAnoArquivado('${a.key}')" style="font-size:12px;background:#FADBD8;color:#922B21;border:1px solid #E8A09B"><i class="ti ti-trash"></i></button>
+      </div>`
+    ).join('');
+  };
+
+  // Criar novo ano letivo
+  window.criarNovoAnoLetivo = function() {
+    const label    = document.getElementById('novoAnoLabel')?.value.trim();
+    const escola   = document.getElementById('novoAnoEscola')?.value.trim() || '';
+    const nTurmas  = parseInt(document.getElementById('novoAnoNTurmas')?.value) || 4;
+    const prefixo  = document.getElementById('novoAnoPrefixo')?.value.trim();
+
+    if (!label) { toast('Indica o ano letivo (ex: 2025-2026)', 'ti-alert-circle'); return; }
+    if (!confirm(`Arquivar o ano ${state.anoLetivo||'actual'} e criar o ano ${label}?\n\nOs dados actuais ficam guardados e podes restaurá-los quando quiseres.`)) return;
+
+    // Arquivar estado actual
+    const arquivoKey = ANO_DATA_PREFIX + (state.anoLetivo||'anterior').replace(/\//g,'-');
+    const idx = getIndex();
+    const existing = idx.findIndex(a => a.key === arquivoKey);
+    const arquivoEntry = {
+      key: arquivoKey,
+      label: state.anoLetivo || 'Anterior',
+      escola: state.escola || '',
+      arquivadoEm: new Date().toISOString(),
+      nTurmas: getTURMAS().length,
+    };
+    localStorage.setItem(arquivoKey, JSON.stringify(state));
+    if (existing >= 0) idx[existing] = arquivoEntry; else idx.unshift(arquivoEntry);
+    saveIndex(idx);
+
+    // Gerar lista de turmas
+    let turmas = [];
+    if (prefixo) {
+      turmas = prefixo.split(',').map(t=>t.trim()).filter(Boolean);
+    } else {
+      // Gerar automaticamente: 5ºA, 5ºB, ... baseado em nTurmas
+      const letras = 'ABCDEFGHIJKLMNOPQRST'.split('');
+      const anos = ['5º','6º','7º','8º','9º','10º','11º','12º'];
+      let i = 0;
+      outer: for (const ano of anos) {
+        for (const l of letras) {
+          turmas.push(ano+l);
+          if (++i >= nTurmas) break outer;
+        }
+      }
+    }
+
+    // Resetar state para novo ano
+    const newState = {
+      turma: turmas[0] || '5ºA',
+      periodo: '1',
+      currentPage: 'alunos',
+      currentDesempPeriodo: '1',
+      selSport: null,
+      presencaState: {},
+      turmasList: turmas,
+      alunos: {}, aulas: {}, fit: {}, modalidades: {}, avaliacoes: {},
+      horario: {}, nonLetivo: [], toques: {},
+      periodosDatas: { '1':{inicio:'',fim:''}, '2':{inicio:'',fim:''}, '3':{inicio:'',fim:''} },
+      feriasDatas: [], planeadas: [], feriados: [],
+      calYear: new Date().getFullYear(), calMonth: new Date().getMonth(),
+      anoLetivo: label, escola,
+    };
+    turmas.forEach(t => {
+      newState.alunos[t]=[]; newState.aulas[t]=[]; newState.horario[t]=[];
+      newState.fit[t]=[]; newState.modalidades[t]=[]; newState.avaliacoes[t]=[];
+    });
+
+    Object.assign(state, newState);
+    saveState();
+
+    toast('Novo ano letivo '+label+' criado!');
+    closeModal('modalAnoLetivo');
+
+    // Reiniciar UI
+    buildPills();
+    updateTurmaSels();
+    if (typeof renderTurmasListEdit === 'function') renderTurmasListEdit();
+    showPage('alunos');
+    setTimeout(() => { filterAlunos(); }, 100);
+  };
+
+  // Restaurar ano arquivado
+  window.restaurarAnoLetivo = function(key) {
+    const saved = localStorage.getItem(key);
+    if (!saved) { toast('Dados não encontrados', 'ti-alert-circle'); return; }
+    const anoLabel = getIndex().find(a=>a.key===key)?.label || key;
+    if (!confirm(`Restaurar o ano ${anoLabel}?\n\nO ano actual (${state.anoLetivo||'—'}) será arquivado primeiro.`)) return;
+
+    // Arquivar actual
+    const arquivoKey = ANO_DATA_PREFIX + (state.anoLetivo||'anterior').replace(/\//g,'-');
+    if (arquivoKey !== key) {
+      const idx = getIndex();
+      const arquivoEntry = { key: arquivoKey, label: state.anoLetivo||'Anterior', escola: state.escola||'', arquivadoEm: new Date().toISOString(), nTurmas: getTURMAS().length };
+      localStorage.setItem(arquivoKey, JSON.stringify(state));
+      const ei = idx.findIndex(a=>a.key===arquivoKey);
+      if (ei>=0) idx[ei]=arquivoEntry; else idx.unshift(arquivoEntry);
+      saveIndex(idx);
+    }
+
+    // Restaurar
+    try {
+      const restored = JSON.parse(saved);
+      Object.assign(state, restored);
+      saveState();
+      toast('Ano '+anoLabel+' restaurado!');
+      closeModal('modalAnoLetivo');
+      buildPills();
+      updateTurmaSels();
+      if (typeof renderTurmasListEdit === 'function') renderTurmasListEdit();
+      showPage('alunos');
+      setTimeout(() => { filterAlunos(); }, 100);
+    } catch(e) { toast('Erro ao restaurar: '+e.message, 'ti-alert-circle'); }
+  };
+
+  // Download JSON de um ano arquivado
+  window.downloadAnoLetivo = function(key) {
+    const saved = localStorage.getItem(key);
+    if (!saved) { toast('Dados não encontrados', 'ti-alert-circle'); return; }
+    const anoLabel = getIndex().find(a=>a.key===key)?.label || key;
+    const blob = new Blob([saved], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='EF_Digital_'+anoLabel+'.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+  };
+
+  // Apagar ano arquivado
+  window.apagarAnoArquivado = function(key) {
+    const anoLabel = getIndex().find(a=>a.key===key)?.label || key;
+    if (!confirm(`Apagar definitivamente o ano ${anoLabel}?\n\nEsta acção não pode ser revertida.`)) return;
+    localStorage.removeItem(key);
+    const idx = getIndex().filter(a=>a.key!==key);
+    saveIndex(idx);
+    renderAnosLetivos();
+    toast('Ano '+anoLabel+' apagado');
+  };
+
+  // Hook no openModal para renderizar quando abre
+  const _origOpenModalAnos = window.openModal;
+  window.openModal = function(id, ...args) {
+    if (typeof _origOpenModalAnos === 'function') _origOpenModalAnos(id, ...args);
+    if (id === 'modalAnoLetivo') setTimeout(renderAnosLetivos, 50);
+  };
+
+  // Mostrar ano letivo activo no header da app
+  const _origUpdateTopbarSub = window.updateTopbarSub;
+  window.updateTopbarSub = function() {
+    if (typeof _origUpdateTopbarSub === 'function') _origUpdateTopbarSub();
+    if (state.anoLetivo) {
+      const sub = document.getElementById('topbar-sub');
+      if (sub && !sub.textContent.includes(state.anoLetivo)) {
+        sub.textContent = (sub.textContent ? sub.textContent + ' · ' : '') + state.anoLetivo;
+      }
+    }
+  };
+
+  console.log('✅ Gestão de anos letivos');
+})();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH — Export por turma: selector de turma na página de exportar
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Popula o selector de turma quando a página exportar abre
+  function populateExportTurmaSelect() {
+    const sel = document.getElementById('exportTurmaSelect');
+    if (!sel) return;
+    const turmas = getTURMAS();
+    sel.innerHTML = turmas.map(t => `<option value="${t}">${t}</option>`).join('');
+    // Pré-seleccionar a turma activa
+    if (state.turma && turmas.includes(state.turma)) sel.value = state.turma;
+  }
+
+  // Devolve a turma seleccionada (ou null = todas)
+  window.getExportTurma = function() {
+    const sel = document.getElementById('exportTurmaSelect');
+    const v = sel?.value;
+    return (!v || v === 'todas') ? null : v;
+  };
+
+  // Botão "Todas as turmas"
+  window.exportSetTurma = function(v) {
+    const sel = document.getElementById('exportTurmaSelect');
+    if (!sel) return;
+    if (v === 'todas') { sel.value = ''; sel.blur(); return; }
+    sel.value = v;
+  };
+
+  // Hook em showPage para popular o select quando a página exportar abre
+  const _origShowPageExport = window.showPage;
+  window.showPage = function(id, btn) {
+    if (typeof _origShowPageExport === 'function') _origShowPageExport(id, btn);
+    if (id === 'exportar') setTimeout(populateExportTurmaSelect, 60);
+  };
+
+  // ─── Adaptar todas as funções de export para receber turma ────────────────
+
+  function filtrarTurmas(turma) {
+    return turma ? [turma] : getTURMAS();
+  }
+
+  // XLSX Alunos
+  const _origExportAlunos = window.exportAlunos;
+  window.exportAlunos = function(turma) {
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const rows = (state.alunos[t]||[]).slice().sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999)).map(a=>({
+        'Nº Ordem':a.nOrdem||'','Nº Aluno':a.num||'',Nome:a.name,
+        Género:a.genre==='M'?'Masculino':'Feminino',Nascimento:a.nasc||'',
+        Peso:a.peso||'',Altura:a.altura||'',Status:a.status||'ativo',Observações:a.obs||'',
+      }));
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,14)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_alunos.xlsx');
+    toast('Alunos exportados');
+  };
+
+  window.exportFaltas = function(turma) {
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const alunos=(state.alunos[t]||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+      const todasAulas=state.aulas[t]||[];
+      const rows=[];
+      alunos.forEach(a=>{
+        let totalF=0, totalA=0;
+        const row = {'Nº Ordem': a.nOrdem||'', Nome: a.name};
+        ['1','2','3'].forEach(p=>{
+          const ap=todasAulas.filter(au=>String(au.periodo)===p);
+          const nA=ap.length;
+          const nF=ap.filter(au=>(au.faltasDetail||[]).some(fd=>fd.alunoId===a.id)||(au.faltas||[]).includes(a.name)).length;
+          totalF+=nF; totalA+=nA;
+          row['Aulas '+p+'ºP']=nA;
+          row['Faltas '+p+'ºP']=nF;
+          row['Pres. '+p+'ºP']=nA-nF;
+          row['% '+p+'ºP']=nA?Math.round((nA-nF)/nA*100)+'%':'—';
+        });
+        row['Total Aulas']=totalA;
+        row['Total Faltas']=totalF;
+        row['Total Pres.']=totalA-totalF;
+        row['% Total']=totalA?Math.round((totalA-totalF)/totalA*100)+'%':'—';
+        rows.push(row);
+      });
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,10)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_faltas.xlsx');
+    toast('Faltas exportadas');
+  };
+
+  // XLSX Aulas
+  const _origExportAulas = window.exportAulas;
+  window.exportAulas = function(turma) {
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const nAl=(state.alunos[t]||[]).length;
+      const rows=(state.aulas[t]||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(au=>{
+        const nF=(au.faltasDetail?.length)||(au.faltas?.length)||0;
+        return {Data:au.data||'',Período:(au.periodo||'')+'º',Modalidade:au.modalidade||'',Objetivos:au.objetivos||'',Presenças:nAl-nF,Faltas:nF,'% Presença':nAl?Math.round((nAl-nF)/nAl*100)+'%':'—',Observações:au.obs||''};
+      });
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,14)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_aulas.xlsx');
+    toast('Aulas exportadas');
+  };
+
+  // XLSX FIT
+  const _origExportFit = window.exportFit;
+  window.exportFit = function(turma) {
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const rows=(state.fit[t]||[]).map(f=>{
+        const a=(state.alunos[t]||[]).find(x=>x.id===f.alunoId);
+        const age=typeof getAge==='function'?getAge(a?.nasc):'';
+        const cl=typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null;
+        return {Nome:a?.name||'',Género:a?.genre||'',Idade:age||'',Peso:a?.peso||'',Altura:a?.altura||'',Período:(f.periodo||'1')+'º',
+          Vaivém:f.nrVaivem?'NR':(f.vaivem??''),'Data Vaivém':f.dataVaivem||'',
+          Abdominais:f.nrAbd?'NR':(f.abd??''),'Data Abd.':f.dataAbd||'',
+          Flexões:f.nrBracos?'NR':(f.bracos??''),'Data Flex.':f.dataBracos||'',
+          Impulsão:f.nrImp?'NR':(f.imp??''),'Data Imp.':f.dataImp||'',Classificação:cl??''};
+      });
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,12)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_fitescola.xlsx');
+    toast('FITescola exportado');
+  };
+
+  // XLSX Modalidades
+  const _origExportMod = window.exportModalidades;
+  window.exportModalidades = function(turma) {
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const rows=(state.modalidades[t]||[]).map(m=>{
+        const a=(state.alunos[t]||[]).find(x=>x.id===m.alunoId);
+        return {Nome:a?.name||'',Modalidade:m.modal||'',Habilidades:m.hab??'','Regras/Cultura':m.reg??'',Atitudes:m.atit??'','Nota Final':m.final??'',Observações:m.obs||''};
+      });
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,14)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_modalidades.xlsx');
+    toast('Modalidades exportadas');
+  };
+
+  // XLSX Pauta
+  const _origExportPauta = window.exportPauta;
+  window.exportPauta = function(turma) {
+    const mencao=n=>{if(!n)return'';if(n>=5)return'Muito Bom';if(n>=4)return'Bom';if(n>=3)return'Satisfatório';if(n>=2)return'Não Satisfatório';return'Insuficiente';};
+    const turmas = filtrarTurmas(turma);
+    const wb = XLSX.utils.book_new();
+    turmas.forEach(t => {
+      const alunos=(state.alunos[t]||[]).slice().sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999)||a.name.localeCompare(b.name,'pt'));
+      const rows=alunos.map(a=>{
+        const avs=['1','2','3'].map(p=>(state.avaliacoes[t]||[]).find(x=>x.alunoId===a.id&&x.periodo===p)?.final||null);
+        const v=avs.filter(n=>n!=null),media=v.length?(v.reduce((s,n)=>s+n,0)/v.length).toFixed(1):'';
+        return {'Nº Ordem':a.nOrdem||'',Nome:a.name,
+          'Nota 1P':avs[0]??'','Menção 1P':mencao(avs[0]),
+          'Nota 2P':avs[1]??'','Menção 2P':mencao(avs[1]),
+          'Nota 3P':avs[2]??'','Menção 3P':mencao(avs[2]),
+          'Evol. 1→2':avs[0]&&avs[1]?avs[1]-avs[0]:'','Evol. 2→3':avs[1]&&avs[2]?avs[2]-avs[1]:'',Média:media};
+      });
+      if (!rows.length) return;
+      const ws=XLSX.utils.json_to_sheet(rows);
+      ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,12)}));
+      XLSX.utils.book_append_sheet(wb,ws,t.slice(0,31));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    XLSX.writeFile(wb,(turma||'todas')+'_pauta.xlsx');
+    toast('Pauta exportada');
+  };
+
+  // XLSX Relatório completo — turma única ou todas
+  const _origExportTudo = window.exportTudoXlsx;
+  window.exportTudoXlsx = function(turma) {
+    if (typeof XLSX==='undefined'){toast('SheetJS não carregado','ti-alert-circle');return;}
+    const turmas = filtrarTurmas(turma);
+    const mencao=n=>{if(!n)return'';if(n>=5)return'Muito Bom';if(n>=4)return'Bom';if(n>=3)return'Satisfatório';if(n>=2)return'Não Satisfatório';return'Insuficiente';};
+    const wb=XLSX.utils.book_new();
+    turmas.forEach(t=>{
+      const alunos=(state.alunos[t]||[]).slice().sort((a,b)=>(a.nOrdem||999)-(b.nOrdem||999));
+      const aulas=(state.aulas[t]||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+      const nAl=alunos.length;
+      const addSheet=(name,rows)=>{if(!rows.length)return;const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=Object.keys(rows[0]).map(k=>({wch:Math.max(k.length,12)}));XLSX.utils.book_append_sheet(wb,ws,(t+' '+name).slice(0,31));};
+      addSheet('Alunos',alunos.map(a=>({'Nº':a.nOrdem||'','Nº Aluno':a.num||'',Nome:a.name,G:a.genre||'',Nasc:a.nasc||'',Peso:a.peso||'',Altura:a.altura||'',Status:a.status||'ativo',Obs:a.obs||''})));
+      addSheet('Faltas',alunos.flatMap(a=>['1','2','3'].map(p=>{const ap=aulas.filter(au=>String(au.periodo)===p);const nA=ap.length,nF=ap.filter(au=>(au.faltasDetail||[]).some(fd=>fd.alunoId===a.id)||(au.faltas||[]).includes(a.name)).length;return{Nome:a.name,Período:p+'º','Aulas dadas':nA,Faltas:nF,Presenças:nA-nF,'%':nA?Math.round((nA-nF)/nA*100)+'%':'—'};})));
+      addSheet('Aulas',aulas.map(au=>{const nF=(au.faltasDetail?.length)||(au.faltas?.length)||0;return{Data:au.data||'',P:(au.periodo||'')+'º',Modalidade:au.modalidade||'',Objetivos:au.objetivos||'',Presenças:nAl-nF,Faltas:nF,'%':nAl?Math.round((nAl-nF)/nAl*100)+'%':'—'};}));
+      addSheet('FIT',(state.fit[t]||[]).map(f=>{const a=alunos.find(x=>x.id===f.alunoId);const cl=typeof alunoFitClassificacao==='function'?alunoFitClassificacao(f,a):null;return{Nome:a?.name||'',G:a?.genre||'',P:(f.periodo||'1')+'º',Vaivém:f.nrVaivem?'NR':(f.vaivem??''),Abd:f.nrAbd?'NR':(f.abd??''),Flex:f.nrBracos?'NR':(f.bracos??''),Imp:f.nrImp?'NR':(f.imp??''),Cl:cl??''};}));
+      addSheet('Modalidades',(state.modalidades[t]||[]).map(m=>{const a=alunos.find(x=>x.id===m.alunoId);return{Nome:a?.name||'',Modalidade:m.modal||'',Hab:m.hab??'',Reg:m.reg??'',Atit:m.atit??'',Final:m.final??''};}));
+      addSheet('Pauta',alunos.map(a=>{const avs=['1','2','3'].map(p=>(state.avaliacoes[t]||[]).find(x=>x.alunoId===a.id&&x.periodo===p)?.final||null);const v=avs.filter(n=>n!=null),med=v.length?(v.reduce((s,n)=>s+n,0)/v.length).toFixed(1):'';return{'Nº':a.nOrdem||'',Nome:a.name,'N1':avs[0]??'','M1':mencao(avs[0]),'N2':avs[1]??'','M2':mencao(avs[1]),'N3':avs[2]??'','M3':mencao(avs[2]),Média:med};}));
+    });
+    if (!wb.SheetNames.length){toast('Sem dados','ti-alert-circle');return;}
+    const date=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb,'EF_Digital_'+(turma||'completo')+'_'+date+'.xlsx');
+    toast('Relatório completo exportado — '+wb.SheetNames.length+' folhas');
+  };
+
+  // PDF funções — adaptar para receber turma
+  const _pdfAlunosOrig = window.exportAlunosPDF;
+  window.exportAlunosPDF = function(turma) {
+    const _turmas = window._exportTurmasOrig = filtrarTurmas(turma);
+    // Temporariamente sobrescrever getTURMAS para o PDF
+    const _gt = window.getTURMAS; window.getTURMAS = ()=>_turmas;
+    _pdfAlunosOrig(); window.getTURMAS = _gt;
+  };
+  const _pdfFaltasOrig = window.exportFaltasPDF;
+  window.exportFaltasPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfFaltasOrig(); window.getTURMAS=_gt;
+  };
+  const _pdfAulasOrig = window.exportAulasPDF;
+  window.exportAulasPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfAulasOrig(); window.getTURMAS=_gt;
+  };
+  const _pdfFitOrig = window.exportFitPDF;
+  window.exportFitPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfFitOrig(); window.getTURMAS=_gt;
+  };
+  const _pdfModOrig = window.exportModalidadesPDF;
+  window.exportModalidadesPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfModOrig(); window.getTURMAS=_gt;
+  };
+  const _pdfPautaOrig = window.exportPautaPDF;
+  window.exportPautaPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfPautaOrig(); window.getTURMAS=_gt;
+  };
+  const _pdfRelOrig = window.exportRelatorioPDF;
+  window.exportRelatorioPDF = function(turma) {
+    const _turmas = filtrarTurmas(turma); const _gt=window.getTURMAS; window.getTURMAS=()=>_turmas; _pdfRelOrig(); window.getTURMAS=_gt;
+  };
+
+  console.log('✅ Export por turma');
 })();
 </script>
