@@ -790,7 +790,6 @@ tr:hover td { background: #FAFBFA; }
     <div class="page" id="page-turmas-dashboard">
       <div class="stats-grid" id="dash-global-stats"></div>
       <div class="dash-grid" id="dash-turmas-grid"></div>
-      <div id="dash-espacos" style="margin-top:28px"></div>
     </div>
 
     <!-- ═══ COMPARAR getTURMAS() ═══ -->
@@ -1008,6 +1007,18 @@ tr:hover td { background: #FAFBFA; }
       </div>
       <div class="form-group"><label class="form-label">Turma</label>
         <select class="form-select" id="aTurma"></select>
+      </div>
+      <div class="form-group"><label class="form-label">Peso (kg)</label>
+        <input class="form-input" type="number" id="aPeso" placeholder="Ex: 52.5" min="20" max="200" step="0.1">
+      </div>
+      <div class="form-group"><label class="form-label">Altura (cm)</label>
+        <input class="form-input" type="number" id="aAltura" placeholder="Ex: 165" min="100" max="220" step="0.5">
+      </div>
+      <div class="form-group" id="aImcGroup" style="display:flex;align-items:flex-end;padding-bottom:4px">
+        <div style="width:100%">
+          <label class="form-label">IMC</label>
+          <div id="aImcVal" style="font-size:14px;font-weight:600;padding:8px 12px;background:var(--surface2,#f5f5f5);border-radius:var(--radius-sm,6px);min-height:36px;display:flex;align-items:center;gap:8px;color:var(--text3)">—</div>
+        </div>
       </div>
       <div class="form-group full"><label class="form-label">Foto (URL ou deixar vazio)</label><input class="form-input" id="aFoto" placeholder="https://..."></div>
       <div class="form-group full"><label class="form-label">Observações de saúde / dispensa</label><textarea class="form-textarea" id="aObs" placeholder="Ex: asma leve, dispensa de natação..."></textarea></div>
@@ -2002,7 +2013,7 @@ function renderAulas() {
           <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo||''}</span>
           ${a.local?`<span class="badge badge-gray" style="font-size:10px;margin-left:4px"><i class="ti ti-map-pin" style="font-size:9px"></i> ${a.local}</span>`:''}
         </div>
-        ${a.obj ? `<div class="aula-detail" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:help" title="${a.obj}"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>` : ''}
+        ${a.obj ? `<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>` : ''}
         ${a.obs ? `<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>` : ''}
         ${a.faltas?.length ? `<div class="aula-chips">${a.faltas.map(n=>`<span class="badge badge-red" style="font-size:10px">${n.split(' ')[0]}</span>`).join('')}</div>` : ''}
       </div>
@@ -2041,13 +2052,28 @@ function renderAulas() {
 function renderFaltas() {
   const alunos = state.alunos[state.turma] || [];
   const aulasP = aulasByPeriodo(state.turma, state.periodo);
-  const totalAulas = aulasP.length;
+  // Contar total de períodos de 50' dados
+  const totalAulas = aulasP.reduce((s, a) => s + Math.round((a.dur || 50) / 50), 0);
+
+  // Calcular faltas em períodos de 50' por aluno, usando faltasDetail das aulas
+  function faltasEmPeriodos(alunoId, tipo) {
+    let n = 0;
+    aulasP.forEach(au => {
+      const periodos = Math.round((au.dur || 50) / 50);
+      const detail = (au.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+      if (!detail) return;
+      const t = detail.tipo || 'FP';
+      if (!tipo || t === tipo) n += periodos;
+    });
+    return n;
+  }
+
   let totalFaltas = 0, emRisco = 0;
 
   document.getElementById('faltasPeriodoBadge').textContent = PERIODOS[parseInt(state.periodo)-1];
 
   const rows = alunos.map(a => {
-    const fp=faltasByPeriodo(a,state.periodo,'fp'),fm=faltasByPeriodo(a,state.periodo,'fm'),fj=faltasByPeriodo(a,state.periodo,'fj');
+    const fp=faltasEmPeriodos(a.id,'FP'), fm=faltasEmPeriodos(a.id,'FM'), fj=faltasEmPeriodos(a.id,'FJ');
     totalFaltas+=fp;
     const pres=Math.max(0,totalAulas-fp);
     const pct=totalAulas>0?Math.round((pres/totalAulas)*100):100;
@@ -2067,8 +2093,8 @@ function renderFaltas() {
 
   const presMedia = alunos.length && totalAulas > 0 ? Math.round(((totalAulas*alunos.length - totalFaltas)/(totalAulas*alunos.length))*100) : 100;
   document.getElementById('faltasStats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Aulas dadas</div><div class="stat-value">${totalAulas}</div><div class="stat-sub">${PERIODOS[parseInt(state.periodo)-1]}</div></div>
-    <div class="stat-card"><div class="stat-label">Total de faltas</div><div class="stat-value">${totalFaltas}</div></div>
+    <div class="stat-card"><div class="stat-label">Períodos 50' dados</div><div class="stat-value">${totalAulas}</div><div class="stat-sub">${PERIODOS[parseInt(state.periodo)-1]}</div></div>
+    <div class="stat-card"><div class="stat-label">Total de faltas</div><div class="stat-value">${totalFaltas}</div><div class="stat-sub">em períodos 50'</div></div>
     <div class="stat-card"><div class="stat-label">Em risco</div><div class="stat-value" style="color:var(--red)">${emRisco}</div><div class="stat-sub">>30% faltas</div></div>
     <div class="stat-card"><div class="stat-label">Presença média</div><div class="stat-value">${presMedia}%</div></div>`;
 }
@@ -2305,8 +2331,7 @@ function openModal(id, isNew=false) {
     document.getElementById('modalAulaTitle').textContent = 'Registar aula';
     document.getElementById('btnDeleteAula').style.display = 'none';
     document.getElementById('auData').value = new Date().toISOString().split('T')[0];
-    ['auObj','auObs'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    const _auLocalEl = document.getElementById('auLocal'); if(_auLocalEl) _auLocalEl.selectedIndex=0;
+    ['auObj','auObs','auLocal'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderPresencaGrid();
   }
   if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
@@ -3821,18 +3846,35 @@ function turmaStats(t, periodo) {
   const fit    = state.fit[t] || [];
   const mods   = state.modalidades[t] || [];
   const avals  = (state.avaliacoes[t] || []).filter(a => a.periodo === periodo);
-  const nAulas = aulas.length;
+  // nAulas em períodos de 50' (aula de 100min = 2 períodos, aula de 50min = 1)
+  const nAulas = aulas.reduce((s, a) => s + Math.round((a.dur || 50) / 50), 0);
+
+  // Calcular faltas por aluno em períodos de 50':
+  // cada falta numa aula de 100min conta como 2 períodos, numa de 50min como 1, etc.
+  // Usa faltasDetail das aulas para saber exactamente em que aulas faltou.
+  function faltasPeriodos50(alunoId) {
+    let fp = 0, fm = 0, fj = 0;
+    aulas.forEach(au => {
+      const periodos = Math.round((au.dur || 50) / 50);
+      const detail = (au.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+      if (!detail) return;
+      if (detail.tipo === 'FP' || !detail.tipo) fp += periodos;
+      else if (detail.tipo === 'FM') fm += periodos;
+      else if (detail.tipo === 'FJ') fj += periodos;
+    });
+    return {fp, fm, fj, total: fp + fm + fj};
+  }
 
   let totalFaltas = 0;
   const emRisco = [];
   alunos.forEach(a => {
-    const f = faltasByPeriodo(a, periodo, 'fp');
+    const f = faltasPeriodos50(a.id).fp;
     totalFaltas += f;
-    const pct = nAulas > 0 ? Math.round(((nAulas-f)/nAulas)*100) : 100;
+    const pct = nAulas > 0 ? Math.round(((nAulas - f) / nAulas) * 100) : 100;
     if (pct < 70) emRisco.push({name:a.name, faltas:f, pct});
   });
   const presMedia = alunos.length && nAulas > 0
-    ? Math.round(((nAulas*alunos.length - totalFaltas)/(nAulas*alunos.length))*100) : 100;
+    ? Math.round(((nAulas * alunos.length - totalFaltas) / (nAulas * alunos.length)) * 100) : 100;
 
   const finals = avals.map(a => a.final).filter(Boolean);
   const mediaFinal = finals.length ? finals.reduce((s,x)=>s+x,0)/finals.length : null;
@@ -3849,7 +3891,7 @@ function turmaStats(t, periodo) {
     .map(([modal,notas]) => ({modal, avg:notas.reduce((s,x)=>s+x,0)/notas.length, count:notas.length}))
     .sort((a,b) => b.avg-a.avg);
 
-  return {alunos, nAlunos:alunos.length, nAulas, totalFaltas, presMedia, emRisco,
+  return {alunos, nAlunos:alunos.length, nAulas, faltasPeriodos50, totalFaltas, presMedia, emRisco,
           mediaFinal, pctBom, pctNS, finals, fit, fitSaudavel, fitMediaCl, modalRanking, avals};
 }
 
@@ -3921,7 +3963,7 @@ function renderTurmasComparar() {
   const rankOf  = (arr,t) => arr.findIndex(x=>x.t===t)+1;
 
   document.getElementById('compare-thead').innerHTML = `<tr>
-    <th>Turma</th><th>Alunos</th><th>Aulas</th>
+    <th>Turma</th><th>Alunos</th><th>Aulas<br><span style="font-weight:400;color:var(--text3);font-size:10px">períodos 50'</span></th>
     <th>Presença %</th><th>Em risco</th>
     <th>Média final</th><th>Bom/MB</th><th>Não Sat.</th><th>FIT zona s.</th>
   </tr>`;
@@ -3960,7 +4002,7 @@ function renderTurmasFicha() {
   document.getElementById('fichaContent').innerHTML = `
     <div style="background:${col.bg};border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div><div style="font-size:28px;font-weight:800;color:#fff">${t}</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.75)">${s.nAlunos} alunos · ${PERIODOS[parseInt(periodo)-1]} · ${s.nAulas} aulas</div></div>
+        <div style="font-size:13px;color:rgba(255,255,255,.75)">${s.nAlunos} alunos · ${PERIODOS[parseInt(periodo)-1]} · ${s.nAulas} períodos 50'</div></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div style="background:rgba(255,255,255,.15);border-radius:var(--radius-sm);padding:10px 16px;text-align:center">
           <div style="font-size:22px;font-weight:700;color:#fff">${s.presMedia}%</div><div style="font-size:10px;color:rgba(255,255,255,.7)">Presença</div></div>
@@ -3981,7 +4023,7 @@ function renderTurmasFicha() {
         <span class="ficha-section-title">Faltas — ${PERIODOS[parseInt(periodo)-1]}</span></div>
       <div class="ficha-section-body">
         ${s.alunos.map((a,i)=>{
-          const f=faltasByPeriodo(a,periodo,'fp'), pct=s.nAulas>0?Math.round(((s.nAulas-f)/s.nAulas)*100):100;
+          const f=s.faltasPeriodos50(a.id).fp, pct=s.nAulas>0?Math.round(((s.nAulas-f)/s.nAulas)*100):100;
           const bar=colorBar(pct), c=CARR[i%CARR.length];
           return `<div class="aluno-row">
             <div class="aluno-row-avatar" style="background:${c.bg};color:${c.fg}">${initials(a.name)}</div>
@@ -4036,7 +4078,7 @@ function exportFichaTurma() {
     ['Presença',s.presMedia+'%','Faltas FP',s.totalFaltas],
     ['Média final',s.mediaFinal?s.mediaFinal.toFixed(1):'—','FIT zona s.',s.fitSaudavel!==null?s.fitSaudavel+'%':'—'],[],
     ['FALTAS'],['Nome','FP','Presença %','Estado'],
-    ...s.alunos.map(a=>{const f=faltasByPeriodo(a,periodo,'fp'),pct=s.nAulas>0?Math.round(((s.nAulas-f)/s.nAulas)*100):100;return[a.name,f,pct+'%',pct<70?'Em risco':'OK'];}),
+    ...s.alunos.map(a=>{const f=s.faltasPeriodos50(a.id).fp,pct=s.nAulas>0?Math.round(((s.nAulas-f)/s.nAulas)*100):100;return[a.name,f,pct+'%',pct<70?'Em risco':'OK'];}),
     [],['AVALIAÇÃO'],['Nome','FIT','Modal.','Atit.','Final','Menção'],
     ...s.alunos.map(a=>{const av=s.avals.find(x=>x.alunoId===a.id);return av?[a.name,av.fit,av.mod,av.atit,av.final,MENC[av.final]]:[a.name,'—','—','—','—','—'];}),
   ];
@@ -4087,7 +4129,6 @@ function editAula(id, evt) {
   document.getElementById('auDur').value   = aula.dur   || 50;
   document.getElementById('auModal').value = aula.modal || '';
   document.getElementById('auTipo').value  = aula.tipo  || 'exerc';
-  document.getElementById('auLocal').value = aula.local || '';
   document.getElementById('auObj').value   = aula.obj   || '';
   document.getElementById('auObs').value   = aula.obs   || '';
   document.getElementById('btnDeleteAula').style.display = '';
@@ -4966,115 +5007,6 @@ function renderTurmasDashboard() {
       </div>
     </div>`;
   }).join('');
-
-  // ── Utilização de espaços ────────────────────────────────────────────────
-  const espacosEl = document.getElementById('dash-espacos');
-  if (!espacosEl) return;
-
-  // Nome display dos locais — Pavilhão → Pavilhão José Silvério
-  const LOCAL_NAMES = {
-    'Pavilhão':               'Pavilhão José Silvério',
-    'Campo de Jogos':         'Campo de Jogos',
-    'Campo de Voleibol':      'Campo de Voleibol',
-    'Pista de Atletismo':     'Pista de Atletismo',
-    'CR7':                    'CR7',
-    'Mesas de Ténis de Mesa': 'Mesas de Ténis de Mesa',
-    'Exterior':               'Exterior',
-    'Outro':                  'Outro',
-  };
-  const LOCAL_ICONS = {
-    'Pavilhão':               'ti-building',
-    'Campo de Jogos':         'ti-ball-football',
-    'Campo de Voleibol':      'ti-volleyball',
-    'Pista de Atletismo':     'ti-run',
-    'CR7':                    'ti-star',
-    'Mesas de Ténis de Mesa': 'ti-table',
-    'Exterior':               'ti-tree',
-    'Outro':                  'ti-map-pin',
-  };
-
-  // Contar aulas por local por turma
-  const turmas = getTURMAS();
-  const allLocais = new Set();
-  const dadosTurma = {}; // {turma: {local: count}}
-  const totalGlobal = {}; // {local: count}
-
-  turmas.forEach(t => {
-    dadosTurma[t] = {};
-    (state.aulas[t]||[]).forEach(a => {
-      const p = String(a.periodo||'1');
-      if (periodo !== 'Todos' && p !== String(periodo)) return;
-      const loc = (a.local||'').trim() || 'Sem local';
-      dadosTurma[t][loc] = (dadosTurma[t][loc]||0) + 1;
-      totalGlobal[loc]   = (totalGlobal[loc]||0) + 1;
-      allLocais.add(loc);
-    });
-  });
-
-  if (allLocais.size === 0) {
-    espacosEl.innerHTML = '';
-    return;
-  }
-
-  // Ordenar locais por total decrescente
-  const locaisSorted = [...allLocais].sort((a,b) => (totalGlobal[b]||0) - (totalGlobal[a]||0));
-  const maxTotal = Math.max(...locaisSorted.map(l => totalGlobal[l]||0));
-
-  const SPACE_COLORS = ['#1B4F72','#1A5C3A','#7D3C98','#B7770D','#922B21','#0E6655','#2874A6','#784212'];
-
-  espacosEl.innerHTML = `
-    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px">
-      <i class="ti ti-map-pin" style="color:var(--primary)"></i>
-      Utilização de espaços — ${PERIODOS[parseInt(periodo)-1]||'Todos os períodos'}
-    </div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px">
-        <thead>
-          <tr style="border-bottom:2px solid var(--border)">
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--text2);white-space:nowrap">Espaço</th>
-            ${turmas.map((t,i) => `<th style="padding:8px 10px;text-align:center;font-weight:600;color:${SPACE_COLORS[i%SPACE_COLORS.length]}">${t}</th>`).join('')}
-            <th style="padding:8px 12px;text-align:center;font-weight:700;color:var(--text)">Total</th>
-            <th style="padding:8px 12px;text-align:left;color:var(--text2);min-width:140px">Utilização</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${locaisSorted.map((loc, ri) => {
-            const nomeDisplay = LOCAL_NAMES[loc] || loc;
-            const icon = LOCAL_ICONS[loc] || 'ti-map-pin';
-            const total = totalGlobal[loc]||0;
-            const pct = maxTotal ? Math.round(total/maxTotal*100) : 0;
-            const rowBg = ri%2===0 ? '' : 'background:var(--surface2,#f8f8f8)';
-            return `<tr style="border-bottom:1px solid var(--border);${rowBg}">
-              <td style="padding:8px 12px;font-weight:500;white-space:nowrap">
-                <i class="ti ${icon}" style="font-size:12px;color:var(--text3);margin-right:5px"></i>${nomeDisplay}
-              </td>
-              ${turmas.map((t,i) => {
-                const n = dadosTurma[t][loc]||0;
-                return `<td style="padding:8px 10px;text-align:center;font-family:var(--mono);color:${n?SPACE_COLORS[i%SPACE_COLORS.length]:'var(--text3)'}">${n||'—'}</td>`;
-              }).join('')}
-              <td style="padding:8px 12px;text-align:center;font-weight:700;font-family:var(--mono)">${total}</td>
-              <td style="padding:8px 12px">
-                <div style="background:var(--border2);border-radius:4px;height:7px;overflow:hidden">
-                  <div style="width:${pct}%;height:100%;background:var(--primary);border-radius:4px;transition:width .4s"></div>
-                </div>
-                <span style="font-size:10px;color:var(--text3)">${pct}%</span>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-        <tfoot>
-          <tr style="border-top:2px solid var(--border);background:var(--surface)">
-            <td style="padding:8px 12px;font-weight:700">Total</td>
-            ${turmas.map(t => {
-              const tot = Object.values(dadosTurma[t]||{}).reduce((s,n)=>s+n,0);
-              return `<td style="padding:8px 10px;text-align:center;font-weight:700;font-family:var(--mono)">${tot||'—'}</td>`;
-            }).join('')}
-            <td style="padding:8px 12px;text-align:center;font-weight:700;font-family:var(--mono)">${Object.values(totalGlobal).reduce((s,n)=>s+n,0)}</td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>`;
 }
 
 console.log('✅ Dashboard turmas patch carregado');
@@ -5765,7 +5697,7 @@ function planCalDayClick(ds) {
       <div style="width:3px;min-height:36px;background:#2D7A52;border-radius:2px;flex-shrink:0"></div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${a.modal||'Aula'} <span style="font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 6px;border-radius:10px;margin-left:5px">Registada</span></div>
-        ${a.obj?`<div style="font-size:12px;color:var(--text3);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:help" title="${a.obj}">${a.obj}</div>`:''}
+        ${a.obj?`<div style="font-size:12px;color:var(--text3);margin-top:2px">${a.obj}</div>`:''}
         <div style="font-size:11px;color:var(--text3);margin-top:2px">${a.dur||50}min · ${a.faltas?.length||0} faltas</div>
       </div>
     </div>`;
@@ -7987,13 +7919,6 @@ window.openModal = function(id, isNew) {
     state.turma = getAulasTurma();
     if (!editingAulaId) {
       document.getElementById('auData').value = new Date().toISOString().split('T')[0];
-      // Limpar campos do modal para nova aula
-      const auLocalEl = document.getElementById('auLocal');
-      if (auLocalEl) auLocalEl.selectedIndex = 0; // forçar "— Selecionar local —"
-      ['auObj','auObs'].forEach(fid => {
-        const el = document.getElementById(fid);
-        if (el) el.value = '';
-      });
       renderPresencaGrid();
     }
     state.turma = prevTurma;
@@ -8458,25 +8383,38 @@ window.renderFaltas = function() {
     // Filter alunos active in at least one period
     const alunos = original.filter(a => (a.status||'ativo') !== 'transferido' || true);
 
+    // Total em períodos de 50' (todos os períodos)
     const totalAulas = ['1','2','3'].reduce((s,p) => {
-      return s + (state.aulas[turma]||[]).filter(a => String(a.periodo) === p).length;
+      return s + (state.aulas[turma]||[]).filter(a => String(a.periodo) === p)
+                  .reduce((ss, au) => ss + Math.round((au.dur || 50) / 50), 0);
     }, 0);
+
+    // Faltas em períodos de 50', usando faltasDetail das aulas
+    function faltasEmPeriodos50Total(alunoId, tipo, periodos50) {
+      let n = 0;
+      (state.aulas[turma]||[]).forEach(au => {
+        if (!periodos50.includes(String(au.periodo))) return;
+        const p50 = Math.round((au.dur || 50) / 50);
+        const detail = (au.faltasDetail || []).find(fd => fd.alunoId === alunoId);
+        if (!detail) return;
+        const t = detail.tipo || 'FP';
+        if (!tipo || t === tipo) n += p50;
+      });
+      return n;
+    }
 
     let totalFaltas = 0, emRisco = 0;
     const rows = alunos.map((a, i) => {
-      let fpTotal = 0, fmTotal = 0, fjTotal = 0;
-      ['1','2','3'].forEach(p => {
-        if (!alunoActivoNoPeriodo(a, p, turma)) return;
-        fpTotal += faltasByPeriodo(a, p, 'fp');
-        fmTotal += faltasByPeriodo(a, p, 'fm');
-        fjTotal += faltasByPeriodo(a, p, 'fj');
-      });
+      // Só contar períodos em que o aluno estava activo
+      const activePeriods = ['1','2','3'].filter(p => alunoActivoNoPeriodo(a, p, turma));
+      const fpTotal = faltasEmPeriodos50Total(a.id, 'FP', activePeriods);
+      const fmTotal = faltasEmPeriodos50Total(a.id, 'FM', activePeriods);
+      const fjTotal = faltasEmPeriodos50Total(a.id, 'FJ', activePeriods);
 
-      // Aulas for this aluno (only periods they were active)
-      const aulasAluno = ['1','2','3'].reduce((s,p) => {
-        return s + (alunoActivoNoPeriodo(a, p, turma)
-          ? (state.aulas[turma]||[]).filter(x => String(x.periodo) === p).length
-          : 0);
+      // Períodos de 50' disponíveis para este aluno
+      const aulasAluno = activePeriods.reduce((s,p) => {
+        return s + (state.aulas[turma]||[]).filter(x => String(x.periodo) === p)
+                    .reduce((ss, au) => ss + Math.round((au.dur || 50) / 50), 0);
       }, 0);
 
       const pres = Math.max(0, aulasAluno - fpTotal);
@@ -8523,8 +8461,8 @@ window.renderFaltas = function() {
     const statsEl = document.getElementById('faltasStats');
     if (statsEl) statsEl.innerHTML = `
       <div class="stat-card"><div class="stat-label">Alunos</div><div class="stat-value">${alunos.length}</div></div>
-      <div class="stat-card"><div class="stat-label">Total aulas</div><div class="stat-value">${totalAulas}</div></div>
-      <div class="stat-card"><div class="stat-label">Total faltas FP</div><div class="stat-value" style="color:var(--red)">${totalFaltas}</div></div>
+      <div class="stat-card"><div class="stat-label">Períodos 50' dados</div><div class="stat-value">${totalAulas}</div></div>
+      <div class="stat-card"><div class="stat-label">Total faltas FP</div><div class="stat-value" style="color:var(--red)">${totalFaltas}</div><div class="stat-sub">em períodos 50'</div></div>
       <div class="stat-card"><div class="stat-label">Em risco</div><div class="stat-value" style="color:var(--red)">${emRisco}</div></div>`;
 
     // Table
@@ -8722,7 +8660,7 @@ window.renderAulas = function() {
         <div class="aula-title">${a.modal||'—'}
           <span class="badge ${TIPO_COLOR[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL[a.tipo]||a.tipo||''}</span>
         </div>
-        ${a.obj?`<div class="aula-detail" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:help" title="${a.obj}"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>`:''}
+        ${a.obj?`<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>`:''}
         ${a.obs?`<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>`:''}
         ${a.faltas?.length?`<div class="aula-chips">${a.faltas.map(n=>`<span class="badge badge-red" style="font-size:10px">${n.split(' ')[0]}</span>`).join('')}</div>`:''}
       </div>
@@ -9112,7 +9050,7 @@ window.renderAulas = function() {
         <div class="aula-title">${a.modal||'—'}
           <span class="badge ${TIPO_COLOR?.[a.tipo]||'badge-gray'}" style="font-size:10px;margin-left:4px">${TIPO_LABEL?.[a.tipo]||a.tipo||''}</span>
         </div>
-        ${a.obj?`<div class="aula-detail" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:help" title="${a.obj}"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>`:''}
+        ${a.obj?`<div class="aula-detail"><i class="ti ti-target" style="font-size:11px"></i> ${a.obj}</div>`:''}
         ${a.obs?`<div class="aula-detail" style="margin-top:2px"><i class="ti ti-note" style="font-size:11px"></i> ${a.obs}</div>`:''}
         ${a.faltas?.length?`<div class="aula-chips">${a.faltas.map(n=>`<span class="badge badge-red" style="font-size:10px">${n.split(' ')[0]}</span>`).join('')}</div>`:''}
       </div>
@@ -9432,4 +9370,380 @@ setTimeout(() => {
 }, 1200);
 
 console.log('✅ Correção automática de períodos carregado');
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// PATCH — Peso, Altura e IMC no modal de aluno
+// ═══════════════════════════════════════════════════════════════════════
+(function() {
+
+  // Calcular e mostrar IMC em tempo real
+  function calcImcModal() {
+    const pesoEl   = document.getElementById('aPeso');
+    const alturaEl = document.getElementById('aAltura');
+    const imcEl    = document.getElementById('aImcVal');
+    if (!pesoEl || !alturaEl || !imcEl) return;
+    const peso   = parseFloat(String(pesoEl.value).replace(',','.'));
+    const altura = parseFloat(String(alturaEl.value).replace(',','.'));
+    if (!peso || !altura || altura < 50) { imcEl.innerHTML = '<span style="color:var(--text3)">—</span>'; return; }
+    const imc = Math.round(peso / Math.pow(altura/100, 2) * 10) / 10;
+    let cor = 'var(--text)', bg = 'var(--surface2,#f5f5f5)', lbl = '';
+    if      (imc < 18.5) { cor='#B7770D'; bg='#FEF3E7'; lbl='Baixo peso'; }
+    else if (imc < 25)   { cor='#1A5C3A'; bg='#D5F5E3'; lbl='Normal'; }
+    else if (imc < 30)   { cor='#B7770D'; bg='#FEF3E7'; lbl='Excesso de peso'; }
+    else                 { cor='#922B21'; bg='#FADBD8'; lbl='Obesidade'; }
+    imcEl.style.background = bg;
+    imcEl.innerHTML = `<span style="font-weight:700;color:${cor}">${imc}</span><span style="font-size:11px;color:${cor}">${lbl}</span>`;
+  }
+
+  // Ligar eventos aos campos
+  function hookImcFields() {
+    ['aPeso','aAltura'].forEach(fid => {
+      const el = document.getElementById(fid);
+      if (el && !el._imcHooked) {
+        el.addEventListener('input', calcImcModal);
+        el._imcHooked = true;
+      }
+    });
+  }
+
+  // Patch saveAluno — guardar peso e altura
+  const _origSaveAlunoPA = window.saveAluno;
+  window.saveAluno = function() {
+    const pesoEl   = document.getElementById('aPeso');
+    const alturaEl = document.getElementById('aAltura');
+    const peso   = pesoEl   ? parseFloat(String(pesoEl.value).replace(',','.'))   || null : null;
+    const altura = alturaEl ? parseFloat(String(alturaEl.value).replace(',','.')) || null : null;
+
+    // Injectar temporariamente no objecto que saveAluno vai criar
+    const _origPush = Array.prototype.push;
+    // Usar patch de editingAlunoId
+    const turma = document.getElementById('aTurma')?.value || state.turma;
+    const editId = window.editingAlunoId;
+
+    if (typeof _origSaveAlunoPA === 'function') _origSaveAlunoPA();
+
+    // Após saveAluno, adicionar peso/altura ao aluno guardado
+    getTURMAS().forEach(t => {
+      (state.alunos[t]||[]).forEach(a => {
+        if (editId && a.id === editId) {
+          if (peso   !== null) a.peso   = peso;
+          else delete a.peso;
+          if (altura !== null) a.altura = altura;
+          else delete a.altura;
+        }
+      });
+    });
+    // Para novo aluno (último adicionado na turma)
+    if (!editId) {
+      const lista = state.alunos[turma]||[];
+      if (lista.length > 0) {
+        const novo = lista[lista.length-1];
+        if (peso   !== null) novo.peso   = peso;
+        if (altura !== null) novo.altura = altura;
+      }
+    }
+    saveState();
+  };
+
+  // Patch editAluno — preencher peso e altura
+  const _origEditAlunoPA = window.editAluno;
+  window.editAluno = function(id) {
+    if (typeof _origEditAlunoPA === 'function') _origEditAlunoPA(id);
+    setTimeout(() => {
+      hookImcFields();
+      const a = getTURMAS().reduce((found, t) =>
+        found || (state.alunos[t]||[]).find(x=>x.id===id), null);
+      if (!a) return;
+      const pesoEl   = document.getElementById('aPeso');
+      const alturaEl = document.getElementById('aAltura');
+      const imcEl    = document.getElementById('aImcVal');
+      if (pesoEl)   pesoEl.value   = a.peso   || '';
+      if (alturaEl) alturaEl.value = a.altura || '';
+      if (imcEl)    calcImcModal();
+      // Mostrar botão retirar
+      const delBtn = document.getElementById('btnDeleteAluno');
+      if (delBtn) delBtn.style.display = '';
+    }, 50);
+  };
+
+  // Limpar campos ao abrir modal para novo aluno
+  const _origOpenModalPA = window.openModal;
+  window.openModal = function(id, isNew) {
+    if (typeof _origOpenModalPA === 'function') _origOpenModalPA(id, isNew);
+    if (id === 'modalAluno') {
+      hookImcFields();
+      if (isNew !== false) {
+        setTimeout(() => {
+          const pesoEl   = document.getElementById('aPeso');
+          const alturaEl = document.getElementById('aAltura');
+          const imcEl    = document.getElementById('aImcVal');
+          if (pesoEl)   pesoEl.value   = '';
+          if (alturaEl) alturaEl.value = '';
+          if (imcEl)    { imcEl.innerHTML = '<span style="color:var(--text3)">—</span>'; imcEl.style.background = ''; }
+          const delBtn = document.getElementById('btnDeleteAluno');
+          if (delBtn && !window.editingAlunoId) delBtn.style.display = 'none';
+        }, 30);
+      }
+    }
+  };
+
+  // Botão retirar aluno
+  window.deleteAluno = function() {
+    if (!window.editingAlunoId) return;
+    const id = window.editingAlunoId;
+    let alunoNome = '', turmaAluno = '';
+    getTURMAS().forEach(t => {
+      const a = (state.alunos[t]||[]).find(x=>x.id===id);
+      if (a) { alunoNome = a.name; turmaAluno = t; }
+    });
+    if (!confirm(`Retirar definitivamente "${alunoNome}" da turma ${turmaAluno}?\n\nTodos os dados (faltas, FIT, avaliações) serão apagados.\n\nSe foi transferido usa o campo "Estado do aluno".`)) return;
+
+    getTURMAS().forEach(t => {
+      state.alunos[t]     = (state.alunos[t]||[]).filter(x=>x.id!==id);
+      state.aulas[t]      = (state.aulas[t]||[]).map(au=>({...au,
+        faltas: (au.faltas||[]).filter(n=>n!==alunoNome),
+        faltasDetail: (au.faltasDetail||[]).filter(fd=>fd.alunoId!==id),
+      }));
+      state.fit[t]         = (state.fit[t]||[]).filter(f=>f.alunoId!==id);
+      state.modalidades[t] = (state.modalidades[t]||[]).filter(m=>m.alunoId!==id);
+      if (state.avaliacoes?.[t]) state.avaliacoes[t] = state.avaliacoes[t].filter(av=>av.alunoId!==id);
+    });
+
+    window.editingAlunoId = null;
+    saveState();
+    closeModal('modalAluno');
+    filterAlunos();
+    toast(`${alunoNome} retirado da turma`);
+  };
+
+  // Adicionar botão "Retirar aluno" ao footer do modal se não existir
+  const footer = document.querySelector('#modalAluno .modal-footer');
+  if (footer && !document.getElementById('btnDeleteAluno')) {
+    const btn = document.createElement('button');
+    btn.id = 'btnDeleteAluno';
+    btn.style.cssText = 'display:none;margin-right:auto;background:#FADBD8;color:#922B21;border:1px solid #E8A09B;border-radius:var(--radius-sm,6px);padding:6px 14px;font-size:13px;cursor:pointer;font-family:var(--font)';
+    btn.innerHTML = '<i class="ti ti-trash"></i> Retirar aluno';
+    btn.onclick = () => window.deleteAluno();
+    footer.insertBefore(btn, footer.firstChild);
+  }
+
+  // Hook inicial
+  hookImcFields();
+
+  console.log('✅ Peso, Altura e IMC no modal de aluno');
+})();
+</script>
+<script>
+// ═══ FITescola — Flexibilidade de Ombros + Peso/Altura/IMC na tabela ═══
+(function() {
+
+  // ── 1. Adicionar campo "Flexibilidade de Ombros" ao modal FIT ──────────
+  function addFlexOmbroField() {
+    const impDiv = document.querySelector('#modalFit .form-group.full');
+    if (!impDiv || document.getElementById('fitFlexGroup')) return;
+
+    // Inserir novo bloco antes do campo Impulsão
+    const flexHtml = `
+      <div class="form-group full" id="fitFlexGroup">
+        <label class="form-label">🙆 Flexibilidade de Ombros — resultado
+          <span style="font-size:10px;color:var(--text3);margin-left:6px">(P = passa / F = falha)</span>
+        </label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+            <input type="radio" name="fitFlexOmbro" id="fitFlexP" value="P" onchange="updateFitZona()">
+            <span style="background:#D5F5E3;color:#1A5C3A;padding:4px 14px;border-radius:20px;font-weight:700">✅ Passa</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+            <input type="radio" name="fitFlexOmbro" id="fitFlexF" value="F" onchange="updateFitZona()">
+            <span style="background:#FADBD8;color:#922B21;padding:4px 14px;border-radius:20px;font-weight:700">❌ Falha</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+            <input type="radio" name="fitFlexOmbro" id="fitFlexNone" value="" checked onchange="updateFitZona()">
+            <span style="background:var(--surface2);color:var(--text3);padding:4px 14px;border-radius:20px;font-size:12px">Não avaliado</span>
+          </label>
+        </div>
+      </div>`;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${flexHtml}</div>`, 'text/html');
+    const flexEl = doc.body.firstChild.firstElementChild;
+    impDiv.parentNode.insertBefore(flexEl, impDiv);
+  }
+
+  // ── 2. Helpers para ler/escrever o campo flex ───────────────────────────
+  function getFitFlex() {
+    const checked = document.querySelector('input[name="fitFlexOmbro"]:checked');
+    return checked ? checked.value : '';
+  }
+
+  function setFitFlex(val) {
+    const v = val || '';
+    ['fitFlexP','fitFlexF','fitFlexNone'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.checked = (el.value === v);
+    });
+  }
+
+  // ── 3. Patch saveFit ────────────────────────────────────────────────────
+  const _origSaveFitFlex = window.saveFit;
+  window.saveFit = function() {
+    // Guardar flex antes de chamar o original
+    const flexVal = getFitFlex();
+    _origSaveFitFlex.call(this);
+    // Agora patchamos o último entry guardado com o campo flex
+    const alunoId = document.getElementById('fitAluno')?.value;
+    if (!alunoId) return;
+    const arr = state.fit[state.turma] || [];
+    const ei = arr.findIndex(f => f.alunoId === alunoId);
+    if (ei >= 0) {
+      arr[ei].flex = flexVal || null;
+      saveState();
+    }
+    // Limpar radio
+    setFitFlex('');
+  };
+
+  // ── 4. Patch editFit ────────────────────────────────────────────────────
+  const _origEditFitFlex = window.editFit;
+  window.editFit = function(alunoId) {
+    if (typeof _origEditFitFlex === 'function') _origEditFitFlex(alunoId);
+    const fit = (state.fit[state.turma] || []).find(f => f.alunoId === alunoId);
+    if (fit) setFitFlex(fit.flex || '');
+  };
+
+  // ── 5. Patch renderFit — tabela completa com Peso/Altura/IMC + Flex Ombros ──
+  const _origRenderFitFull = window.renderFit;
+  window.renderFit = function() {
+    // Correr render base para stats e select
+    if (typeof _origRenderFitFull === 'function') _origRenderFitFull();
+
+    const bodyEl  = document.getElementById('fitBody');
+    const theadTr = document.querySelector('#page-fitescola table thead tr');
+    if (!bodyEl) return;
+
+    const fits  = state.fit[state.turma] || [];
+    const alunos = state.alunos[state.turma] || [];
+
+    // Actualizar cabeçalhos
+    if (theadTr) {
+      theadTr.innerHTML = `
+        <th>Aluno</th>
+        <th>G</th>
+        <th>Idade</th>
+        <th>Peso<br><span style="font-weight:400;color:var(--text3)">kg</span></th>
+        <th>Altura<br><span style="font-weight:400;color:var(--text3)">cm</span></th>
+        <th>IMC</th>
+        <th>Vaivém<br><span style="font-weight:400;color:var(--text3)">perc.</span></th>
+        <th>Abdominais<br><span style="font-weight:400;color:var(--text3)">reps</span></th>
+        <th>Flex. Braços<br><span style="font-weight:400;color:var(--text3)">reps</span></th>
+        <th>Imp. Horiz.<br><span style="font-weight:400;color:var(--text3)">cm</span></th>
+        <th>Flex. Ombros</th>
+        <th>Classif.</th>
+        <th>Data</th>
+        <th></th>`;
+    }
+
+    if (!fits.length) return;
+
+    function fitCell(val, refKey, g, age) {
+      if (!val && val !== 0) return '<td style="color:var(--text3);text-align:center">—</td>';
+      const ref  = age ? getRef(FIT_REF[refKey],           g, age) : null;
+      const refA = age ? getRef(FIT_REF[refKey+'Atletico'], g, age) : null;
+      const z    = fitZona(val, ref, refA);
+      const col  = z==='atletico'?'#1A5C3A':z==='saudavel'?'#1B4F72':z==='abaixo'?'#B7770D':'var(--text)';
+      const bg   = z==='atletico'?'#D5F5E3':z==='saudavel'?'#EBF3FB':z==='abaixo'?'#FEF6EE':'';
+      const icon = z==='atletico'?'🏆':z==='saudavel'?'✅':z==='abaixo'?'⚠':'';
+      const tip  = ref ? `Zona S.≥${ref}${refA?' | Atlético≥'+refA:''}` : '';
+      return `<td title="${tip}" style="text-align:center">
+        <span style="font-family:var(--mono);font-weight:700;color:${col};background:${bg};padding:2px 7px;border-radius:5px">${icon} ${val}</span>
+        ${ref?`<div style="font-size:9px;color:var(--text3);margin-top:1px">ref≥${ref}</div>`:''}
+      </td>`;
+    }
+
+    function paiCell(aluno, field) {
+      const v = aluno ? aluno[field] : null;
+      if (!v) return '<td style="color:var(--text3);text-align:center">—</td>';
+      return `<td style="text-align:center;font-family:var(--mono)">${v}</td>`;
+    }
+
+    function imcCell(aluno) {
+      if (!aluno || !aluno.peso || !aluno.altura) return '<td style="color:var(--text3);text-align:center">—</td>';
+      const imc = (aluno.peso / Math.pow(aluno.altura / 100, 2)).toFixed(1);
+      let cor = 'var(--text)';
+      if (imc < 18.5)      cor = '#1B4F72';
+      else if (imc < 25)   cor = '#1A5C3A';
+      else if (imc < 30)   cor = '#B7770D';
+      else                 cor = '#922B21';
+      return `<td style="text-align:center;font-family:var(--mono);font-weight:700;color:${cor}">${imc}</td>`;
+    }
+
+    function flexCell(val) {
+      if (!val) return '<td style="color:var(--text3);text-align:center">—</td>';
+      if (val === 'P') return '<td style="text-align:center"><span style="background:#D5F5E3;color:#1A5C3A;padding:2px 10px;border-radius:12px;font-weight:700;font-size:12px">✅ Passa</span></td>';
+      return '<td style="text-align:center"><span style="background:#FADBD8;color:#922B21;padding:2px 10px;border-radius:12px;font-weight:700;font-size:12px">❌ Falha</span></td>';
+    }
+
+    const zonaLabels = {
+      5:{txt:'✅ Zona Saudável',bg:'#D5F5E3',fg:'#1A5C3A'},
+      4:{txt:'⭐ Zona Saudável',bg:'#D5F5E3',fg:'#1A5C3A'},
+      3:{txt:'⚠ A Melhorar',   bg:'#FEF3E7',fg:'#B7770D'},
+      2:{txt:'⚠ A Melhorar',   bg:'#FEF3E7',fg:'#B7770D'},
+      1:{txt:'❌ Abaixo',      bg:'#FADBD8',fg:'#922B21'},
+    };
+
+    bodyEl.innerHTML = fits.map(f => {
+      const a   = getAluno(state.turma, f.alunoId) || {name:'?',genre:'F',nasc:''};
+      const age = getAge(a.nasc), g = a.genre;
+      const cl  = alunoFitClassificacao(f, a);
+      const zl  = cl !== null ? zonaLabels[cl] : null;
+
+      return `<tr>
+        <td><strong>${a.name}</strong></td>
+        <td><span class="badge ${g==='M'?'badge-blue':'badge-red'}" style="font-size:10px">${g}</span></td>
+        <td style="font-family:var(--mono);color:var(--text3);text-align:center">${age||'—'}</td>
+        ${paiCell(a,'peso')}
+        ${paiCell(a,'altura')}
+        ${imcCell(a)}
+        ${fitCell(f.vaivem,'vaivem',g,age)}
+        ${fitCell(f.abd,   'abd',   g,age)}
+        ${fitCell(f.bracos,'bracos',g,age)}
+        ${fitCell(f.imp,   'imp',   g,age)}
+        ${flexCell(f.flex)}
+        <td style="text-align:center">
+          ${cl!==null?`
+            <span class="nota nota-${cl}" style="width:30px;height:30px;font-size:15px;margin-bottom:3px">${cl}</span>
+            ${zl?`<div style="font-size:10px;font-weight:600;color:${zl.fg};background:${zl.bg};padding:2px 6px;border-radius:10px;margin-top:3px;white-space:nowrap">${zl.txt}</div>`:''}
+          `:'<span style="color:var(--text3)">—</span>'}
+        </td>
+        <td style="color:var(--text3);font-size:11px">${f.data||'—'}</td>
+        <td>
+          <button onclick="editFit('${f.alunoId}')" title="Editar"
+            style="background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer;color:var(--text3);font-size:12px">
+            <i class="ti ti-pencil"></i>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  // ── 6. Injectar campo no modal quando abre ──────────────────────────────
+  const _origOpenModalFlex = window.openModal;
+  window.openModal = function(id, isNew) {
+    if (typeof _origOpenModalFlex === 'function') _origOpenModalFlex(id, isNew);
+    if (id === 'modalFit') {
+      // Garantir que o campo existe
+      setTimeout(() => {
+        addFlexOmbroField();
+        if (isNew !== false) setFitFlex(''); // limpar no novo registo
+      }, 10);
+    }
+  };
+
+  // Injectar imediatamente se o modal já estiver no DOM
+  if (document.getElementById('modalFit')) addFlexOmbroField();
+
+  console.log('✅ FITescola — Flex. Ombros + Peso/Altura/IMC na tabela');
+})();
 </script>
