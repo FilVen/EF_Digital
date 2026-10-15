@@ -2305,7 +2305,8 @@ function openModal(id, isNew=false) {
     document.getElementById('modalAulaTitle').textContent = 'Registar aula';
     document.getElementById('btnDeleteAula').style.display = 'none';
     document.getElementById('auData').value = new Date().toISOString().split('T')[0];
-    ['auObj','auObs','auLocal'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['auObj','auObs'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const _auLocalEl = document.getElementById('auLocal'); if(_auLocalEl) _auLocalEl.selectedIndex=0;
     renderPresencaGrid();
   }
   if (id === 'modalFit') { populateSelect('fitAluno', state.alunos[state.turma]||[]); setTimeout(updateFitRef, 50); }
@@ -4086,6 +4087,7 @@ function editAula(id, evt) {
   document.getElementById('auDur').value   = aula.dur   || 50;
   document.getElementById('auModal').value = aula.modal || '';
   document.getElementById('auTipo').value  = aula.tipo  || 'exerc';
+  document.getElementById('auLocal').value = aula.local || '';
   document.getElementById('auObj').value   = aula.obj   || '';
   document.getElementById('auObs').value   = aula.obs   || '';
   document.getElementById('btnDeleteAula').style.display = '';
@@ -7985,6 +7987,13 @@ window.openModal = function(id, isNew) {
     state.turma = getAulasTurma();
     if (!editingAulaId) {
       document.getElementById('auData').value = new Date().toISOString().split('T')[0];
+      // Limpar campos do modal para nova aula
+      const auLocalEl = document.getElementById('auLocal');
+      if (auLocalEl) auLocalEl.selectedIndex = 0; // forçar "— Selecionar local —"
+      ['auObj','auObs'].forEach(fid => {
+        const el = document.getElementById(fid);
+        if (el) el.value = '';
+      });
       renderPresencaGrid();
     }
     state.turma = prevTurma;
