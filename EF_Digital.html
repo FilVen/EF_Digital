@@ -5149,13 +5149,14 @@ function editFit(alunoId) {
 
   // Fill fields
   const setVal = (id, val) => { const el=document.getElementById(id); if(el) el.value = val||''; };
-  setVal('fitData',   fit.data   || '');
-  setVal('fitVaivem', fit.vaivem || '');
-  setVal('fitAbd',    fit.abd    || '');
-  setVal('fitBracos', fit.bracos || '');
-  setVal('fitImp1',   fit.imp1   || '');
-  setVal('fitImp2',   fit.imp2   || '');
-  setVal('fitImp3',   fit.imp3   || '');
+  // usar != null para preservar o valor 0 (não avaliado = null, realizou com 0 = 0)
+  setVal('fitData',   fit.data   ?? '');
+  setVal('fitVaivem', fit.vaivem != null ? fit.vaivem : '');
+  setVal('fitAbd',    fit.abd    != null ? fit.abd    : '');
+  setVal('fitBracos', fit.bracos != null ? fit.bracos : '');
+  setVal('fitImp1',   fit.imp1   != null ? fit.imp1   : '');
+  setVal('fitImp2',   fit.imp2   != null ? fit.imp2   : '');
+  setVal('fitImp3',   fit.imp3   != null ? fit.imp3   : '');
 
   // Update best imp display
   if (typeof updateBestImp === 'function') updateBestImp();
@@ -5186,17 +5187,34 @@ window.saveFit = function() {
   const alunoId = document.getElementById('fitAluno').value;
   if (!alunoId) { toast('Seleciona um aluno', 'ti-alert-circle'); return; }
 
-  const v1 = parseFloat(document.getElementById('fitImp1')?.value) || 0;
-  const v2 = parseFloat(document.getElementById('fitImp2')?.value) || 0;
-  const v3 = parseFloat(document.getElementById('fitImp3')?.value) || 0;
-  const bestImp = Math.max(v1, v2, v3) || null;
+  // fitInt: campo vazio → null (não avaliado); valor numérico (incluindo 0) → esse número
+  const fitInt = id => {
+    const el = document.getElementById(id);
+    if (!el || el.value === '' || el.value === null) return null;
+    const v = parseInt(el.value);
+    return isNaN(v) ? null : v;
+  };
+  const fitFloat = id => {
+    const el = document.getElementById(id);
+    if (!el || el.value === '' || el.value === null) return null;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? null : v;
+  };
+
+  const v1 = fitFloat('fitImp1') ?? 0;
+  const v2 = fitFloat('fitImp2') ?? 0;
+  const v3 = fitFloat('fitImp3') ?? 0;
+  // bestImp: só null se nenhuma tentativa foi preenchida
+  const hasImp = fitFloat('fitImp1') !== null || fitFloat('fitImp2') !== null || fitFloat('fitImp3') !== null;
+  const bestImp = hasImp ? Math.max(v1, v2, v3) : null;
 
   const entry = {
     alunoId,
-    vaivem: parseInt(document.getElementById('fitVaivem')?.value)  || null,
-    abd:    parseInt(document.getElementById('fitAbd')?.value)     || null,
-    bracos: parseInt(document.getElementById('fitBracos')?.value)  || null,
-    imp: bestImp, imp1: v1||null, imp2: v2||null, imp3: v3||null,
+    vaivem: fitInt('fitVaivem'),
+    abd:    fitInt('fitAbd'),
+    bracos: fitInt('fitBracos'),
+    imp: bestImp,
+    imp1: fitFloat('fitImp1'), imp2: fitFloat('fitImp2'), imp3: fitFloat('fitImp3'),
     data: document.getElementById('fitData')?.value || '',
   };
 
@@ -9745,5 +9763,110 @@ console.log('✅ Correção automática de períodos carregado');
   if (document.getElementById('modalFit')) addFlexOmbroField();
 
   console.log('✅ FITescola — Flex. Ombros + Peso/Altura/IMC na tabela');
+})();
+</script>
+<script>
+// ═══ SINCRONIZAÇÃO GLOBAL DE TURMA ═══════════════════════════════════════════
+// Garante que quando qualquer selector de turma (topbar ou página) muda,
+// TODOS os painéis ficam sincronizados com a mesma turma.
+(function() {
+
+  // ── Função central de sincronização ───────────────────────────────────────
+  function syncAllTurmas(t) {
+    if (!t) return;
+
+    // 1. Actualizar state global
+    state.turma = t;
+
+    // 2. Actualizar pills do topbar
+    document.querySelectorAll('.turma-pill').forEach(p =>
+      p.classList.toggle('active', p.dataset.t === t)
+    );
+
+    // 3. Actualizar variáveis locais de cada página
+    if (typeof fitTurma    !== 'undefined') fitTurma    = t;
+    if (typeof faltasTurma !== 'undefined') faltasTurma = t;
+    if (typeof aulasTurma  !== 'undefined') aulasTurma  = t;
+
+    // 4. Actualizar selects de cada página (se visíveis)
+    ['fitTurmaSelect', 'faltasTurmaSelect', 'aulasTurmaSelect'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel) sel.value = t;
+    });
+  }
+
+  // ── Substituir setTurma (pills do topbar) ────────────────────────────────
+  const _origSetTurma = window.setTurma;
+  window.setTurma = function(t) {
+    syncAllTurmas(t);
+    // Chamar a lógica original (refreshPage) mas state.turma já está actualizado
+    if (typeof _origSetTurma === 'function') {
+      _origSetTurma(t);
+    }
+  };
+
+  // ── Substituir fitTurmaChange ─────────────────────────────────────────────
+  const _origFitTurmaChange = window.fitTurmaChange;
+  window.fitTurmaChange = function() {
+    const sel = document.getElementById('fitTurmaSelect');
+    const t = sel ? sel.value : state.turma;
+    syncAllTurmas(t);
+    // Re-render FIT (a função original já faz isso, mas vamos chamá-la)
+    if (typeof _origFitTurmaChange === 'function') {
+      _origFitTurmaChange();
+    } else if (typeof renderFit === 'function') {
+      renderFit();
+    }
+  };
+
+  // ── Substituir faltasTurmaChange ──────────────────────────────────────────
+  const _origFaltasTurmaChange = window.faltasTurmaChange;
+  window.faltasTurmaChange = function() {
+    const sel = document.getElementById('faltasTurmaSelect');
+    const t = sel ? sel.value : state.turma;
+    syncAllTurmas(t);
+    if (typeof _origFaltasTurmaChange === 'function') {
+      _origFaltasTurmaChange();
+    } else if (typeof renderFaltas === 'function') {
+      renderFaltas();
+    }
+  };
+
+  // ── Substituir aulasTurmaChange ───────────────────────────────────────────
+  const _origAulasTurmaChange = window.aulasTurmaChange;
+  window.aulasTurmaChange = function() {
+    const sel = document.getElementById('aulasTurmaSelect');
+    const t = sel ? sel.value : state.turma;
+    syncAllTurmas(t);
+    if (typeof _origAulasTurmaChange === 'function') {
+      _origAulasTurmaChange();
+    } else if (typeof renderAulas === 'function') {
+      renderAulas();
+    }
+  };
+
+  // ── Ao mudar de página, sincronizar o select local com state.turma ────────
+  const _origShowPageSync = window.showPage;
+  window.showPage = function(id, btn) {
+    if (typeof _origShowPageSync === 'function') _origShowPageSync(id, btn);
+    // Após a página carregar, forçar o select local a mostrar a turma actual
+    setTimeout(() => {
+      ['fitTurmaSelect', 'faltasTurmaSelect', 'aulasTurmaSelect'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (sel && sel.value !== state.turma) {
+          // Verificar se a opção existe no select antes de forçar
+          if (Array.from(sel.options).some(o => o.value === state.turma)) {
+            sel.value = state.turma;
+          }
+        }
+      });
+      // Sincronizar variáveis locais
+      if (typeof fitTurma    !== 'undefined' && fitTurma    !== state.turma) fitTurma    = state.turma;
+      if (typeof faltasTurma !== 'undefined' && faltasTurma !== state.turma) faltasTurma = state.turma;
+      if (typeof aulasTurma  !== 'undefined' && aulasTurma  !== state.turma) aulasTurma  = state.turma;
+    }, 100);
+  };
+
+  console.log('✅ Sincronização global de turma activada');
 })();
 </script>
