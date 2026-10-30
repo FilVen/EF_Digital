@@ -9431,59 +9431,81 @@ console.log('✅ Correção automática de períodos carregado');
   window.saveAluno = function() {
     const pesoEl   = document.getElementById('aPeso');
     const alturaEl = document.getElementById('aAltura');
-    const peso   = pesoEl   ? parseFloat(String(pesoEl.value).replace(',','.'))   || null : null;
-    const altura = alturaEl ? parseFloat(String(alturaEl.value).replace(',','.')) || null : null;
+    const peso   = pesoEl   ? (parseFloat(String(pesoEl.value).replace(',','.')) || (pesoEl.value.trim() !== '' ? 0 : null)) : null;
+    const altura = alturaEl ? (parseFloat(String(alturaEl.value).replace(',','.')) || (alturaEl.value.trim() !== '' ? 0 : null)) : null;
 
-    // Injectar temporariamente no objecto que saveAluno vai criar
-    const _origPush = Array.prototype.push;
-    // Usar patch de editingAlunoId
-    const turma = document.getElementById('aTurma')?.value || state.turma;
-    const editId = window.editingAlunoId;
+    // Capturar ANTES de chamar o original (que zera editingAlunoId)
+    const editId  = typeof editingAlunoId !== 'undefined' ? editingAlunoId : null;
+    const nome    = document.getElementById('aNome')?.value.trim();
+    const turma   = document.getElementById('aTurma')?.value || state.turma;
 
     if (typeof _origSaveAlunoPA === 'function') _origSaveAlunoPA();
 
     // Após saveAluno, adicionar peso/altura ao aluno guardado
-    getTURMAS().forEach(t => {
-      (state.alunos[t]||[]).forEach(a => {
-        if (editId && a.id === editId) {
-          if (peso   !== null) a.peso   = peso;
-          else delete a.peso;
-          if (altura !== null) a.altura = altura;
-          else delete a.altura;
-        }
+    // O original pode ter movido o aluno de turma, por isso procuramos em todas
+    let alunoAlvo = null;
+    if (editId) {
+      // Edição: procurar por ID em todas as turmas
+      getTURMAS().forEach(t => {
+        const a = (state.alunos[t]||[]).find(x => x.id === editId);
+        if (a) alunoAlvo = a;
       });
-    });
-    // Para novo aluno (último adicionado na turma)
-    if (!editId) {
-      const lista = state.alunos[turma]||[];
-      if (lista.length > 0) {
-        const novo = lista[lista.length-1];
-        if (peso   !== null) novo.peso   = peso;
-        if (altura !== null) novo.altura = altura;
-      }
     }
-    saveState();
+    if (!alunoAlvo && nome) {
+      // Novo aluno ou edição em que não encontrámos por ID: procurar por nome+turma
+      alunoAlvo = (state.alunos[turma]||[]).find(a => a.name === nome);
+    }
+    if (!alunoAlvo && nome) {
+      // Último recurso: procurar por nome em todas as turmas
+      getTURMAS().forEach(t => {
+        const a = (state.alunos[t]||[]).find(x => x.name === nome);
+        if (a && !alunoAlvo) alunoAlvo = a;
+      });
+    }
+
+    if (alunoAlvo) {
+      if (peso   !== null) alunoAlvo.peso   = peso;
+      else delete alunoAlvo.peso;
+      if (altura !== null) alunoAlvo.altura = altura;
+      else delete alunoAlvo.altura;
+      saveState();
+    }
   };
 
   // Patch editAluno — preencher peso e altura
   const _origEditAlunoPA = window.editAluno;
   window.editAluno = function(id) {
-    if (typeof _origEditAlunoPA === 'function') _origEditAlunoPA(id);
+    // O original pode falhar se o aluno estiver numa turma diferente de state.turma.
+    // Nesse caso forçamos a abertura do modal manualmente.
+    const alunoEmQualquerTurma = getTURMAS().reduce((found, t) =>
+      found || (state.alunos[t]||[]).find(x=>x.id===id), null);
+
+    if (alunoEmQualquerTurma) {
+      // Garantir que state.turma aponta para a turma do aluno
+      // antes de chamar o original (que procura só em state.turma)
+      const turmaDoAluno = getTURMAS().find(t => (state.alunos[t]||[]).some(x=>x.id===id));
+      const prevTurma = state.turma;
+      if (turmaDoAluno) state.turma = turmaDoAluno;
+      if (typeof _origEditAlunoPA === 'function') _origEditAlunoPA(id);
+      state.turma = prevTurma;
+    } else {
+      if (typeof _origEditAlunoPA === 'function') _origEditAlunoPA(id);
+    }
+
     setTimeout(() => {
       hookImcFields();
-      const a = getTURMAS().reduce((found, t) =>
-        found || (state.alunos[t]||[]).find(x=>x.id===id), null);
+      const a = alunoEmQualquerTurma;
       if (!a) return;
       const pesoEl   = document.getElementById('aPeso');
       const alturaEl = document.getElementById('aAltura');
       const imcEl    = document.getElementById('aImcVal');
-      if (pesoEl)   pesoEl.value   = a.peso   || '';
-      if (alturaEl) alturaEl.value = a.altura || '';
+      if (pesoEl)   pesoEl.value   = a.peso   != null ? a.peso   : '';
+      if (alturaEl) alturaEl.value = a.altura != null ? a.altura : '';
       if (imcEl)    calcImcModal();
       // Mostrar botão retirar
       const delBtn = document.getElementById('btnDeleteAluno');
       if (delBtn) delBtn.style.display = '';
-    }, 50);
+    }, 80);
   };
 
   // Limpar campos ao abrir modal para novo aluno
